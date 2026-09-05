@@ -1,0 +1,11 @@
+Circuit layouts adapted from:
+https://github.com/julesr0y/f1-circuits-svg
+
+Creator: ROY Jules (julesr0y)
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+Source revision: d9f9d1b08ab6094bffabca005bd41e7a011f1647
+
+The APEX Strategy Lab copies the 24 selected minimal circuit SVGs locally,
+extracts only their path geometry in the browser, and changes colour, scale,
+stroke treatment and animation. See LICENSE.txt in this directory for the
+complete license text.

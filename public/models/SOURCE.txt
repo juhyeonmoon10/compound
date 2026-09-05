@@ -1,0 +1,21 @@
+Formula One Style Race Car
+Creator: PixelMotion4096 / ModelVault3d.PL
+Source page:
+https://modelvault3d.com.pl/3d-models-3d-graphics-modelvault3d/formula-one-style-race-car-3d-model/
+
+Downloaded GLB:
+https://modelvault3d.com.pl/wp-content/uploads/2025/12/Formula-One-Style-Race-Car.glb
+
+Source-page usage terms:
+- Basic model
+- Commercial use allowed
+- Credit required: PixelMotion4096 / ModelVault3d.PL
+
+Local modifications:
+- Runtime axis and scale normalization
+- Team-color material substitution
+- Shared-geometry rendering for the 20-car automatic race
+- No model data is used by the tyre-strategy algorithm
+
+Downloaded file SHA-256:
+7675FCE539951D07083ABB4267C551D7BEE8715529F2840259952A3E4E95D9DE

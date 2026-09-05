@@ -1,0 +1,14 @@
+Meshy AI-generated Formula Racing Car
+
+Created with Meshy AI by the APEX Strategy Lab project team.
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+Source: https://www.meshy.ai/
+
+Modifications:
+- GLB forward-axis and real-world scale normalization
+- Dynamic team-color material
+- Player-only rendering optimization
+- Code-generated tyre covers, rims, compound bands, wheel spin, and steering
+
+This asset is used only for race visualization. It does not affect tyre
+strategy timing, degradation, pit-loss, or optimization calculations.
