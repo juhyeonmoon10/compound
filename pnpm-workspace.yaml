@@ -1,0 +1,8 @@
+# This static Vite/Rolldown build uses registry-provided platform binaries.
+# Do not run install scripts for unused server/image-processing dependencies.
+# Unknown future scripts still fail under pnpm's default strictDepBuilds policy.
+allowBuilds:
+  esbuild: false
+  sharp: false
+  unrs-resolver: false
+  workerd: false
