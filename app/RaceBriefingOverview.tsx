@@ -1,6 +1,7 @@
 "use client";
 
 import { circuitLayoutUrl } from "./lib/circuit-layouts";
+import { uiLabel } from "./ui-labels";
 import { publicAsset } from "./lib/public-assets";
 import type {
   DriverProfile,
@@ -26,17 +27,17 @@ const WORKSPACES: readonly { id: StrategyWorkspace; label: string; number: strin
 ];
 
 const COMPOUND_NAMES: Readonly<Record<Compound, string>> = {
-  S: "Soft",
-  M: "Medium",
-  H: "Hard",
+  S: "소프트",
+  M: "미디엄",
+  H: "하드",
 };
 
 const COMPOUND_DISPLAY: Readonly<
   Record<Compound, { readonly colour: string; readonly descriptor: string }>
 > = {
-  S: { colour: "RED", descriptor: "SOFT" },
-  M: { colour: "YELLOW", descriptor: "MEDIUM" },
-  H: { colour: "WHITE", descriptor: "HARD" },
+  S: { colour: "빨강", descriptor: "소프트" },
+  M: { colour: "노랑", descriptor: "미디엄" },
+  H: { colour: "흰색", descriptor: "하드" },
 };
 
 const TRAFFIC_LABELS: Readonly<Record<RaceTrafficLevel, string>> = {
@@ -98,13 +99,13 @@ function StrategyStrip({
 }) {
   const finalCompound =
     strategy.stints[strategy.stints.length - 1]?.compound ?? "H";
-  const stopLabel = strategy.stopCount === 1 ? "ONE-STOPPER" : strategy.stopCount === 2 ? "TWO-STOPPER" : `${strategy.stopCount}-STOPPER`;
+  const stopLabel = strategy.stopCount === 1 ? "1회 교체" : strategy.stopCount === 2 ? "2회 교체" : `${strategy.stopCount}회 교체`;
   const resultKicker =
-    tied ? "EQUAL FASTEST" : rank === 0
-      ? "THE QUICKEST"
+    tied ? "공동 최단" : rank === 0
+      ? "최단 예측"
       : rank === 1
-        ? "ALTERNATIVE"
-        : "THIRD OPTION";
+        ? "대안 전략"
+        : "세 번째 후보";
 
   return (
     <div
@@ -130,13 +131,13 @@ function StrategyStrip({
               title={`${COMPOUND_NAMES[stint.compound]} · L${stint.startLap}–L${stint.endLap}`}
             >
               <span className="briefing-strip__line" aria-hidden="true" />
-              <small className="briefing-strip__compound" aria-hidden="true">{stint.compound} <span>· {stint.laps} LAPS</span></small>
+              <small className="briefing-strip__compound" aria-hidden="true">{stint.compound} <span>· {stint.laps}랩</span></small>
               {!isLast && pitWindow && (
                 <span
                   className="briefing-strip__window"
                   title={`피트 윈도우 L${pitWindow.startLap}–L${pitWindow.endLap} · 선택 L${pitWindow.optimalLap} · 기준 +${pitWindow.thresholdSeconds.toFixed(1)}초 이내`}
                 >
-                  LAP <b>{pitWindow.startLap}</b> TO <b>{pitWindow.endLap}</b>
+                  <b>{pitWindow.startLap}</b>–<b>{pitWindow.endLap}</b>랩
                 </span>
               )}
               {!isLast && (
@@ -226,32 +227,32 @@ export default function RaceBriefingOverview({
     <section className="race-briefing" aria-labelledby="briefing-title">
       <div className="race-briefing__stage">
         <div className="race-briefing__track">
-          <span>RACE STRATEGY / 2026</span>
+          <span>레이스 전략 / 2026</span>
           <h1 id="briefing-title">{track.koreanName}</h1>
-          <strong>{track.laps} LAPS</strong>
+          <strong>{track.laps}랩</strong>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={circuitLayoutUrl(track.id)}
             alt={`${track.koreanName} 서킷 윤곽`}
           />
           <small>
-            {track.country} · {track.circuitLengthKm.toFixed(3)} KM
+            {uiLabel(track.country)} · {track.circuitLengthKm.toFixed(3)} km · 공식 제원
           </small>
         </div>
 
         <div className="race-briefing__driver">
-          <span>YOUR ENTRY</span>
+          <span>선택한 드라이버</span>
           <h2>
-            {driver.firstName} <strong>{driver.lastName}</strong>
+            {uiLabel(driver.firstName)} <strong>{uiLabel(driver.lastName)}</strong>
           </h2>
-          <p>{team.name}</p>
+          <p>{uiLabel(team.name)}</p>
           <dl>
             <div>
-              <dt>GRID</dt>
+              <dt>출발 위치</dt>
               <dd>P{startingGridPosition}</dd>
             </div>
             <div>
-              <dt>CAR</dt>
+              <dt>차량</dt>
               <dd>{team.carModel}</dd>
             </div>
           </dl>
@@ -259,7 +260,7 @@ export default function RaceBriefingOverview({
 
         <div className="race-briefing__car">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={publicAsset(team.carImage.src)} alt={team.carImage.alt} />
+          <img src={publicAsset(team.carImage.src)} alt={`${uiLabel(team.name)} ${team.carModel} 공식 차량 이미지`} />
           <span>{team.code} · 2026</span>
         </div>
       </div>
@@ -267,15 +268,15 @@ export default function RaceBriefingOverview({
       <div className="race-briefing__conditions" aria-label="적용된 경기 조건">
         <dl>
           <div>
-            <dt>노면 온도</dt>
+            <dt>노면 온도 · 설정</dt>
             <dd>{trackTemperatureC}°C</dd>
           </div>
           <div>
-            <dt>피트 손실</dt>
+            <dt>피트 손실 · 가정</dt>
             <dd>{pitLossSeconds.toFixed(1)}초</dd>
           </div>
           <div>
-            <dt>타이어 부하</dt>
+            <dt>타이어 부하 · 추정</dt>
             <dd>{track.tyreSeverity}/5</dd>
           </div>
           <div>
@@ -299,7 +300,7 @@ export default function RaceBriefingOverview({
             <span>{item.number}</span>{item.label}
           </button>
         ))}
-        <span className="workspace-nav__model">{modelSource === "fastf1-2025" ? "2025 데이터 보정" : "프로젝트 가정 계수"} · DRY</span>
+        <span className="workspace-nav__model">{modelSource === "fastf1-2025" ? "2025 데이터 보정" : "가정 기반 계수"} · 건식</span>
       </nav>
 
       <div className="race-briefing__main" hidden={workspace !== "board"}>
@@ -307,15 +308,15 @@ export default function RaceBriefingOverview({
           <header className="briefing-board__header">
             <div className="briefing-board__heading">
               <span>
-                {track.shortCode} · {track.country} · {track.laps} LAPS
+                {track.shortCode} · {uiLabel(track.country)} · {track.laps}랩
               </span>
               <h2 id="briefing-board-title">
-                {track.koreanName} <em>POSSIBLE RACE STRATEGIES</em>
+                {track.koreanName} <em>추천 타이어 전략</em>
               </h2>
             </div>
             <div className="briefing-board__model-mark">
-              <span>TOP 3 / MODEL ESTIMATE</span>
-              <strong>STRATEGY LAB</strong>
+              <span>상위 3개 / 모델 추정</span>
+              <strong>타이어 전략 분석</strong>
             </div>
           </header>
 
@@ -336,7 +337,7 @@ export default function RaceBriefingOverview({
                     key={strategy.signature}
                   >
                     <span className="briefing-row__rank" aria-hidden="true">
-                      PLAN 0{index + 1}
+                      전략 0{index + 1}
                     </span>
                     <span className="briefing-row__timing">
                       <strong>{strategy.formattedTime}</strong>
@@ -383,16 +384,16 @@ export default function RaceBriefingOverview({
             <div className="briefing-board__facts">
               <span>
                 <small>
-                  AVERAGE
+                  설정값
                   <br />
-                  PIT STOP LOSS
+                  피트 손실
                 </small>
-                <strong>{pitLossSeconds.toFixed(1)}s</strong>
+                <strong>{pitLossSeconds.toFixed(1)}초</strong>
               </span>
               <span className="briefing-board__lap-fact">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={circuitLayoutUrl(track.id)} alt="" />
-                <strong>{track.laps} LAPS</strong>
+                <strong>{track.laps}랩</strong>
               </span>
             </div>
           </footer>
@@ -412,7 +413,7 @@ export default function RaceBriefingOverview({
           <h2>{strategySequence(selected)}</h2>
           </div>
           <div className="briefing-recommendation__time">
-            <small>예상 총시간</small>
+            <small>예상 총시간 · 추정</small>
             <strong>{selected.formattedTime}</strong>
           </div>
           <dl>
@@ -437,18 +438,18 @@ export default function RaceBriefingOverview({
               {selectedTiesBest && hasBestTie
                 ? selectedRank === 0
                   ? strategyReason(best, runnerUp)
-                  : `${strategySequence(selected)}은 현재 비용식에서 1번 후보와 동일한 예상 총시간입니다. 번호는 우열이 아니라 재현 가능한 내부 표시 순서입니다.`
+                  : `${strategySequence(selected)}은 현재 비용식에서 1번 후보와 동일한 예상 총시간 · 추정입니다. 번호는 우열이 아니라 재현 가능한 내부 표시 순서입니다.`
                 : selectedRank === 0
                 ? strategyReason(best, runnerUp)
-                : `${strategySequence(selected)}은 1위와 같은 조건을 통과한 대안이며 예상 총시간 차이는 ${formatDelta(selected.totalSeconds - best.totalSeconds)}입니다.`}
+                : `${strategySequence(selected)}은 1위와 같은 조건을 통과한 대안이며 예상 총시간 · 추정 차이는 ${formatDelta(selected.totalSeconds - best.totalSeconds)}입니다.`}
             </p>
           </details>
           <div className="briefing-provenance" aria-label="결과 출처">
             <span>
-              {modelSource === "fastf1-2025" ? "실제 데이터 보정" : "프로젝트 계수"}
+              {modelSource === "fastf1-2025" ? "실제 데이터 보정" : "가정 기반 계수"}
             </span>
             <span>모델 추정</span>
-            <span>DP 최적화</span>
+            <span>동적계획법 최적화</span>
           </div>
           <div className="briefing-recommendation__actions">
             <button type="button" className="is-primary" onClick={onOpenManual}>

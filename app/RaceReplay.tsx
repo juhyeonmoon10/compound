@@ -121,18 +121,18 @@ interface RaceReplayProps {
 }
 
 const COMPOUND_NAMES: Readonly<Record<Compound, string>> = {
-  S: "SOFT",
-  M: "MEDIUM",
-  H: "HARD",
+  S: "소프트",
+  M: "미디엄",
+  H: "하드",
 };
 
 const TYRE_CONDITION_LABELS: Readonly<Record<TyreCondition, string>> = {
-  warming: "WARMING",
-  optimal: "OPTIMAL",
-  worn: "WORN",
-  graining: "GRAINING",
-  overheated: "OVERHEAT",
-  cliff: "CLIFF",
+  warming: "예열",
+  optimal: "적정",
+  worn: "마모",
+  graining: "그레이닝",
+  overheated: "과열",
+  cliff: "성능 급락",
 };
 
 const TYRE_CONDITION_LABELS_KO: Readonly<Record<TyreCondition, string>> = {
@@ -150,16 +150,16 @@ const CAMERA_MODES: ReadonlyArray<{
   readonly label: string;
   readonly description: string;
 }> = [
-  { id: "map", label: "MAP", description: "서킷 전체 지도" },
-  { id: "chase", label: "CHASE", description: "차량 뒤 3인칭 모델 시점" },
+  { id: "map", label: "지도", description: "서킷 전체 지도" },
+  { id: "chase", label: "추적", description: "차량 뒤 3인칭 모델 시점" },
   {
     id: "cockpit",
-    label: "COCKPIT",
+    label: "운전석",
     description: "운전석 1인칭 모델 시점",
   },
   {
     id: "broadcast",
-    label: "TV",
+    label: "중계",
     description: "서킷 옆 중계 카메라",
   },
 ];
@@ -278,9 +278,9 @@ function makeRaceGrid(
 }
 
 function formatRaceGap(car: RaceGridCarFrame): string {
-  if (car.position === 1) return "INTERVAL";
-  if (car.completed) return "FINISHED";
-  if (car.isPitting) return "PIT";
+  if (car.position === 1) return "선두";
+  if (car.completed) return "완주";
+  if (car.isPitting) return "피트";
   return `+${car.gapToLeaderSeconds.toFixed(1)}`;
 }
 
@@ -722,7 +722,7 @@ function drawPerspectiveTrack(
     context.fillStyle = "#080a0c";
     context.font = "900 12px ui-monospace, monospace";
     context.textAlign = "center";
-    context.fillText("PIT LOSS MODEL", width / 2, height * 0.15 + 20);
+    context.fillText("피트 손실 추정", width / 2, height * 0.15 + 20);
   }
 }
 
@@ -1438,7 +1438,7 @@ export default function RaceReplay({
     schedule(840, 3, "스타팅 라이트 3개 점등");
     schedule(1_260, 2, "스타팅 라이트 4개 점등");
     schedule(1_680, 1, "스타팅 라이트 5개 점등");
-    schedule(2_200, "GO", "LIGHTS OUT · 전략 레이스 시작");
+    schedule(2_200, "GO", "출발 · 전략 레이스 시작");
     countdownTimersRef.current.push(
       window.setTimeout(() => {
         setCountdown(null);
@@ -1635,7 +1635,7 @@ export default function RaceReplay({
     setPerformanceMode(nextMode);
     setLiveMessage(
       nextMode === "realistic"
-        ? "2026 실전 성능 프록시를 20대 레이스 재생에 적용했습니다."
+        ? "2026 성능 추정 모델을 20대 레이스 재생에 적용했습니다."
         : "모든 팀과 드라이버를 동일 성능으로 맞췄습니다.",
     );
   };
@@ -1735,17 +1735,17 @@ export default function RaceReplay({
     >
       <div className="race-replay__heading">
         <div>
-          <span>STRATEGY GRAND PRIX · 20 CAR GRID</span>
+          <span>자동 전략 레이스 · 20대 시뮬레이션</span>
           <h3 id="race-replay-title">전략만 바꿔 승부하는 자동 레이스</h3>
           <p>
             20대 모두 같은 자동 주행선을 사용합니다. 동일 성능 모드는
-            타이어 전략만 분리해 비교하고, 실전 성능 모드는 공식 2026
-            결과 기반의 보수적인 팀·드라이버 프록시를 추가합니다. 사용자
+            타이어 전략만 분리해 비교하고, 추정 성능 모드는 공식 2026
+            결과 기반의 보수적인 팀·드라이버 추정치를 추가합니다. 사용자
             조작은 어느 모드에서도 결과에 들어가지 않습니다.
           </p>
         </div>
         <div className="race-replay__identity">
-          <span>PLAYER ENTRY · P{playerGridCar.gridPosition}</span>
+          <span>내 차량 · P{playerGridCar.gridPosition}</span>
           <strong>
             {strategyLabel} · {track.shortCode}
           </strong>
@@ -1757,7 +1757,7 @@ export default function RaceReplay({
 
       <div className="race-replay__camera-bar">
         <div>
-          <span>CAMERA</span>
+          <span>주행 시점</span>
           <strong>
             {cameraMode === "map"
               ? "서킷 전체"
@@ -1804,14 +1804,14 @@ export default function RaceReplay({
 
       <div className="race-replay__performance-panel">
         <div className="race-replay__performance-copy">
-          <span>RACE PERFORMANCE MODEL</span>
+          <span>차량·선수 성능 추정</span>
           <strong>
             {performanceMode === "realistic"
-              ? "2026 실전 성능 프록시"
+              ? "2026 성능 추정 모델"
               : "동일 성능 비교"}
           </strong>
           <small>
-            성능치는 20대 레이스 재생에만 적용되며 추천 전략·Top 3·전략
+            성능치는 20대 레이스 재생에만 적용되며 추천 전략·상위 3개·전략
             점수는 바꾸지 않습니다.
           </small>
         </div>
@@ -1839,8 +1839,8 @@ export default function RaceReplay({
         </div>
         <div className="race-replay__performance-ratings">
           {performanceMetrics.map(([code, label, value]) => (
-            <div title={`${label} ${value}/100`} key={code}>
-              <span>{code}</span>
+            <div title={`${label} 추정 ${value}/100`} key={code}>
+              <span>{label}</span>
               <strong>{value}</strong>
               <i>
                 <b style={{ width: `${value}%` }} />
@@ -1887,15 +1887,15 @@ export default function RaceReplay({
         <div className="race-replay__stage">
           <div className="race-replay__stage-header">
             <div>
-              <span>TRACK VIEW</span>
+              <span>주행 화면</span>
               <strong>{track.koreanName}</strong>
             </div>
             <b className={playerFrame.isPitting ? "is-pitting" : ""}>
               {playerFrame.completed
-                ? "FINISH"
+                ? "완주"
                 : playerFrame.isPitting
-                  ? "PIT STOP"
-                  : `P${playerFrame.position} · LAP ${displayLap}`}
+                  ? "피트 정차"
+                  : `P${playerFrame.position} · ${displayLap}랩`}
             </b>
           </div>
 
@@ -2000,7 +2000,7 @@ export default function RaceReplay({
                             r={isPlayer ? 8 : 4.5}
                             fill={visual?.color ?? "#cbd2d5"}
                           />
-                          {isPlayer && <text y="-12">YOU</text>}
+                          {isPlayer && <text y="-12">내 차</text>}
                         </g>
                       );
                     })}
@@ -2034,10 +2034,10 @@ export default function RaceReplay({
                     }
                   >
                     {webglStatus === "ready"
-                      ? "LIVE 3D · CIRCUIT GEOMETRY"
+                      ? "3D 주행 · 실제 서킷 윤곽"
                       : webglStatus === "failed"
-                        ? "LITE 3D · CANVAS FALLBACK"
-                        : "3D SCENE · LOADING"}
+                        ? "간소화 주행 · 호환 모드"
+                        : "3D 주행 화면 준비 중"}
                   </div>
                 )}
 
@@ -2060,9 +2060,9 @@ export default function RaceReplay({
                   aria-label="실시간 상위 10대와 플레이어 순위"
                 >
                   <div className="race-replay__timing-heading">
-                    <span>POS</span>
-                    <strong>LIVE TIMING</strong>
-                    <small>TYRE · GAP</small>
+                    <span>순위</span>
+                    <strong>주행 기록 · 추정</strong>
+                    <small>타이어 · 간격</small>
                   </div>
                   <ol>
                     {timingTowerCars.map((car) => {
@@ -2094,10 +2094,10 @@ export default function RaceReplay({
                     })}
                   </ol>
                   <p>
-                    AUTO DRIVE ·{" "}
+                    자동 주행 ·{" "}
                     {performanceMode === "realistic"
-                      ? "2026 PERFORMANCE PROXY"
-                      : "IDENTICAL BASE PACE"}
+                      ? "2026 성능 추정"
+                      : "동일 기본 페이스"}
                   </p>
                 </aside>
 
@@ -2106,7 +2106,7 @@ export default function RaceReplay({
                   aria-label="게임형 전략 재생 정보"
                 >
                   <div className="race-replay__hud-lap">
-                    <span>LAP</span>
+                    <span>현재 랩</span>
                     <strong>
                       {playerFrame.completed
                         ? playerFrame.lap
@@ -2115,7 +2115,7 @@ export default function RaceReplay({
                     </strong>
                   </div>
                   <div className="race-replay__hud-delta">
-                    <span>RACE POSITION</span>
+                    <span>추정 순위</span>
                     <strong>P{playerFrame.position}</strong>
                   </div>
                   <div
@@ -2130,7 +2130,7 @@ export default function RaceReplay({
                     <span>
                       {COMPOUND_NAMES[playerFrame.compound]}
                       <small>
-                        {playerFrame.tyreAge + 1} LAPS ·{" "}
+                        {playerFrame.tyreAge + 1}랩 ·{" "}
                         {TYRE_CONDITION_LABELS[currentTyreState.condition]}
                       </small>
                       <em>
@@ -2141,25 +2141,25 @@ export default function RaceReplay({
                     </span>
                   </div>
                   <div className="race-replay__hud-pace">
-                    <span>NEXT PIT</span>
+                    <span>다음 교체</span>
                     <strong>
                       {nextPitAfterLap === undefined
-                        ? "FINISH"
-                        : `AFTER L${nextPitAfterLap}`}
+                        ? "완주"
+                        : `L${nextPitAfterLap} 종료 후`}
                     </strong>
                   </div>
                   <div
                     className="race-replay__hud-speed"
                     data-braking={displayTelemetry.braking > 0.3}
                   >
-                    <span>VISUAL SPEED</span>
+                    <span>표시 속도 · 추정</span>
                     <strong>
                       {displayTelemetry.speedKph}
-                      <small> KM/H</small>
+                      <small> km/h</small>
                     </strong>
                     <div>
                       <b>{displayGear === 0 ? "N" : displayGear}</b>
-                      <i>{displayRpm.toLocaleString("en-US")} RPM</i>
+                      <i>{displayRpm.toLocaleString("en-US")} 회전/분</i>
                     </div>
                   </div>
                 </div>
@@ -2169,7 +2169,7 @@ export default function RaceReplay({
                     <i />
                     {strategyLabel}
                   </span>
-                  <b>TYRE STRATEGY HEAD‑TO‑HEAD</b>
+                  <b>타이어 전략 비교</b>
                   <span className="is-reference">
                     <i />
                     {referenceLabel}
@@ -2179,16 +2179,16 @@ export default function RaceReplay({
                 {phase === "ready" && (
                   <div className="race-replay__race-overlay is-ready">
                     <div className="race-replay__brief-kicker">
-                      <span>ROUND 01</span>
+                      <span>레이스 준비</span>
                       <i />
-                      <span>AUTO STRATEGY RACE</span>
+                      <span>자동 전략 레이스</span>
                     </div>
                     <strong>
                       {track.koreanName}
-                      <small>{track.laps} LAPS</small>
+                      <small>{track.laps}랩</small>
                     </strong>
                     <p>
-                      {driver.code} · P{playerGridCar.gridPosition} START ·{" "}
+                      {driver.code} · P{playerGridCar.gridPosition} 출발 ·{" "}
                       {compactStrategy(strategy)}
                     </p>
                     <div className="race-replay__brief-facts">
@@ -2198,7 +2198,7 @@ export default function RaceReplay({
                       </span>
                       <span>
                         <b>{strategy.stopCount}</b>
-                        PIT STOPS
+                        피트 교체
                       </span>
                       <span>
                         <b>0</b>
@@ -2217,14 +2217,14 @@ export default function RaceReplay({
                       <span>
                         {webglStatus === "loading"
                           ? "서킷 준비 중"
-                          : "GRID & START"}
+                          : "그리드 배치 · 출발"}
                       </span>
                       <b aria-hidden="true">→</b>
                     </button>
                     <small>
                       {performanceMode === "realistic"
-                        ? "2026 PERFORMANCE PROXY · DETERMINISTIC · STRATEGY-FIRST"
-                        : "SAME CAR PACE · DETERMINISTIC TRAFFIC · STRATEGY ONLY"}
+                        ? "2026 성능 추정 · 동일 입력 재현 · 전략 우선"
+                        : "동일 기본 성능 · 재현 가능한 교통 · 전략 비교"}
                     </small>
                     {onOpenSetup && (
                       <button
@@ -2240,7 +2240,7 @@ export default function RaceReplay({
 
                 {phase === "countdown" && countdown !== null && (
                   <div className="race-replay__race-overlay is-countdown">
-                    <span>STARTING GRID · P{playerGridCar.gridPosition}</span>
+                    <span>출발 그리드 · P{playerGridCar.gridPosition}</span>
                     <div
                       className={`race-replay__start-lights ${
                         countdown === "GO" ? "is-out" : ""
@@ -2266,19 +2266,19 @@ export default function RaceReplay({
                       ))}
                     </div>
                     <strong>
-                      {countdown === "GO" ? "LIGHTS OUT" : "HOLD"}
+                      {countdown === "GO" ? "출발" : "대기"}
                     </strong>
                     <small>
                       {performanceMode === "realistic"
-                        ? "실전 성능 프록시 · 타이어 전략 중심"
+                        ? "성능 추정 · 타이어 전략 중심"
                         : "동일한 기본 페이스 · 전략만 승부"}
                     </small>
                   </div>
                 )}
                 {phase === "paused" && !playerFrame.isPitting && (
                   <div className="race-replay__race-overlay is-paused">
-                    <span>STRATEGY RACE</span>
-                    <strong>PAUSED</strong>
+                    <span>자동 전략 레이스</span>
+                    <strong>일시정지</strong>
                     <small>재생 버튼을 눌러 계속하기</small>
                   </div>
                 )}
@@ -2286,14 +2286,14 @@ export default function RaceReplay({
                   phase !== "countdown" &&
                   phase !== "results" && (
                   <div className="race-replay__race-overlay is-pit">
-                    <span>PIT STOP · L{Math.max(1, displayLap - 1)}</span>
+                    <span>피트 정차 · L{Math.max(1, displayLap - 1)}</span>
                     <strong>
                       +
                       {(
                         activePitSegment?.modelSeconds ??
                         track.pitLossSeconds
                       ).toFixed(1)}{" "}
-                      SEC
+                      초
                     </strong>
                     <div className="race-replay__pit-progress">
                       <i style={{ width: `${pitProgress * 100}%` }} />
@@ -2305,7 +2305,7 @@ export default function RaceReplay({
                 )}
                 {phase === "finished" && (
                   <div className="race-replay__race-overlay is-finished">
-                    <span>CHEQUERED FLAG</span>
+                    <span>레이스 종료</span>
                     <strong>P{finalPlayerFrame.position}</strong>
                     <small>
                       {referenceLabel} 대비 최종 {finalDeltaText}
@@ -2315,14 +2315,14 @@ export default function RaceReplay({
                 {phase === "results" && (
                   <div className="race-replay__race-overlay is-results">
                     <div className="race-replay__result-heading">
-                      <span>RACE CLASSIFICATION</span>
+                      <span>시뮬레이션 결과</span>
                       <strong>
                         P{finalPlayerFrame.position}
                         <small>/ 20</small>
                       </strong>
                     </div>
                     <div className="race-replay__result-score">
-                      <span>STRATEGY SCORE</span>
+                      <span>전략 평가 · 추정</span>
                       <strong>
                         {resultScore ?? "—"}
                         <small>/ 100</small>
@@ -2340,7 +2340,7 @@ export default function RaceReplay({
                       <span>{strategyLabel}</span>
                       <strong>{compactStrategy(strategy)}</strong>
                       <small>
-                        PIT{" "}
+                        피트{" "}
                         {strategy.pitAfterLaps
                           .map((lap) => `L${lap}`)
                           .join(" · ")}
@@ -2363,7 +2363,7 @@ export default function RaceReplay({
                     </div>
                     <p>
                       점수는 운전 실력 없이 타이어 전략의 모델 시간만
-                      Rank 1 DP 해와 비교합니다.
+                      동적계획법의 1위 전략과 비교합니다.
                     </p>
                   </div>
                 )}
@@ -2385,13 +2385,13 @@ export default function RaceReplay({
                 </span>
                 <strong>{fullscreenControlLabel}</strong>
               </button>
-              <kbd>SPACE</kbd>
+              <kbd>스페이스</kbd>
             </div>
           </div>
 
           <div className="race-replay__track-meta">
             <span>
-              {track.circuitLengthKm.toFixed(3)} KM · {track.turns} TURNS
+              {track.circuitLengthKm.toFixed(3)} km · {track.turns}개 코너 · 공식 제원
             </span>
             <div className="race-replay__source-links">
               <a
@@ -2407,7 +2407,7 @@ export default function RaceReplay({
                 target="_blank"
                 rel="noreferrer"
               >
-                3D CAR · {RACE_CAR_ASSET.creator}
+                3D 차량 · {RACE_CAR_ASSET.creator}
               </a>
             </div>
           </div>
@@ -2415,7 +2415,7 @@ export default function RaceReplay({
 
         <aside className="race-replay__telemetry" aria-label="재생 상태">
           <div className="race-replay__lap">
-            <span>RACE POSITION</span>
+            <span>추정 순위</span>
             <strong>
               P{playerFrame.position}
               <small>/ 20</small>
@@ -2423,10 +2423,10 @@ export default function RaceReplay({
           </div>
 
           <div className="race-replay__delta">
-            <span>GAP TO LEADER</span>
+            <span>선두와 간격 · 추정</span>
             <strong className={playerFrame.position > 1 ? "is-loss" : ""}>
               {playerFrame.position === 1
-                ? "LEADER"
+                ? "선두"
                 : `+${playerFrame.gapToLeaderSeconds.toFixed(3)}초`}
             </strong>
             <small>공유 모델 시계 · 동일 거리 기준</small>
@@ -2496,7 +2496,7 @@ export default function RaceReplay({
             }`}
           >
             <span>
-              {playerFrame.isPitting ? "PIT EVENT" : "RACE EVENT"}
+              {playerFrame.isPitting ? "피트 상황" : "주행 상황"}
             </span>
             <strong>
               {playerFrame.isPitting
@@ -2563,7 +2563,7 @@ export default function RaceReplay({
               aria-label="이전 랩 시작"
               disabled={gridFrame.elapsedSeconds <= 0}
             >
-              −1 LAP
+              −1랩
             </button>
           )}
           <button
@@ -2590,7 +2590,7 @@ export default function RaceReplay({
               aria-label="다음 랩 시작"
               disabled={playerFrame.completed}
             >
-              +1 LAP
+              +1랩
             </button>
           )}
           {phase !== "ready" && (
@@ -2622,7 +2622,7 @@ export default function RaceReplay({
       {(phase === "paused" || phase === "results") && (
       <div className="race-replay__timeline">
         <div className="race-replay__timeline-heading">
-          <span>STRATEGY TIMELINE</span>
+          <span>전략 타임라인</span>
           <strong>
             최종 예상 차이 · {finalDeltaText}
           </strong>
@@ -2657,8 +2657,8 @@ export default function RaceReplay({
       <p className="race-replay__disclaimer">
         실제 서킷 윤곽 기반의 모델 시각화입니다. 실제 고도·차량 물리를
         재현하지 않습니다. 결과 차이는 타이어 전략과 공개한 결정론적
-        그리드·교통·피트 규칙에서 발생하며, 실전 성능 모드에서는
-        팀·드라이버 프록시가 작은 범위로 추가됩니다. 표시 속도·FOV·카메라
+        그리드·교통·피트 규칙에서 발생하며, 추정 성능 모드에서는
+        팀·드라이버 추정치가 작은 범위로 추가됩니다. 표시 속도·시야각·카메라
         효과는 연출용이며 전략 계산에는 사용하지 않습니다.
       </p>
       <p className="sr-only" aria-live="polite">

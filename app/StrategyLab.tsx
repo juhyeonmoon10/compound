@@ -1,5 +1,7 @@
 "use client";
 
+import { uiLabel } from "./ui-labels";
+
 import {
   lazy,
   Suspense,
@@ -97,7 +99,7 @@ const PAGE_VIEWS: ReadonlyArray<{
   { id: "strategy", label: "전략 설계", controls: "simulation" },
   { id: "data", label: "데이터 분석", controls: "data-analysis" },
   { id: "method", label: "알고리즘·검증", controls: "algorithm verification" },
-  { id: "research", label: "연구 정보", controls: "research" },
+  { id: "research", label: "정보·출처", controls: "research" },
 ];
 
 const RESULT_DETAIL_TABS: ReadonlyArray<{
@@ -109,9 +111,9 @@ const RESULT_DETAIL_TABS: ReadonlyArray<{
 ];
 
 const COMPOUND_NAMES: Record<Compound, string> = {
-  S: "Soft",
-  M: "Medium",
-  H: "Hard",
+  S: "소프트",
+  M: "미디엄",
+  H: "하드",
 };
 
 const COMPOUND_COLORS: Record<Compound, string> = {
@@ -294,7 +296,7 @@ function TeamCarVisual({ team }: { team: TeamProfile }) {
     <article className="team-car-card">
       <div className="team-car-card__heading">
         <div>
-          <span>OFFICIAL 2026 CAR</span>
+          <span>2026 공식 차량 이미지</span>
           <strong>{team.carModel}</strong>
         </div>
         <b>{team.code}</b>
@@ -308,7 +310,7 @@ function TeamCarVisual({ team }: { team: TeamProfile }) {
         <img
           key={team.id}
           src={publicAsset(team.carImage.src)}
-          alt={team.carImage.alt}
+          alt={`${uiLabel(team.name)} ${team.carModel} 공식 차량 이미지`}
           loading="lazy"
           decoding="async"
           onError={(event) => {
@@ -322,16 +324,16 @@ function TeamCarVisual({ team }: { team: TeamProfile }) {
         <i aria-hidden="true" />
       </div>
       <div className="team-car-card__credit">
-        <span>FORMULA 1 OFFICIAL</span>
+        <span>F1 공식 이미지 출처</span>
         <p>
           <a
             href={team.carImage.sourceUrl}
             target="_blank"
             rel="noreferrer"
           >
-            2026 car render
+            2026 공식 차량 렌더
           </a>{" "}
-          · school research project
+          · 비공식·비영리 사용
         </p>
       </div>
     </article>
@@ -527,7 +529,7 @@ function LapTimeChart({ strategy }: { strategy: StrategyEvaluation }) {
                 fontSize="11"
                 fontWeight="700"
               >
-                PIT
+                피트
               </text>
             </g>
           ))}
@@ -734,12 +736,12 @@ function ValidationPanel({
     return [
       {
         title: "DP ↔ 완전탐색",
-        detail: "8랩 가상 문제 Top 3 일치",
+        detail: "8랩 가상 문제 상위 3개 일치",
         pass: bruteMatch,
       },
       {
         title: "모델 제약",
-        detail: "프로젝트 범위 1–2스톱 · 건식 2종",
+        detail: "가정한 탐색 범위 1–2스톱 · 건식 2종",
         pass: results.every((result) => result.isLegal),
       },
       {
@@ -766,7 +768,7 @@ function ValidationPanel({
               check.pass ? "is-pass" : "is-fail"
             }`}
           >
-            {check.pass ? "PASS" : "CHECK"}
+            {check.pass ? "통과" : "확인 필요"}
           </div>
           <h3>{check.title}</h3>
           <p>{check.detail}</p>
@@ -996,7 +998,7 @@ export default function StrategyLab({
         : createDefaultManualPlan(nextTrack.laps),
     );
     setAnnouncement(
-      `${profileDriver.firstName} ${profileDriver.lastName} 프로필로 ${nextTrack.koreanName} ${nextTrack.laps}랩의 타이어 전략 Top 3와 직접 전략 비교가 준비되었습니다.`,
+      `${uiLabel(profileDriver.firstName)} ${uiLabel(profileDriver.lastName)} 프로필로 ${nextTrack.koreanName} ${nextTrack.laps}랩의 타이어 전략 상위 3개와 직접 전략 비교가 준비되었습니다.`,
     );
 
     const url = new URL(window.location.href);
@@ -1060,9 +1062,9 @@ export default function StrategyLab({
   const replayReference = best;
   const replayStrategyLabel =
     analysisMode === "manual"
-      ? "MY STRATEGY"
-      : `RANK ${String(selectedTopThree.rank).padStart(2, "0")}`;
-  const replayReferenceLabel = "DP OPTIMAL";
+      ? "내 전략"
+      : `전략 ${String(selectedTopThree.rank).padStart(2, "0")}`;
+  const replayReferenceLabel = "동적계획법 최적";
   const manualDelta = manualStrategy.totalSeconds - best.totalSeconds;
   const manualPitDelta = manualStrategy.breakdown.pitLossSeconds - best.breakdown.pitLossSeconds;
   const manualTyreDelta = manualDelta - manualPitDelta;
@@ -1234,7 +1236,7 @@ export default function StrategyLab({
             <span className="brand__mark">c</span>
             <span>
               compound
-              <small>STRATEGY LAB</small>
+              <small>타이어 전략 분석</small>
             </span>
           </button>
           <div className="topnav" aria-label="주요 화면">
@@ -1251,7 +1253,7 @@ export default function StrategyLab({
               </button>
             ))}
           </div>
-          <span className="project-chip">FASTF1 CASE · DP V3.0</span>
+          <span className="project-chip">FastF1 분석 · 동적계획법 3.0</span>
         </nav>
 
       </header>
@@ -1269,11 +1271,11 @@ export default function StrategyLab({
         >
           <div className="home-page__hero">
             <div>
-              <span>DATA-DRIVEN F1 RESEARCH</span>
+              <span>데이터 기반 F1 전략 분석</span>
               <h1 id="home-title">더 빠른 한 랩보다,<br />더 빠른 레이스.</h1>
               <p>
                 실제 F1 공개 랩을 분석하고, 설명 가능한 동적계획법으로
-                타이어 전략 Top 3를 만든 뒤 반복 실험과 백테스트로
+                타이어 전략 상위 3개를 만든 뒤 반복 실험과 백테스트로
                 검증합니다.
               </p>
               <div>
@@ -1281,28 +1283,28 @@ export default function StrategyLab({
                   전략 설계 시작
                 </button>
                 <button type="button" onClick={() => selectPageView("method")}>
-                  연구 방법 보기
+                  계산 원리 보기
                 </button>
               </div>
             </div>
             <article>
-              <span>REFERENCE SCENARIO</span>
+              <span>현재 조건의 예측 전략</span>
               <strong>{appliedTrack.koreanName}</strong>
-              <small>{appliedTrack.laps} LAPS · DRY MODEL</small>
+              <small>{appliedTrack.laps}랩 · 건식 모델 추정</small>
               <StrategyTimeline strategy={best} totalLaps={appliedTrack.laps} />
               <p>{strategySequence(best)} · {best.formattedTime}</p>
             </article>
           </div>
           <dl className="home-page__metrics">
-            <div><dt>공개 Race 원시 랩</dt><dd>{FASTF1_ANALYSIS_SUMMARY.rawLaps.toLocaleString()}</dd></div>
-            <div><dt>정제 후 분석 랩</dt><dd>{FASTF1_ANALYSIS_SUMMARY.modelLaps.toLocaleString()}</dd></div>
-            <div><dt>분석 스틴트</dt><dd>{FASTF1_ANALYSIS_SUMMARY.stints}</dd></div>
-            <div><dt>실제 서킷 프리셋</dt><dd>{TRACK_PRESET_IDS.length}</dd></div>
+            <div><dt>실측 · 공개 결승 랩</dt><dd>{FASTF1_ANALYSIS_SUMMARY.rawLaps.toLocaleString()}</dd></div>
+            <div><dt>실측 · 정제 후 분석 랩</dt><dd>{FASTF1_ANALYSIS_SUMMARY.modelLaps.toLocaleString()}</dd></div>
+            <div><dt>실측 · 분석 스틴트</dt><dd>{FASTF1_ANALYSIS_SUMMARY.stints}</dd></div>
+            <div><dt>공식 제원 · 서킷</dt><dd>{TRACK_PRESET_IDS.length}</dd></div>
           </dl>
           <ol className="home-page__flow">
             <li><span>01</span><strong>공개 데이터</strong><small>FastF1 랩·타이어·날씨</small></li>
             <li><span>02</span><strong>열화 추정</strong><small>연료와 환경을 통제한 회귀</small></li>
-            <li><span>03</span><strong>Top 3 계산</strong><small>K-best 동적계획법</small></li>
+            <li><span>03</span><strong>상위 3개 계산</strong><small>상위 후보 동적계획법</small></li>
             <li><span>04</span><strong>결과 검증</strong><small>백테스트·민감도·반복 실험</small></li>
           </ol>
         </section>
@@ -1322,7 +1324,7 @@ export default function StrategyLab({
           </div>
           <p className="intro-strip__copy">
             2026 시즌의 실제 서킷과 조건을 선택해 규정을 만족하는 타이어
-            전략 Top 3를 비교합니다. 계산 결과와 모델 가정, 전략 전환
+            전략 상위 3개를 비교합니다. 계산 결과와 모델 가정, 전략 전환
             조건을 함께 확인할 수 있습니다.
           </p>
         </section>
@@ -1335,11 +1337,11 @@ export default function StrategyLab({
         >
           <div className="section-heading">
             <div>
-              <p className="eyebrow">01 · STRATEGY SIMULATION</p>
+              <p className="eyebrow">01 · 전략 시뮬레이션</p>
               <h2 id="simulation-title">조건부터 결과까지 한 흐름으로</h2>
             </div>
             <p>
-              조건을 바꾸고 계산하면 추천 전략, Top 3 타임라인, 직접 만든
+              조건을 바꾸고 계산하면 추천 전략, 상위 3개 타임라인, 직접 만든
               전략과 상세 차트가 아래 순서대로 갱신됩니다.
             </p>
           </div>
@@ -1393,7 +1395,7 @@ export default function StrategyLab({
               >
                 <div className="participant-panel__heading">
                   <div>
-                    <span>01 · SCENARIO SETUP</span>
+                    <span>01 · 서킷과 참가자</span>
                     <h2 id="participant-title">서킷·팀·드라이버 선택</h2>
                   </div>
                   <p>
@@ -1441,7 +1443,7 @@ export default function StrategyLab({
                       >
                         {TEAM_PROFILES.map((team) => (
                           <option value={team.id} key={team.id}>
-                            {team.name}
+                            {uiLabel(team.name)}
                           </option>
                         ))}
                       </select>
@@ -1459,7 +1461,7 @@ export default function StrategyLab({
                       >
                         {selectedTeam.drivers.map((driver) => (
                           <option value={driver.id} key={driver.id}>
-                            {driver.firstName} {driver.lastName}
+                            {uiLabel(driver.firstName)} {uiLabel(driver.lastName)}
                           </option>
                         ))}
                       </select>
@@ -1475,7 +1477,7 @@ export default function StrategyLab({
                       <img
                         key={selectedDriver.id}
                         src={selectedDriver.headshotUrl}
-                        alt={`${selectedDriver.firstName} ${selectedDriver.lastName}`}
+                        alt={`${uiLabel(selectedDriver.firstName)} ${uiLabel(selectedDriver.lastName)}`}
                         referrerPolicy="no-referrer"
                         onError={(event) => {
                           event.currentTarget.hidden = true;
@@ -1486,10 +1488,10 @@ export default function StrategyLab({
                       {selectedDriver.number}
                     </strong>
                     <div className="driver-card__identity">
-                      <span>{selectedDriver.firstName}</span>
-                      <h4>{selectedDriver.lastName}</h4>
+                      <span>{uiLabel(selectedDriver.firstName)}</span>
+                      <h4>{uiLabel(selectedDriver.lastName)}</h4>
                       <p>
-                        {selectedTeam.name} · {selectedDriver.countryCode}
+                        {uiLabel(selectedTeam.name)} · {selectedDriver.countryCode}
                       </p>
                     </div>
                     <div
@@ -1512,10 +1514,10 @@ export default function StrategyLab({
             >
               <div className="panel-heading">
                 <div>
-                  <span className="panel-index">02 · RACE CONDITIONS</span>
+                  <span className="panel-index">02 · 레이스 조건</span>
                   <h3 id="conditions-title">주행 조건</h3>
                 </div>
-                <span className="model-tag">MODEL INPUT</span>
+                <span className="model-tag">모델 입력값 · 가정</span>
               </div>
 
               <div className="track-summary">
@@ -1535,7 +1537,7 @@ export default function StrategyLab({
                     {draftTrack.pitLossSeconds.toFixed(1)}초
                   </small>
                 </div>
-                <b>{draftTrack.laps} LAPS</b>
+                <b>{draftTrack.laps}랩</b>
               </div>
 
               <div className="apex-race-conditions">
@@ -1545,10 +1547,10 @@ export default function StrategyLab({
                 >
                   <div className="apex-condition-card__heading">
                     <div>
-                      <span>WEATHER</span>
+                      <span>환경 조건 · 설정</span>
                       <h4 id="weather-conditions-title">환경 조건</h4>
                     </div>
-                    <b>DRY MODEL</b>
+                    <b>건식 모델</b>
                   </div>
 
                   <div className="apex-weather-grid">
@@ -1667,10 +1669,10 @@ export default function StrategyLab({
                 >
                   <div className="apex-condition-card__heading">
                     <div>
-                      <span>RACE SITUATION</span>
+                      <span>경기 상황 · 설정</span>
                       <h4 id="race-situation-title">레이스 상황</h4>
                     </div>
-                    <b>20 CAR GRID</b>
+                    <b>20대 출발 그리드</b>
                   </div>
 
                   <label className="apex-grid-position">
@@ -1721,7 +1723,7 @@ export default function StrategyLab({
                   </fieldset>
 
                   <p className="apex-condition-card__note">
-                    그리드와 트래픽은 Top 3의 클린에어 최적화 순위를
+                    그리드와 트래픽은 상위 3개의 클린에어 최적화 순위를
                     바꾸지 않고, 아래 20대 자동주행의 출발 위치와 교통
                     손실에 반영됩니다.
                   </p>
@@ -1745,7 +1747,7 @@ export default function StrategyLab({
                         }))
                       }
                     />
-                    <span>프로젝트 모델</span>
+                    <span>가정 기반 모델</span>
                   </label>
                   <label
                     title={
@@ -1796,7 +1798,7 @@ export default function StrategyLab({
                           }))
                         }
                       />
-                      <span>{stops} STOP</span>
+                      <span>{stops}회 교체</span>
                     </label>
                   ))}
                 </div>
@@ -1888,15 +1890,15 @@ export default function StrategyLab({
                 className="calculate-button"
                 onClick={runCalculation}
               >
-                <span>{dirty ? "새 조건으로 Top 3 계산" : "Top 3 다시 계산"}</span>
+                <span>{dirty ? "새 조건으로 상위 3개 계산" : "상위 3개 다시 계산"}</span>
                 <span aria-hidden="true">→</span>
               </button>
               <p className="input-note">
-                1–2스톱은 프로젝트 탐색 범위이며 FIA의 의무 정차 횟수를
+                1–2스톱은 모델 탐색 범위이며 FIA의 의무 정차 횟수를
                 뜻하지 않습니다.{" "}
                 {draft.modelSource === "fastf1-2025"
-                  ? `${analysisForTrack(draft.trackId)?.title} FastF1 정제 랩에서 신뢰 기준을 통과한 기울기만 사용하며, 나머지 항은 프로젝트 모델입니다.`
-                  : "현재 선택은 서킷 등급 기반 프로젝트 계수입니다."}
+                  ? `${analysisForTrack(draft.trackId)?.title} FastF1 정제 랩에서 신뢰 기준을 통과한 기울기만 사용하며, 나머지 항은 가정 기반 모델입니다.`
+                  : "현재 선택은 서킷 등급 기반 가정 계수입니다."}
               </p>
             </section>
             </aside>
@@ -1908,7 +1910,7 @@ export default function StrategyLab({
               <div className="flow-section-heading" id="recommendation">
                 <div>
                   <span>
-                    RECOMMENDATION · {appliedTrack.koreanName}
+                    추천 전략 · {appliedTrack.koreanName}
                   </span>
                   <h3>레이스를 완주하는 세 가지 전략.</h3>
                 </div>
@@ -1922,13 +1924,13 @@ export default function StrategyLab({
                 <p>
                   {selectedTeam.code} · {selectedDriver.code} ·{" "}
                   {appliedTrack.koreanName} ·{" "}
-                  {appliedTrack.laps} LAPS · 최대 {applied.maxStops} STOP
+                  {appliedTrack.laps}랩 · 최대 {applied.maxStops}회 교체
                 </p>
               </div>
               <article className="winner-card">
                 <div className="winner-card__top">
                   <div>
-                    <span className="rank-label">RECOMMENDED · RANK 01</span>
+                    <span className="rank-label">추천 · 1위</span>
                     <div className="compound-sequence">
                       {best.stints.map((stint, index) => (
                         <span key={`${stint.compound}-${stint.startLap}`}>
@@ -1965,7 +1967,7 @@ export default function StrategyLab({
                   </div>
                   <div>
                     <span>정차 횟수</span>
-                    <strong>{best.stopCount} STOP</strong>
+                    <strong>{best.stopCount}회 교체</strong>
                   </div>
                   <div>
                     <span>내부 규칙</span>
@@ -1984,8 +1986,8 @@ export default function StrategyLab({
               <section className="top-three" aria-labelledby="top-three-title">
                 <div className="subsection-heading">
                   <div>
-                    <span>03 · TOP 3 TIMELINES</span>
-                    <h3 id="top-three-title">Top 3 전략 타임라인</h3>
+                    <span>03 · 상위 3개 전략 타임라인</span>
+                    <h3 id="top-three-title">상위 3개 전략 타임라인</h3>
                   </div>
                   <p>전략을 선택하면 아래 세부 차트가 바뀝니다.</p>
                 </div>
@@ -2038,7 +2040,7 @@ export default function StrategyLab({
                           <dt>차이</dt>
                           <dd>
                             {index === 0
-                              ? "BEST"
+                              ? "최단"
                               : formatDelta(
                                   strategy.totalSeconds -
                                     best.totalSeconds,
@@ -2068,10 +2070,10 @@ export default function StrategyLab({
               >
                 <div className="manual-builder__heading">
                   <div>
-                    <span>02 / STRATEGY EDITOR</span>
+                    <span>02 / 직접 전략 설계</span>
                     <h3 id="manual-builder-title">직접 전략 만들기</h3>
                     <p>
-                      Top 3는 그대로 두고, 컴파운드와 피트랩을 직접 정해
+                      상위 3개는 그대로 두고, 컴파운드와 피트랩을 직접 정해
                       같은 비용식으로 비교합니다.
                     </p>
                   </div>
@@ -2117,12 +2119,12 @@ export default function StrategyLab({
                                 )
                               }
                             />
-                            <span>{stops} STOP</span>
+                            <span>{stops}회 교체</span>
                           </label>
                         ))}
                       </div>
                       {applied.maxStops === 1 && (
-                        <small>현재 계산 조건은 최대 1 STOP입니다.</small>
+                        <small>현재 계산 조건은 최대 1회 교체입니다.</small>
                       )}
                     </fieldset>
 
@@ -2147,7 +2149,7 @@ export default function StrategyLab({
                           >
                             <div className="manual-stint-row__meta">
                               <span>
-                                STINT {String(index + 1).padStart(2, "0")}
+                                스틴트 {String(index + 1).padStart(2, "0")}
                               </span>
                               <strong>
                                 L{stint.startLap}–L{stint.endLap}
@@ -2252,7 +2254,7 @@ export default function StrategyLab({
                   >
                     <div className="manual-preview__top">
                       <div>
-                        <span>CUSTOM PLAN</span>
+                        <span>직접 설계한 전략</span>
                         <h4 id="manual-preview-title">내 전략</h4>
                       </div>
                       <b
@@ -2301,9 +2303,9 @@ export default function StrategyLab({
                     <p className="manual-preview__match">
                       {manualStrategy.isLegal
                         ? manualMatch
-                          ? `Top 3 #${manualMatch.rank}와 같은 전략`
+                          ? `상위 3개 #${manualMatch.rank}와 같은 전략`
                           : "직접 만든 고유 전략"
-                        : "규칙을 고치면 Top 3와 공정하게 비교할 수 있습니다."}
+                        : "규칙을 고치면 상위 3개와 공정하게 비교할 수 있습니다."}
                     </p>
 
                     {manualStrategy.isLegal && <div className="manual-impact" aria-label="추천 최단 전략 대비 시간 차이 원인">
@@ -2350,7 +2352,7 @@ export default function StrategyLab({
                       }}>실험 노트에 기록하기</button>
                     <p className="manual-preview__note">
                       {!manualStrategy.isLegal
-                        ? "규칙 위반 전략은 Top 3 순위 비교에서 제외합니다."
+                        ? "규칙 위반 전략은 상위 3개 순위 비교에서 제외합니다."
                         : manualDraftDirty
                           ? "편집 내용이 아직 주행에 반영되지 않았습니다. 다시 주행 버튼을 눌러 고정하세요."
                           : "같은 랩타임·열화·피트 손실 모델로 계산하고 주행 전략을 고정합니다."}
@@ -2364,7 +2366,7 @@ export default function StrategyLab({
                 id="detail-analysis"
               >
                 <div>
-                  <span>03 / EXPLAIN THE RESULT</span>
+                  <span>03 / 결과 해석</span>
                   <h3>선택 전략 세부 차트</h3>
                 </div>
                 <p>
@@ -2374,11 +2376,11 @@ export default function StrategyLab({
 
               <div className="result-detail-tabs">
                 <div>
-                  <span>DETAIL VIEW</span>
+                  <span>상세 분석</span>
                   <strong>
                     {analysisMode === "manual"
-                      ? "CUSTOM PLAN"
-                      : `RANK 0${selectedTopThree.rank}`}
+                      ? "직접 설계한 전략"
+                      : `전략 0${selectedTopThree.rank}`}
                   </strong>
                 </div>
                 <div role="tablist" aria-label="세부 차트">
@@ -2411,7 +2413,7 @@ export default function StrategyLab({
               >
                 <div className="analysis-card__heading">
                   <div>
-                    <span>LAP MODEL</span>
+                    <span>랩타임 모델 · 추정</span>
                     <h3 id="chart-title">예상 랩타임</h3>
                   </div>
                   <p className="chart-note">
@@ -2431,7 +2433,7 @@ export default function StrategyLab({
               >
                 <div className="analysis-card__heading">
                   <div>
-                    <span>COST BREAKDOWN</span>
+                    <span>시간 비용 내역 · 추정</span>
                     <h3 id="cost-title">시간 비용 분해</h3>
                   </div>
                   <strong className="analysis-total">
@@ -2593,7 +2595,7 @@ export default function StrategyLab({
         >
           <div className="section-heading section-heading--light">
             <div>
-              <p className="eyebrow">03 · HOW IT WORKS</p>
+              <p className="eyebrow">03 · 계산 원리</p>
               <h2 id="algorithm-title">알고리즘을 숨기지 않습니다</h2>
             </div>
             <p>
@@ -2604,7 +2606,7 @@ export default function StrategyLab({
 
           <div className="formula-card">
             <div>
-              <span>한 랩의 예상시간</span>
+              <span>한 랩의 예상시간 · 모델 추정</span>
               <code>
                 LapTime(l,c,a) = B + Δ<sub>c</sub> + α<sub>c</sub>a + β
                 <sub>c</sub>a² + Θ(c,a,T<sub>s</sub>,v) − γ(l−1)
@@ -2640,13 +2642,13 @@ export default function StrategyLab({
                 number: "03",
                 title: "두 가지 선택",
                 body: "현재 타이어로 계속 달리거나 새 타이어로 교체합니다.",
-                code: "STAY / PIT → S·M·H → TYRE STATE",
+                code: "유지 / 교체 → S·M·H → 타이어 상태",
               },
               {
                 number: "04",
                 title: "완주 후보 정렬",
                 body: "제약조건을 통과한 고유 경로를 시간순으로 정렬합니다.",
-                code: "LEGAL → UNIQUE → TOP 3",
+                code: "제약 확인 → 중복 제거 → 상위 3개",
               },
             ].map((step) => (
               <article key={step.number}>
@@ -2660,7 +2662,7 @@ export default function StrategyLab({
 
           <div className="algorithm-detail-grid">
             <article className="state-card">
-              <span className="detail-label">STATE DESIGN</span>
+              <span className="detail-label">계산 상태의 구성</span>
               <h3>상태에 무엇을 기억하나?</h3>
               <dl>
                 <div>
@@ -2687,7 +2689,7 @@ export default function StrategyLab({
             </article>
 
             <article className="pseudo-card">
-              <span className="detail-label">PSEUDOCODE</span>
+              <span className="detail-label">의사코드</span>
               <h3>핵심 로직</h3>
               <pre>
                 <code>{`for lap in race:
@@ -2704,7 +2706,7 @@ return unique_top_3()`}</code>
             </article>
 
             <article className="why-dp-card">
-              <span className="detail-label">WHY DP?</span>
+              <span className="detail-label">동적계획법을 쓰는 이유</span>
               <h3>당장 빠른 선택이 끝까지 빠르지는 않습니다.</h3>
               <p>
                 소프트의 한 랩 이득만 보고 고르면 후반 열화와 추가
@@ -2733,12 +2735,12 @@ return unique_top_3()`}</code>
         >
           <div className="section-heading">
             <div>
-              <p className="eyebrow">04 · VERIFY THE CODE</p>
+              <p className="eyebrow">04 · 알고리즘 검증</p>
               <h2 id="verification-title">정답보다 검증 가능한 과정</h2>
             </div>
             <p>
               아래 항목은 현재 브라우저에서 같은 계산 함수를 다시 실행해
-              확인합니다. 통과하지 못하면 PASS로 표시하지 않습니다.
+              확인합니다. 통과하지 못한 항목은 따로 표시합니다.
             </p>
           </div>
           {pageView === "method" && sensitivity && (
@@ -2754,7 +2756,7 @@ return unique_top_3()`}</code>
               >
                 <div>
                   <span>
-                    {sensitivity.stable ? "STABLE" : "SENSITIVE"}
+                    {sensitivity.stable ? "전략 유지" : "조건에 민감"}
                   </span>
                   <h3>열화율 ±10% 민감도</h3>
                 </div>
@@ -2797,38 +2799,38 @@ return unique_top_3()`}</code>
         >
           <div className="research-overview">
             <div>
-              <p className="eyebrow">01 · RESEARCH PURPOSE</p>
+              <p className="eyebrow">01 · 서비스 소개</p>
               <h2 id="research-title">
                 데이터 분석으로 구현한 타이어 전략 알고리즘
               </h2>
             </div>
             <p>
               실제 팀 시스템을 재현하는 대신 공개 자료와 설명 가능한
-              비용식으로 전략 생성·비교·검증 과정을 보여주는 연구
-              프로젝트입니다.
+              비용식으로 전략을 생성하고 비교·검증하는 비공식·비영리
+              시뮬레이터입니다.
             </p>
           </div>
 
           <div className="research-block-heading">
-            <span>02 · DATA</span>
+            <span>02 · 데이터 출처</span>
             <h3>현재 데이터와 다음 분석 단계</h3>
           </div>
 
           <div className="research-data-grid">
             <article>
-              <span>CURRENT PROTOTYPE</span>
+              <span>현재 구현 범위</span>
               <h3>공개 메타데이터 + 선택형 실데이터 보정</h3>
               <p>
-                2026 최초 발표 캘린더의 24개 개최지에 공식 랩 수·길이·
+                2026 최초 공개 캘린더의 24개 개최지에 공식 랩 수·길이·
                 코너 수를 반영했습니다. 바레인·제다는 취소 상태로
                 표시하되 역사·가상 분석용으로 유지합니다. 재생 화면의
                 24개 서킷 윤곽은 CC BY 4.0 공개 SVG를 사용합니다. 열화
                 등급, 피트 손실과 대부분의 랩타임 계수는 알고리즘 시연용
-                프로젝트 추정값입니다. 바레인·바르셀로나·레드불 링·
+                모델 추정값입니다. 바레인·바르셀로나·레드불 링·
                 헝가로링·몬차에서는 2025 실제 정제 랩의 신뢰 가능한
                 컴파운드 기울기를 선택 적용할 수 있습니다. 랩별 타이어
                 온도·마모·그립은 공개 텔레메트리가 아닌 설명 가능한
-                결정론적 프록시입니다.
+                재현 가능한 추정 모델입니다.
               </p>
               <a
                 href="https://www.fia.com/news/fia-and-formula-1-announce-2026-calendar"
@@ -2839,10 +2841,10 @@ return unique_top_3()`}</code>
               </a>
             </article>
             <article>
-              <span>ANALYSIS DATASET</span>
+              <span>실측 분석 자료</span>
               <h3>FastF1 2025 건식 레이스 5개</h3>
               <p>
-                실제 Race 세션 {FASTF1_ANALYSIS_SUMMARY.rawLaps.toLocaleString()}
+                실제 결승 세션 {FASTF1_ANALYSIS_SUMMARY.rawLaps.toLocaleString()}
                 랩을 시작으로 건식·녹색기·정확 랩과 정상 스틴트를
                 선별했습니다. 최종{" "}
                 {FASTF1_ANALYSIS_SUMMARY.modelLaps.toLocaleString()}랩·
@@ -2858,7 +2860,7 @@ return unique_top_3()`}</code>
               </button>
             </article>
             <article className="research-data-grid__wide">
-              <span>3D VISUAL ASSET</span>
+              <span>3D 모델 출처</span>
               <h3>전략 계산과 분리된 레이스 시각화</h3>
               <p>
                 플레이어 차량은 {PLAYER_RACE_CAR_ASSET.creator}의{" "}
@@ -2888,7 +2890,7 @@ return unique_top_3()`}</code>
               </div>
             </article>
             <article className="research-data-grid__wide">
-              <span>CIRCUIT VISUAL REFERENCE</span>
+              <span>서킷 시각화 참고 자료</span>
               <h3>실제 서킷 특성을 구분한 주행 환경</h3>
               <p>
                 공식 F1 게임의 시각 재현 기준을 참고해 아스팔트 러버 라인,
@@ -2953,7 +2955,7 @@ return unique_top_3()`}</code>
 
           <div className="section-heading">
             <div>
-              <p className="eyebrow">03 · ASSUMPTIONS</p>
+              <p className="eyebrow">03 · 모델 가정</p>
               <h2 id="assumptions-title">계산을 위해 고정한 가정</h2>
             </div>
             <p>
@@ -2976,7 +2978,7 @@ return unique_top_3()`}</code>
 
           <div className="section-heading research-limits-heading">
             <div>
-              <p className="eyebrow">04 · LIMITS</p>
+              <p className="eyebrow">04 · 적용 범위와 한계</p>
               <h2 id="limits-title">이 모델이 말하는 것, 말하지 않는 것</h2>
             </div>
             <p>
@@ -2987,23 +2989,23 @@ return unique_top_3()`}</code>
 
           <div className="limits-grid">
             <article className="limit-card limit-card--included">
-              <span>INCLUDED</span>
+              <span>반영 항목</span>
               <h3>계산에 반영</h3>
               <ul>
                 <li>S/M/H의 초기 성능 차이</li>
                 <li>타이어 나이에 따른 1차·2차 열화</li>
-                <li>워밍업·온도·그립·그레이닝·과열·성능 절벽 프록시</li>
+                <li>워밍업·온도·그립·그레이닝·과열·성능 급락 추정</li>
                 <li>랩이 지날수록 감소하는 연료 효과</li>
                 <li>서킷별 고정 피트 손실</li>
-                <li>프로젝트 탐색 범위: 1–2스톱</li>
+                <li>모델 탐색 범위: 1–2스톱</li>
                 <li>서로 다른 건식 타이어 2종 사용 조건</li>
                 <li>실제 서킷 윤곽 위 선택 전략 랩·피트 이벤트 재생</li>
-                <li>20대 성능 프록시와 결정론적 교통·더블스택 보정</li>
+                <li>20대 성능 추정치와 결정론적 교통·더블스택 보정</li>
               </ul>
             </article>
 
             <article className="limit-card limit-card--excluded">
-              <span>NOT INCLUDED</span>
+              <span>미반영 항목</span>
               <h3>이번 버전에서 제외</h3>
               <ul>
                 <li>비, 노면 수분, 실제 타이어 센서 온도·압력</li>
@@ -3017,7 +3019,7 @@ return unique_top_3()`}</code>
             </article>
 
             <article className="limit-card limit-card--meaning">
-              <span>INTERPRETATION</span>
+              <span>결과 해석</span>
               <h3>결과의 올바른 의미</h3>
               <p>
                 최적화 점수는 클린에어 타이어 모델로 비교합니다. 20대 레이스
@@ -3028,7 +3030,7 @@ return unique_top_3()`}</code>
               <div>
                 <strong>규정 표기</strong>
                 <span>
-                  FIA 인증 아님 · 프로젝트 내부 기본 건식 규칙 판정
+                  FIA 인증 아님 · 모델 내부 기본 건식 규칙 판정
                 </span>
               </div>
             </article>
@@ -3066,12 +3068,12 @@ return unique_top_3()`}</code>
           >
             <header>
               <div>
-                <span>RACE WEEKEND SETUP</span>
+                <span>레이스 조건 설정</span>
                 <h2 id="race-setup-title">그리드에 들어가기 전 설정</h2>
                 <p>
-                  팀·선수 선택은 타이어 전략 Top 3 계산에 영향을 주지 않습니다.
-                  레이스 리플레이의 선택형 성능 모드에서는 프로젝트 능력치
-                  프록시가 적용됩니다.
+                  팀·선수 선택은 타이어 전략 상위 3개 계산에 영향을 주지 않습니다.
+                  레이스 리플레이의 선택형 성능 모드에서는 추정 능력치
+                  모델이 적용됩니다.
                 </p>
               </div>
               <button
@@ -3089,10 +3091,10 @@ return unique_top_3()`}</code>
                   <span>{draftDriver.code}</span>
                   <strong>{draftDriver.number}</strong>
                   <h3>
-                    {draftDriver.firstName}{" "}
-                    {draftDriver.lastName}
+                    {uiLabel(draftDriver.firstName)}{" "}
+                    {uiLabel(draftDriver.lastName)}
                   </h3>
-                  <p>{draftTeam.name} · 2026 GRID</p>
+                  <p>{uiLabel(draftTeam.name)} · 2026 참가자</p>
                 </div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -3137,7 +3139,7 @@ return unique_top_3()`}</code>
                     >
                       {TEAM_PROFILES.map((candidate) => (
                         <option value={candidate.id} key={candidate.id}>
-                          {candidate.name}
+                          {uiLabel(candidate.name)}
                         </option>
                       ))}
                     </select>
@@ -3153,7 +3155,7 @@ return unique_top_3()`}</code>
                     >
                       {draftTeam.drivers.map((candidate) => (
                         <option value={candidate.id} key={candidate.id}>
-                          {candidate.firstName} {candidate.lastName}
+                          {uiLabel(candidate.firstName)} {uiLabel(candidate.lastName)}
                         </option>
                       ))}
                     </select>
@@ -3240,7 +3242,7 @@ return unique_top_3()`}</code>
                             }))
                           }
                         />
-                        <span>{stops} STOP</span>
+                        <span>{stops}회 교체</span>
                       </label>
                     ))}
                   </fieldset>
@@ -3297,7 +3299,7 @@ return unique_top_3()`}</code>
                           }))
                         }
                       />
-                      <span>프로젝트 모델</span>
+                      <span>가정 기반 모델</span>
                     </label>
                     <label
                       title={
@@ -3386,8 +3388,8 @@ return unique_top_3()`}</code>
 
             <footer>
               <p>
-                {draftTrack.koreanName} · {draftTrack.laps} LAPS ·{" "}
-                {draftTrack.circuitLengthKm.toFixed(3)} KM
+                {draftTrack.koreanName} · {draftTrack.laps}랩 ·{" "}
+                {draftTrack.circuitLengthKm.toFixed(3)} km · 공식 제원
               </p>
               <div>
                 <button
@@ -3421,31 +3423,31 @@ return unique_top_3()`}</code>
               <span className="brand__mark">c</span>
               <span>
                 compound
-                <small>STRATEGY LAB</small>
+                <small>타이어 전략 분석</small>
               </span>
             </a>
             <p>
-              데이터 분석을 통한 F1 타이어 전략 알고리즘 구현 학교
-              프로젝트입니다.
+              공개 데이터를 분석해 타이어 전략을 계산하고 비교하는
+              시뮬레이터입니다.
             </p>
           </div>
           <dl>
             <div>
-              <dt>MODEL</dt>
+              <dt>계산 모델</dt>
               <dd>{STRATEGY_MODEL_VERSION}</dd>
             </div>
             <div>
-              <dt>DATA</dt>
-              <dd>FastF1 정제 랩 · 프로젝트 추정값</dd>
+              <dt>데이터 출처</dt>
+              <dd>FastF1 정제 랩 · 모델 추정값</dd>
             </div>
             <div>
-              <dt>SCOPE</dt>
-              <dd>건식 · S/M/H · 1–2 STOP</dd>
+              <dt>모델 범위</dt>
+              <dd>건식 · S/M/H · 1–2회 교체</dd>
             </div>
           </dl>
           <p className="footer__disclaimer">
-            Formula 1, F1 및 각 팀과 제휴하지 않은 비공식·비상업 교육
-            프로젝트입니다. 상단 드라이버 이미지는 Formula1.com 프로필,
+            F1 및 각 팀과 제휴하지 않은 비공식·비영리
+            시뮬레이터입니다. 상단 드라이버 이미지는 Formula1.com 프로필,
             차량은 Formula1.com의 2026 공식 투명 렌더를 사용하며 각 차량
             카드에서 원본 출처를 확인할 수 있습니다. 서킷 윤곽은 Jules
             Roy의 f1-circuits-svg(CC BY 4.0)를 사용합니다. 3D 자동

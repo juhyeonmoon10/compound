@@ -1,5 +1,7 @@
 "use client";
 
+import { uiLabel } from "./ui-labels";
+
 import { useMemo, useState, type CSSProperties } from "react";
 import {
   FASTF1_ANALYSIS_SUMMARY,
@@ -84,7 +86,7 @@ function SlopeChart({
                 <strong>
                   {estimate.decision === "learned"
                     ? estimate.alphaSecondsPerLap.toFixed(4)
-                    : "FALLBACK"}
+                    : "가정값"}
                 </strong>
                 <small>
                   {estimate.decision === "learned"
@@ -98,7 +100,7 @@ function SlopeChart({
       </div>
       <p className="fastf1-chart__note">
         막대는 회귀로 추정한 랩당 페이스 저하량(초/랩)입니다. 신뢰 기준을
-        통과하지 못한 컴파운드는 막대를 그리지 않고 프로젝트값을
+        통과하지 못한 컴파운드는 막대를 그리지 않고 가정값을
         사용합니다.
       </p>
     </div>
@@ -155,7 +157,7 @@ export default function FastF1AnalysisPanel({
     <>
       <div className="section-heading">
         <div>
-          <p className="eyebrow">02 · MULTI-RACE FASTF1 DATA</p>
+          <p className="eyebrow">02 · FastF1 다중 경기 분석</p>
           <h2 id="data-analysis-title">
             한 경기의 우연이 아닌지 비교했습니다
           </h2>
@@ -171,12 +173,12 @@ export default function FastF1AnalysisPanel({
         <div>
           <span>분석 레이스</span>
           <strong>{FASTF1_ANALYSIS_SUMMARY.races}</strong>
-          <small>2025 건식 Race</small>
+          <small>2025 건식 경기 · 관측</small>
         </div>
         <div>
           <span>원본 기록 랩</span>
           <strong>{compactNumber(FASTF1_ANALYSIS_SUMMARY.rawLaps)}</strong>
-          <small>FastF1 공개 타이밍</small>
+          <small>FastF1 공개 랩 기록 · 실측</small>
         </div>
         <div>
           <span>최종 모델 랩</span>
@@ -191,7 +193,7 @@ export default function FastF1AnalysisPanel({
         <div>
           <span>적용 계수</span>
           <strong>{FASTF1_ANALYSIS_SUMMARY.learnedCoefficients}/15</strong>
-          <small>나머지는 fallback</small>
+          <small>나머지는 가정값 사용</small>
         </div>
       </div>
 
@@ -214,12 +216,12 @@ export default function FastF1AnalysisPanel({
               key={analysis.id}
               onClick={() => setSelectedAnalysisId(analysis.id)}
             >
-              <span>{analysis.title.replace("2025 ", "")}</span>
+              <span>{uiLabel(analysis.title.replace("2025 ", ""))}</span>
               <strong>{analysis.profile}</strong>
               <small>
                 {learned.map((estimate) => estimate.compound).join("·") ||
                   "보정 없음"}{" "}
-                학습 · MAE {analysis.validation.maeSeconds.toFixed(3)}초
+                추정 오차 · MAE {analysis.validation.maeSeconds.toFixed(3)}초
               </small>
             </button>
           );
@@ -227,13 +229,13 @@ export default function FastF1AnalysisPanel({
       </div>
 
       <div className="fastf1-comparison-callout">
-        <span>관측 범위</span>
+        <span>실측 기반 추정 범위</span>
         <strong>
           {comparisonRange.min.toFixed(4)}–{comparisonRange.max.toFixed(4)}
           초/랩
         </strong>
         <p>
-          같은 공식으로도 몬차 Hard와 바레인 Hard의 학습 기울기가 약{" "}
+          같은 공식으로도 몬차 하드와 바레인 하드의 학습 기울기가 약{" "}
           {(comparisonRange.max / comparisonRange.min).toFixed(1)}배
           달랐습니다. 따라서 하나의 고정 열화값을 모든 서킷에
           적용하지 않습니다.
@@ -243,17 +245,17 @@ export default function FastF1AnalysisPanel({
       <div className="fastf1-source-strip">
         <div>
           <span className="fastf1-source-strip__badge">
-            ACTUAL DATA CASE {FASTF1_TYRE_ANALYSES.indexOf(selected) + 1}/
+            실측 자료 {FASTF1_TYRE_ANALYSES.indexOf(selected) + 1}/
             {FASTF1_TYRE_ANALYSES.length}
           </span>
-          <strong>{selected.title} · RACE</strong>
+          <strong>{uiLabel(selected.title)} · 결승</strong>
           <small>
             {selected.source.library} ·{" "}
-            {selected.source.compoundAllocation} · 수집{" "}
+            {uiLabel(selected.source.compoundAllocation)} · 수집{" "}
             {selected.source.retrievedAt}
           </small>
         </div>
-        <p>{selected.studyRole}</p>
+        <p>{uiLabel(selected.studyRole)}</p>
       </div>
 
       <ol className="fastf1-funnel" aria-label="랩 데이터 정제 과정">
@@ -275,29 +277,29 @@ export default function FastF1AnalysisPanel({
         <article className="fastf1-panel fastf1-panel--chart">
           <header>
             <div>
-              <span className="detail-label">OBSERVED DEGRADATION</span>
+              <span className="detail-label">실측 기반 열화 추정</span>
               <h3>컴파운드별 관측 페이스 저하율</h3>
             </div>
             <b>
-              {selected.summary.drivers} DRIVER ·{" "}
-              {selected.summary.stints} STINT
+              {selected.summary.drivers}명 ·{" "}
+              {selected.summary.stints}스틴트
             </b>
           </header>
           <SlopeChart analysis={selected} />
         </article>
 
         <aside className="fastf1-panel fastf1-validation">
-          <span className="detail-label">TIME-ORDERED HOLDOUT</span>
+          <span className="detail-label">시간순 분리 검증</span>
           <h3>미래 랩을 미리 보지 않았습니다</h3>
           <p>{selected.methodology.validation}</p>
           <div className="fastf1-validation__metrics">
             <div>
-              <span>MAE</span>
+              <span>평균 절대 오차</span>
               <strong>{selected.validation.maeSeconds.toFixed(3)}</strong>
               <small>초 / 랩</small>
             </div>
             <div>
-              <span>RMSE</span>
+              <span>제곱평균제곱근 오차</span>
               <strong>{selected.validation.rmseSeconds.toFixed(3)}</strong>
               <small>초 / 랩</small>
             </div>
@@ -323,7 +325,7 @@ export default function FastF1AnalysisPanel({
       <article className="fastf1-panel fastf1-coefficients">
         <header>
           <div>
-            <span className="detail-label">ESTIMATED COEFFICIENTS</span>
+            <span className="detail-label">회귀 추정 계수</span>
             <h3>확실한 값만 전략 계산에 사용</h3>
           </div>
           <code>{selected.methodology.formula}</code>
@@ -331,14 +333,14 @@ export default function FastF1AnalysisPanel({
         <div className="table-scroll">
           <table>
             <caption className="sr-only">
-              {selected.title} 컴파운드별 열화 효과 추정치
+              {uiLabel(selected.title)} 컴파운드별 열화 효과 추정치
             </caption>
             <thead>
               <tr>
                 <th>타이어</th>
                 <th>표본</th>
                 <th>관측 열화 효과</th>
-                <th>95% 구간</th>
+                <th>95% 신뢰구간</th>
                 <th>전략 적용</th>
               </tr>
             </thead>
@@ -352,7 +354,7 @@ export default function FastF1AnalysisPanel({
                       {estimate.compound}
                     </span>
                     <strong>
-                      {estimate.absoluteCompound} {estimate.label}
+                      {estimate.absoluteCompound} {uiLabel(estimate.label)}
                     </strong>
                   </td>
                   <td>
@@ -370,10 +372,10 @@ export default function FastF1AnalysisPanel({
                       className={`calibration-decision calibration-decision--${estimate.decision}`}
                     >
                       {estimate.decision === "learned"
-                        ? "실측 기울기 사용"
-                        : "프로젝트값 유지"}
+                        ? "실측 기반 추정값 사용"
+                        : "가정값 유지"}
                     </span>
-                    <small>{estimate.decisionReason}</small>
+                    <small>{uiLabel(estimate.decisionReason)}</small>
                   </td>
                 </tr>
               ))}
@@ -384,11 +386,11 @@ export default function FastF1AnalysisPanel({
 
       <div className="fastf1-apply-card">
         <div>
-          <span className="detail-label">TRACK-SCOPED CALIBRATION</span>
+          <span className="detail-label">해당 서킷에만 보정</span>
           <h3>
-            {selected.circuit}에서만 선택 적용 · {learnedCount}/3 계수
+            {uiLabel(selected.circuit)}에서만 선택 적용 · {learnedCount}/3 계수
           </h3>
-          <p>{calibration?.note}</p>
+          <p>{uiLabel(calibration?.note ?? "")}</p>
         </div>
         <button
           type="button"
@@ -398,7 +400,7 @@ export default function FastF1AnalysisPanel({
         >
           {selectedIsApplied
             ? "적용됨 · 전략 화면 보기"
-            : `${selected.title.replace("2025 ", "")} 보정 적용`}
+            : `${uiLabel(selected.title.replace("2025 ", ""))} 보정 적용`}
           <span aria-hidden="true">→</span>
         </button>
       </div>
@@ -429,7 +431,7 @@ export default function FastF1AnalysisPanel({
           target="_blank"
           rel="noreferrer"
         >
-          Pirelli 배정·특성 ↗
+          피렐리 배정·특성 ↗
         </a>
         <a
           href={selected.source.raceSourceUrl}

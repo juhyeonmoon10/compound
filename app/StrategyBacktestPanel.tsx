@@ -1,5 +1,7 @@
 "use client";
 
+import { uiLabel } from "./ui-labels";
+
 import { useMemo, useState } from "react";
 import {
   OBSERVED_BACKTEST_EVENTS,
@@ -8,7 +10,7 @@ import {
 } from "./lib/strategy-backtest";
 import type { StrategyStintInput } from "./lib/strategy";
 
-const COMPOUND_LABEL = { S: "SOFT", M: "MEDIUM", H: "HARD" } as const;
+const COMPOUND_LABEL = { S: "소프트", M: "미디엄", H: "하드" } as const;
 
 function StrategyTimeline({
   title,
@@ -25,7 +27,7 @@ function StrategyTimeline({
     <article className="backtest-timeline">
       <header>
         <h4>{title}</h4>
-        <span>{stints.length - 1} STOP</span>
+        <span>{stints.length - 1}회 교체</span>
       </header>
       <div className="backtest-timeline__bar">
         {stints.map((item, index) => {
@@ -50,7 +52,7 @@ function StrategyTimeline({
         })}
       </div>
       <p>
-        PIT {stints.slice(0, -1).map((item) => `L${item.endLap}`).join(" · ")}
+        피트 {stints.slice(0, -1).map((item) => `L${item.endLap}`).join(" · ")}
       </p>
     </article>
   );
@@ -70,7 +72,7 @@ export default function StrategyBacktestPanel() {
     <section className="strategy-backtest" aria-labelledby="backtest-title">
       <header className="strategy-backtest__header">
         <div>
-          <span className="detail-label">ACTUAL STRATEGY BACKTEST</span>
+          <span className="detail-label">실제 관측 전략 재검증</span>
           <h3 id="backtest-title">실제 전략을 알고리즘에 다시 넣어보기</h3>
         </div>
         <p>
@@ -92,7 +94,7 @@ export default function StrategyBacktestPanel() {
             }}
             key={item.id}
           >
-            <b>{item.label}</b>
+            <b>{uiLabel(item.label)}</b>
             <span>{item.circuit} · {item.raceLaps}랩</span>
           </button>
         ))}
@@ -107,16 +109,16 @@ export default function StrategyBacktestPanel() {
             key={item.code}
           >
             <b>{item.code}</b>
-            <span>{item.name} · P{item.finish}</span>
+            <span>{uiLabel(item.name)} · P{item.finish}</span>
           </button>
         ))}
       </div>
 
       <div className="backtest-metrics">
-        <article><span>실제 완주 순위</span><strong>P{driver.finish}</strong><small>참고 정보</small></article>
-        <article><span>모델 내 동일 전략</span><strong>{result.modelRank ? `#${result.modelRank}` : "20+"}</strong><small>탐색 상위 20개 기준</small></article>
-        <article><span>모델 최적 대비</span><strong>+{result.deltaToBestSeconds.toFixed(2)}s</strong><small>모델 비용 차이</small></article>
-        <article><span>피트스톱</span><strong>{result.observed.stopCount} vs {result.best.stopCount}</strong><small>관측 / 모델 1위</small></article>
+        <article><span>실제 완주 순위</span><strong>P{driver.finish}</strong><small>공식 경기 결과</small></article>
+        <article><span>동일 전략의 추정 순위</span><strong>{result.modelRank ? `#${result.modelRank}` : "20+"}</strong><small>탐색 상위 20개 기준</small></article>
+        <article><span>모델 최적 대비</span><strong>+{result.deltaToBestSeconds.toFixed(2)}초</strong><small>모델 추정 시간 차이</small></article>
+        <article><span>피트스톱</span><strong>{result.observed.stopCount} / {result.best.stopCount}</strong><small>관측 / 모델 1위</small></article>
       </div>
 
       <div className="backtest-comparison">
@@ -126,12 +128,12 @@ export default function StrategyBacktestPanel() {
 
       <div className="backtest-bottom">
         <article className="backtest-ranking">
-          <header><h4>모델 추천 Top 3</h4><span>Δ BEST</span></header>
+          <header><h4>모델 추천 상위 3개</h4><span>최단 대비</span></header>
           {result.alternatives.slice(0, 3).map((item) => (
             <div key={item.signature}>
               <b>#{item.rank}</b>
-              <span>{item.stints.map((stint) => `${stint.compound} ${stint.laps}L`).join(" → ")}</span>
-              <strong>+{(item.totalSeconds - result.best.totalSeconds).toFixed(2)}s</strong>
+              <span>{item.stints.map((stint) => `${stint.compound} ${stint.laps}랩`).join(" → ")}</span>
+              <strong>+{(item.totalSeconds - result.best.totalSeconds).toFixed(2)}초</strong>
             </div>
           ))}
         </article>

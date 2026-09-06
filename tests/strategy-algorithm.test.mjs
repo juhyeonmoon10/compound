@@ -1420,7 +1420,7 @@ test("Option 3 workspace connects the race briefing to five research views and e
     ['strategy', '전략 설계', 'simulation'],
     ['data', '데이터 분석', 'data-analysis'],
     ['method', '알고리즘·검증', 'algorithm verification'],
-    ['research', '연구 정보', 'research'],
+    ['research', '정보·출처', 'research'],
   ];
   for (const [id, label, controls] of expectedViews) {
     assert.ok(component.includes(`| "${id}"`) || component.includes(`=\n  | "${id}"`));
@@ -1484,7 +1484,7 @@ test("Option 3 workspace connects the race briefing to five research views and e
   assert.ok(
     briefing.includes('id="briefing-board-title"'),
   );
-  assert.ok(briefing.includes("POSSIBLE RACE STRATEGIES"));
+  assert.ok(briefing.includes("추천 타이어 전략"));
   assert.ok(briefing.includes("{results.slice(0, 3).map((strategy, index) => ("));
   assert.ok(briefing.includes('className="briefing-board__header"'));
   assert.ok(briefing.includes('className="briefing-board__legend"'));
@@ -1505,8 +1505,8 @@ test("Option 3 workspace connects the race briefing to five research views and e
   assert.ok(briefing.includes("onClick={onOpenReplay}"));
   assert.ok(briefing.includes('aria-label="결과 출처"'));
   assert.ok(briefing.includes("실제 데이터 보정"));
-  assert.ok(briefing.includes("프로젝트 계수"));
-  assert.ok(briefing.includes("DP 최적화"));
+  assert.ok(briefing.includes("가정 기반 계수"));
+  assert.ok(briefing.includes("동적계획법 최적화"));
 
   // Strategies that round to the same displayed time must be presented as
   // ties, never as a fabricated 0.000-second advantage.
@@ -1536,8 +1536,8 @@ test("Option 3 workspace connects the race briefing to five research views and e
   assert.ok(!briefing.includes('import Image from "next/image"'));
   assert.ok(!briefing.includes("tyreCompoundIcon"));
   assert.ok(briefing.includes('publicAsset("/ui/tyre-compound-icon.png")'));
-  assert.ok(briefing.includes("AVERAGE"));
-  assert.ok(briefing.includes("PIT STOP LOSS"));
+  assert.ok(briefing.includes("설정값"));
+  assert.ok(briefing.includes("피트 손실"));
   assert.ok(briefing.includes("pitLossSeconds.toFixed(1)"));
   assert.ok(briefing.includes("circuitLayoutUrl(track.id)"));
   assert.ok(
@@ -1805,6 +1805,6 @@ test("transparent car stage contains the full render and hides fallback text", (
   assert.match(imageRule, /object-fit:\s*contain/);
   assert.match(imageRule, /object-position:\s*center bottom/);
   assert.ok(component.includes("<span hidden aria-hidden=\"true\">"));
-  assert.ok(component.includes("FORMULA 1 OFFICIAL"));
+  assert.ok(component.includes("F1 공식 이미지 출처"));
   assert.ok(component.includes("fallback.hidden = false"));
 });

@@ -120,12 +120,12 @@ export default function ExperimentNotebook({ currentSnapshot }: { currentSnapsho
 
   return <section className="experiment-notebook" aria-labelledby={headingId}>
     <header className="experiment-header">
-      <div><span className="experiment-eyebrow">EXPERIMENT LOG</span><h3 id={headingId}>전략을 바꾸고, 근거를 남기세요.</h3><p>조건과 예측 결과를 함께 저장해 탐구 보고서에 활용할 수 있습니다.</p></div>
+      <div><span className="experiment-eyebrow">실험 기록</span><h3 id={headingId}>전략을 바꾸고, 근거를 남기세요.</h3><p>조건과 모델 추정 결과를 함께 저장하고 이전 전략과 비교할 수 있습니다.</p></div>
       <span className="experiment-count">{records.length}<span> / {MAX_EXPERIMENTS}</span></span>
     </header>
 
     <form className="experiment-save" onSubmit={(event) => { event.preventDefault(); saveCurrent(); }}>
-      <div className="experiment-current"><span>현재 선택한 전략</span>{currentSnapshot ? <><strong>{currentSnapshot.trackName}</strong><TyreSequence record={currentSnapshot} /><b>{currentSnapshot.strategy.formattedTime}</b><small>{currentSnapshot.modeLabel ?? "전략 실험"} · 모델 예측</small></> : <p>전략을 계산하거나 유효한 직접 전략을 완성해 주세요.</p>}</div>
+      <div className="experiment-current"><span>현재 선택한 전략 · 추정</span>{currentSnapshot ? <><strong>{currentSnapshot.trackName}</strong><TyreSequence record={currentSnapshot} /><b>{currentSnapshot.strategy.formattedTime}</b><small>{currentSnapshot.modeLabel ?? "전략 실험"} · 모델 예측</small></> : <p>전략을 계산하거나 유효한 직접 전략을 완성해 주세요.</p>}</div>
       <div className="experiment-name-field"><label htmlFor={nameId}>실험 이름 <span>선택</span></label><input id={nameId} value={name} onChange={(event) => setName(event.target.value)} maxLength={100} placeholder={defaultName || "예: 피트 손실 22초 실험"} autoComplete="off" /></div>
       <button className="experiment-primary" type="submit" disabled={!currentSnapshot || records.length >= MAX_EXPERIMENTS || storageNeedsRecovery}>현재 결과 저장 <span aria-hidden="true">＋</span></button>
     </form>
@@ -135,23 +135,23 @@ export default function ExperimentNotebook({ currentSnapshot }: { currentSnapsho
     <div className="experiment-list-heading"><p>{records.length > 0 ? <>체크박스로 <strong>두 실험</strong>을 선택해 비교하세요.</> : "아직 저장한 실험이 없습니다."}</p><button type="button" className="experiment-export" disabled={records.length === 0} onClick={exportCsv}>CSV 내보내기 <span aria-hidden="true">↗</span></button></div>
     {records.length === 0 ? <div className="experiment-empty"><span aria-hidden="true">01 / 02</span><div><strong>한 가지 조건을 바꿔 두 결과를 저장해 보세요.</strong><p>예를 들어 피트 손실만 20초 → 25초로 바꾸면, 최적 전략이 어떻게 달라지는지 비교할 수 있습니다.</p></div></div> : <ul className="experiment-list">
       {records.map((record) => <li className={`experiment-record${selectedIds.includes(record.id) ? " is-selected" : ""}`} key={record.id}>
-        <label className="experiment-record-label"><input type="checkbox" checked={selectedIds.includes(record.id)} onChange={() => toggleComparison(record.id)} aria-label={`${record.name} 비교 선택`} /><span><strong>{record.name}</strong><small>{record.trackName} · {record.laps} LAPS · <time dateTime={record.createdAt}>{formatSavedAt(record.createdAt)}</time></small></span></label>
-        <TyreSequence record={record} /><span className="experiment-record-time"><b>{record.strategy.formattedTime}</b><small>PIT {record.strategy.pitAfterLaps.map((lap) => `L${lap}`).join(" / ") || "없음"}</small></span><button type="button" className="experiment-delete" onClick={() => deleteRecord(record.id)} disabled={storageNeedsRecovery} aria-label={`${record.name} 기록 삭제`}>삭제</button>
+        <label className="experiment-record-label"><input type="checkbox" checked={selectedIds.includes(record.id)} onChange={() => toggleComparison(record.id)} aria-label={`${record.name} 비교 선택`} /><span><strong>{record.name}</strong><small>{record.trackName} · {record.laps}랩 · <time dateTime={record.createdAt}>{formatSavedAt(record.createdAt)}</time></small></span></label>
+        <TyreSequence record={record} /><span className="experiment-record-time"><b>{record.strategy.formattedTime}</b><small>피트 {record.strategy.pitAfterLaps.map((lap) => `L${lap}`).join(" / ") || "없음"}</small></span><button type="button" className="experiment-delete" onClick={() => deleteRecord(record.id)} disabled={storageNeedsRecovery} aria-label={`${record.name} 기록 삭제`}>삭제</button>
       </li>)}
     </ul>}
 
     {comparison && <div className="experiment-comparison" aria-label="선택한 두 실험 비교">
       <div className="experiment-comparison-summary"><div><span>두 번째 선택 − 첫 번째 선택</span><strong>{Math.abs(comparison.deltaSeconds) < 0.0005 ? "동일한 예측 시간" : `${comparison.deltaSeconds > 0 ? "+" : "−"}${Math.abs(comparison.deltaSeconds).toFixed(3)}초`}</strong></div><p>{comparison.sameConditions ? "같은 모델 조건의 전략 비교입니다." : comparison.differences.length > 0 ? `서로 다른 조건: ${comparison.differences.join(" · ")}. 시간 차이를 전략만의 효과로 해석하면 안 됩니다.` : "전체 모델 조건 서명이 없어 동일 조건인지 확정할 수 없습니다."}</p></div>
-      <div className="experiment-comparison-table-wrap"><table className="experiment-comparison-table"><caption>저장된 모델 예측 결과이며, 실제 레이스 성적이 아닙니다.</caption><thead><tr><th scope="col">비교 항목</th>{selected.map((record, index) => <th scope="col" key={record.id}><small>EXPERIMENT {index + 1}</small>{record.name}</th>)}</tr></thead><tbody>
+      <div className="experiment-comparison-table-wrap"><table className="experiment-comparison-table"><caption>저장된 모델 예측 결과이며, 실제 레이스 성적이 아닙니다.</caption><thead><tr><th scope="col">비교 항목</th>{selected.map((record, index) => <th scope="col" key={record.id}><small>실험 {index + 1}</small>{record.name}</th>)}</tr></thead><tbody>
         <tr><th scope="row">타이어 순서</th>{selected.map((record) => <td key={record.id}><TyreSequence record={record} /></td>)}</tr>
         <tr><th scope="row">피트 진입</th>{selected.map((record) => <td key={record.id}>{record.strategy.pitAfterLaps.map((lap) => `L${lap} 종료 후`).join(" / ") || "없음"}</td>)}</tr>
-        <tr><th scope="row">노면 / 피트 손실</th>{selected.map((record) => <td key={record.id}>{record.trackTemperatureC}°C / {record.pitLossSeconds}초</td>)}</tr>
-        <tr><th scope="row">마모 / 최대 피트</th>{selected.map((record) => <td key={record.id}>{record.degradationPercent}% / {record.maxStops}회</td>)}</tr>
-        <tr><th scope="row">계수 모델</th>{selected.map((record) => <td key={record.id}>{record.modelSource === "project" ? "프로젝트 가정 계수" : record.modelSource === "fastf1-2025" ? "FastF1 2025 학습 계수" : record.modelSource}</td>)}</tr>
+        <tr><th scope="row">노면 / 피트 손실 · 설정</th>{selected.map((record) => <td key={record.id}>{record.trackTemperatureC}°C / {record.pitLossSeconds}초</td>)}</tr>
+        <tr><th scope="row">마모 / 최대 피트 · 설정</th>{selected.map((record) => <td key={record.id}>{record.degradationPercent}% / {record.maxStops}회</td>)}</tr>
+        <tr><th scope="row">계수 모델</th>{selected.map((record) => <td key={record.id}>{record.modelSource === "project" ? "가정 기반 계수" : record.modelSource === "fastf1-2025" ? "FastF1 2025 학습 계수" : record.modelSource}</td>)}</tr>
         <tr><th scope="row">예측 총시간</th>{selected.map((record) => <td key={record.id}><strong>{record.strategy.formattedTime}</strong></td>)}</tr>
       </tbody></table></div>
     </div>}
     <p className="experiment-status" role="status" aria-live="polite" aria-atomic="true">{status}</p>
-    <footer className="experiment-footer">이 브라우저에만 저장됩니다. 브라우저 데이터 삭제 시 기록도 사라지므로 보고서에 사용할 기록은 CSV로 보관하세요.</footer>
+    <footer className="experiment-footer">이 브라우저에만 저장됩니다. 브라우저 데이터 삭제 시 기록도 사라지므로 다시 확인할 기록은 CSV로 보관하세요.</footer>
   </section>;
 }
