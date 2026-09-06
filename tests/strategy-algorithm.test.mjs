@@ -1483,76 +1483,20 @@ test("Option 3 workspace connects the race briefing to five research views and e
   assert.ok(openReplay > activateTopThree);
   assert.ok(component.includes("setSelectedRank(index)"));
 
+  // Board geometry, incoming order, five semantic tyre colours, accessible
+  // row selection, and below-chart totals are exercised by the real React
+  // render tests in strategy-board.test.mjs. Do not freeze badges or old DOM.
   assert.ok(briefing.includes('className="race-briefing"'));
   assert.ok(briefing.includes('aria-labelledby="briefing-title"'));
-  assert.ok(briefing.includes('className="briefing-board"'));
-  assert.ok(
-    briefing.includes('id="briefing-board-title"'),
-  );
-  assert.ok(briefing.includes("추천 타이어 전략"));
-  assert.ok(briefing.includes("{results.slice(0, 3).map((strategy, index) => ("));
-  assert.ok(briefing.includes('className="briefing-board__header"'));
-  assert.ok(briefing.includes('className="briefing-board__legend"'));
-  assert.ok(briefing.includes('className="briefing-board__facts"'));
-  assert.ok(briefing.includes('className="briefing-strip__window"'));
+  assert.ok(briefing.includes('aria-labelledby="briefing-board-title"'));
   assert.ok(component.includes("calculatePitWindows("));
-  assert.ok(
-    briefing.includes(
-      "aria-pressed={topThreeActive && selectedRank === index}",
-    ),
-  );
   assert.ok(briefing.includes("onClick={() => onSelectStrategy(index)}"));
-  assert.equal(
-    briefing.match(/onClick=\{onOpenSetup\}/g)?.length,
-    1,
-  );
+  assert.ok(briefing.includes("aria-pressed={topThreeActive && selectedRank === index}"));
+  assert.equal(briefing.match(/onClick=\{onOpenSetup\}/g)?.length, 1);
   assert.ok(briefing.includes("onClick={onOpenManual}"));
   assert.ok(briefing.includes("onClick={onOpenReplay}"));
-  assert.ok(briefing.includes('aria-label="결과 출처"'));
-  assert.ok(briefing.includes("실제 데이터 보정"));
-  assert.ok(briefing.includes("가정 기반 계수"));
-  assert.ok(briefing.includes("동적계획법 최적화"));
-
-  // Strategies that round to the same displayed time must be presented as
-  // ties, never as a fabricated 0.000-second advantage.
-  assert.ok(
-    briefing.includes("const DISPLAY_TIE_EPSILON_SECONDS = 0.0005"),
-  );
-  assert.ok(briefing.includes("function tiesDisplayedTime("));
-  assert.ok(
-    briefing.includes(
-      "Math.abs(strategy.totalSeconds - best.totalSeconds) <",
-    ),
-  );
-  assert.ok(briefing.includes("DISPLAY_TIE_EPSILON_SECONDS"));
-  assert.ok(briefing.includes("공동 최단 총시간으로 계산되었습니다"));
-  assert.ok(briefing.includes("selectedTiesBest && hasBestTie"));
-  assert.ok(briefing.includes('`공동 최단 후보 · ${selected.rank}`'));
-  assert.ok(!briefing.includes("0.000초 빠릅니다"));
-  const tieReason = briefing.indexOf(
-    "if (runnerUp && tiesDisplayedTime(runnerUp, best))",
-  );
-  const fasterReason = briefing.indexOf("다음 후보보다 ${gap} 빠릅니다");
-  assert.ok(tieReason >= 0);
-  assert.ok(fasterReason > tieReason);
-
-  // The chart follows the compact race-broadcast pattern with real tyre art,
-  // fixed compound colours, pit-window labels, and a circuit fact footer.
-  assert.ok(!briefing.includes('import Image from "next/image"'));
-  assert.ok(!briefing.includes("tyreCompoundIcon"));
-  assert.ok(briefing.includes('publicAsset("/ui/tyre-compound-icon.png")'));
-  assert.ok(briefing.includes("설정값"));
-  assert.ok(briefing.includes("피트 손실"));
-  assert.ok(briefing.includes("pitLossSeconds.toFixed(1)"));
-  assert.ok(briefing.includes("circuitLayoutUrl(track.id)"));
-  assert.ok(
-    briefing.includes(
-      'className={`briefing-compound is-${compound.toLowerCase()}`}',
-    ),
-  );
-  for (const compoundClass of ["is-h", "is-m", "is-s"]) {
-    assert.match(styles, new RegExp(`\\.briefing-strip__stint\\.${compoundClass}`));
-  }
+  assert.ok(briefing.includes('import "./strategy-board.css"'));
+  assert.ok(briefing.includes("프로젝트 추정"));
 
   // Scenario configuration and URL state remain available beneath the new
   // overview and through both setup entry points.
@@ -1629,6 +1573,8 @@ test("Option 3 workspace connects the race briefing to five research views and e
     assert.ok(!researchSection.includes(participantMarkup));
   }
 
+  const boardStyles = readFileSync(new URL("../app/strategy-board.css", import.meta.url), "utf8");
+
   // CSS assertions describe capabilities and responsive states rather than
   // freezing a particular pixel grid, header height, or card size.
   for (const selector of [
@@ -1636,14 +1582,6 @@ test("Option 3 workspace connects the race briefing to five research views and e
     ".race-briefing",
     ".race-briefing__stage",
     ".race-briefing__conditions",
-    ".briefing-board",
-    ".briefing-board__header",
-    ".briefing-board__legend",
-    ".briefing-board__facts",
-    ".briefing-strip__window",
-    ".briefing-tyre",
-    ".briefing-row.is-selected",
-    ".briefing-recommendation__actions",
   ]) {
     assert.ok(styles.includes(selector), selector);
   }
@@ -1681,8 +1619,6 @@ test("Option 3 workspace connects the race briefing to five research views and e
   for (const selector of [
     ".race-briefing__driver > button:focus-visible",
     ".race-briefing__conditions > button:focus-visible",
-    ".briefing-row:focus-visible",
-    ".briefing-recommendation__actions button:focus-visible",
     ".race-setup-modal__panel > header > button:focus-visible",
     ".race-setup-modal select:focus-visible",
     '.race-setup-modal input[type="range"]:focus-visible',
@@ -1703,15 +1639,12 @@ test("Option 3 workspace connects the race briefing to five research views and e
     mobileModalStyles,
     /\.race-setup-modal__conditions fieldset\s*\{[\s\S]*?flex-wrap:\s*wrap/,
   );
-  assert.match(
-    styles,
-    /\.briefing-row\.is-selected\s*\{[\s\S]*?var\(--team-primary\)/,
-  );
-  assert.match(styles, /\.briefing-strip__stint\.is-s,[\s\S]*?--compound-color:\s*#e32636/);
-  assert.match(styles, /\.briefing-strip__stint\.is-m,[\s\S]*?--compound-color:\s*#f2cd19/);
-  assert.match(styles, /\.briefing-strip__stint\.is-h,[\s\S]*?--compound-color:\s*#e7ebed/);
-  assert.match(styles, /\.briefing-strip__line\s*\{[\s\S]*?height:\s*4px/);
-  assert.match(styles, /\.briefing-strip__window\s*\{[\s\S]*?font-style:\s*italic/);
+  assert.match(boardStyles, /\.strategy-board__scroll\s*\{[^}]*overflow-x:\s*auto/);
+  assert.ok(boardStyles.includes(".strategy-board__row-hit:focus-visible"));
+  assert.ok(boardStyles.includes('.strategy-board__row-hit[aria-pressed="true"]'));
+  assert.ok(boardStyles.includes(".strategy-board__mobile-options"));
+  assert.ok(boardStyles.includes(".strategy-board-result__actions button:focus-visible"));
+  assert.ok(!boardStyles.includes("--team-primary"), "tyre chart colours are independent of team accents");
 
   assert.ok(component.includes("const teamTheme = {"));
   assert.ok(
@@ -1730,7 +1663,8 @@ test("Option 3 workspace connects the race briefing to five research views and e
     styles,
     /\.participant-theme\s*\{[\s\S]*?--team-primary:\s*var\(--apex\);[\s\S]*?--team-secondary:\s*var\(--apex-dark\);[\s\S]*?--team-on-primary:\s*var\(--participant-on-accent\);/,
   );
-  assert.ok(component.includes('const COMPOUND_COLORS = TYRE_COLORS'));
+  // Fixed tyre colours are verified against TYRE_COLORS for all five
+  // compounds by strategy-board.test.mjs, not against legacy CSS literals.
 });
 
 test("2026 official-grid profiles contain eleven teams and twenty-two unique drivers", () => {

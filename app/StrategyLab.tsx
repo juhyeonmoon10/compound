@@ -1388,6 +1388,11 @@ export default function StrategyLab({
             maxStops={applied.maxStops}
             pitLossSeconds={applied.pitLossSeconds}
             modelSource={applied.modelSource}
+            pitSource={Math.abs(applied.pitLossSeconds - (getHistoricalCalibration(applied.trackId).pitLossSeconds ?? Infinity)) < MODEL_PARAMS.validation.toleranceSeconds ? "실측 기반 추정" : "프로젝트 추정"}
+            modelSummary={applied.modelSource === "fastf1-2025" ? getHistoricalCalibration(applied.trackId).summaryKorean : "가정 기반 타이어 계수입니다. 팀·선수 보정은 상단 동일 성능 설정을 따릅니다."}
+            weatherSummary={`${RAIN_LABELS[applied.weather.preset]} · 수막·우천 페널티는 프로젝트 추정`}
+            ruleExplanation={selectedTopThree.ruleExplanation}
+            performanceSummary={performanceSummary}
             results={results}
             pitWindows={strategyPitWindows}
             selectedRank={selectedRank}
