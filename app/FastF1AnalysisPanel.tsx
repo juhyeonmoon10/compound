@@ -10,7 +10,7 @@ import {
   historicalCalibrationForTrack,
   type FastF1TyreAnalysis,
 } from "./lib/tyre-analysis";
-import type { Compound, TrackPresetId } from "./lib/strategy";
+import type { TrackPresetId } from "./lib/strategy";
 
 const COMPOUND_COLORS = TYRE_COLORS;
 

@@ -30,8 +30,13 @@ python tools/test_historical_selection.py
   학습구간에서 선택한 선형/2차 계수·홀드아웃 오차를 포함합니다.
 
 실패 경기는 0랩·`unavailable`로 기록하고 숫자를 보간하지 않습니다.
-7개 서킷 밖의 피트 손실은 수집하지 않았으므로 `null`입니다.
+`dataset-manifest.json`의 피트 표는 역사 수집기와 호주 우천 보조 세션에서
+얻은 표본만 담은 초기 단계의 결과이며 24서킷 전용 수집 결과가 아닙니다.
+후속 전용 수집기는 별도 `pit-loss-evidence.json`·`pit-loss-summary.json`에
+현 24서킷 중 23개 관측 프록시를 확보했습니다. 역사 manifest의 결측을
+프로젝트 전체의 현재 미수집 상태로 해석하면 안 됩니다.
 호주 우천 사례는 건식 21경기 합계에 포함하지 않습니다.
+`--years`에 2025가 있으면 `--tracks`와 별개로 호주 우천 세션이 추가됩니다.
 
 ## 해석상의 제한
 
@@ -86,5 +91,63 @@ python tools/test_historical_selection.py
 팀별 정차 교체 시간을 분리할 자료가 없으므로 피트크루 보정은 0입니다.
 
 원자료는 FastF1을 통해 공개 F1 타이밍 자료에서 가져옵니다. 성공한
-경기마다 `timingSourceUrl`을 기록합니다. 학교 비상업 연구용 분석이며
-공식 F1 타이밍 제품이나 실제 팀 텔레메트리가 아닙니다.
+경기마다 `timingSourceUrl`을 기록합니다. 공식 타이밍에 대한 프로젝트
+분석이며 공식 F1 타이밍 제품이나 실제 팀 텔레메트리가 아닙니다.
+
+β는 수명에 따른 곡률 항입니다. β의 채택은 클리프 시작 랩·급락 임계점의
+학습이 아닙니다. 클리프·워밍업·상태 비용은 기존 프로젝트 가정으로 남습니다.
+현재 선택 모형 MAE 0.525209초/랩과 전체 2차 진단 MAE 0.583883초/랩은
+서로 다른 결과이며, 둘 다 전체 경기 시간 오차와 다릅니다. 2025 영국
+관측 전략의 전체시간 백테스트 오차는 약 14.33–15.09%입니다.
+
+## 후속 자료 수집과 재실행 범위
+
+아래는 역사 수집 이후 추가된 별도 산출물입니다. 경로는 저장소 루트 기준이며,
+수집 명령은 외부 자료를 읽고 기본 출력 파일을 덮어씁니다. 표준 출력만 쓰는
+EA 수집은 명시적으로 `--output`을 지정해야 파일이 바뀝니다.
+
+```sh
+python tools/collect_recent_team_evidence.py --cache-dir work/fastf1-cache
+python tools/check_recent_team_evidence.py
+python tools/collect_pit_loss_evidence.py --workers 3 --cache-dir work/fastf1-cache
+python tools/collect_pit_loss_evidence.py --check
+python tools/collect_pit_loss_evidence.py --self-test
+python tools/collect_backtest_evidence.py --workers 3 --cache-dir work/fastf1-cache
+python tools/collect_neutralisation_evidence.py --workers 4 --cache-dir work/neutralisation-cache
+python tools/check_neutralisation_evidence.py
+python tools/fetch_ea_ratings.py --output app/data/ea-ratings.json
+```
+
+- **최근 팀:** 2026 네덜란드·헝가리와 2025 같은 두 경기 고정. 현재 날짜의 최신 경기를
+  자동 탐색하지 않습니다. 원자료 `recent-team-evidence.json`은 공식 차트 전사와 다른
+  프로젝트 관측입니다. 실제 소비·표본 게이트는 [팀 문서](README-team-pace.md)를 참고하세요.
+- **피트 손실:** `pit-loss-evidence.json`과 경량 `pit-loss-summary.json`을 동시에 생성합니다.
+  `--resume`은 `pending`이 아닌 상태를 재사용하므로 미확보 경기까지 새로 조회하려면
+  이 옵션을 빼야 합니다. 현재 마드리드만 역사 경기 없음입니다. 23개 값이 모두 현재
+  기본값으로 채택되는 것은 아니며, 기존 다경기 관측을 우선하고 3초 차이 게이트를 적용합니다.
+- **백테스트:** `backtest-evidence.json`은 2025년 오스트리아·헝가리·이탈리아·바레인·스페인·
+  벨기에·영국의 상위 3명 전략·전체시간·기상입니다. 공식 시간은 우승자 시간+선수 격차로
+  구하며 랩타임 합계와 따로 보존합니다. 계수 적합·완주시간 역산은 하지 않습니다.
+- **SC/VSC:** `neutralisation-evidence.json`은 2018–2025년 공식 상태 채널의 집계이며
+  `neutralisation-summary.json`은 런타임 요약입니다. 유효 137/173경기, 제외 36경기,
+  현재 서킷 중 관측 빈도 15/24개입니다. `--limit`은 진단용 부분 수집이고,
+  `--offline-rebuild`는 기존 출력과 캐시로 재분석합니다. 실패 응답을 다시 요청하거나
+  접근 제한을 우회하지 않습니다. 빈도 최소 5경기와 기간 최소 3구간은 각각의 프로젝트
+  채택 게이트이며, 원자료 확률과 런타임 fallback을 혼합해 실측이라고 쓰지 않습니다.
+- **EA:** `ea-ratings.json`에 공식 게임 점수·iteration·확인 시각·누락을 보존합니다.
+  `--html 저장한공식페이지.html`로 네트워크 없이 파싱할 수 있습니다. 현재 22명 점수의
+  `2026june` iteration과 2026 팀/번호 스냅샷은 서로 다른 출처입니다.
+
+역사 수집의 `--output-dir`를 바꾸더라도 요약 생성·검사기는 기본 `app/data`를 읽습니다.
+서로 다른 실행의 원시 파일·경량 요약을 섞으면 출처 해시나 집계 검사가 실패해야 정상입니다.
+역사 체크포인트, FastF1 응답 캐시, 실행 코드와 의존성 버전을 함께 보존해야 숫자 차이를
+감사할 수 있습니다. 수집 시각은 원자료 기사 공개일이나 레이스 날짜가 아닙니다.
+
+## 이번 문서 재현 검수
+
+2026-09-07에 6개 수집기의 실제 `--help`를 실행해 위 옵션을 확인했습니다.
+저장된 자료에 대한 역사 집계 검사, 학습 전용 모델 선택 합성 검사, 최근 팀
+불변식/합성 검사, 피트 원시·요약 해시 검사와 self-test, SC/VSC 합성·집계
+검사를 모두 통과했습니다. 문서 검수 중 원격 자료를 새로 수집하거나 JSON을
+갱신하지 않았습니다. 전체 사이트 브라우저 검증이나 신규 원격 재수집 성공을
+이 검사 결과로 대신하지 않습니다.

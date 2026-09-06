@@ -926,7 +926,7 @@ export default function StrategyLab({
   const neutralisationPrior = useMemo(() => getNeutralisationPrior(applied.trackId), [applied.trackId]);
   const sharedExperimentGrid = useMemo(() => results[0] ? buildSharedRaceGrid({ teamId: applied.teamId, driverId: applied.driverId, playerStrategy: results[0], strategyPool: results, startingGridPosition: applied.startingGridPosition, equalPerformance: applied.equalPerformance }) : null, [applied.teamId, applied.driverId, applied.startingGridPosition, applied.equalPerformance, results]);
   const equalResults = useMemo(() => calculateDisplayedStrategies(makeOptimizerInput({ ...applied, equalPerformance: true })), [applied]);
-  const performanceSummary = applied.equalPerformance ? "동일 성능 모드 · 팀·선수 시간 보정 없음" : `능력치 반영 · 동일 성능 대비 Top 3 ${equalResults.every((value, index) => value.signature === results[index]?.signature) ? "구성 유지" : "구성 변경"} · 1번 총시간 차이 ${formatDelta((results[0]?.totalSeconds ?? 0) - (equalResults[0]?.totalSeconds ?? 0))} · 프로젝트 추정`;
+  const performanceSummary = applied.equalPerformance ? "동일 성능 모드 · 팀·선수 시간 보정 없음" : `능력치 반영 · 동일 성능 대비 대표 전략 3개 ${equalResults.every((value, index) => value.signature === results[index]?.signature) ? "구성 유지" : "구성 변경"} · 1번 총시간 차이 ${formatDelta((results[0]?.totalSeconds ?? 0) - (equalResults[0]?.totalSeconds ?? 0))} · 프로젝트 추정`;
   const strategyPitWindows = useMemo(
     () =>
       results
@@ -2855,9 +2855,9 @@ export default function StrategyLab({
                 등급, 피트 손실과 대부분의 랩타임 계수는 알고리즘 시연용
                 모델 추정값입니다. 7서킷의 2023–2025 실제 정제 랩에서
                 학습 신뢰 기준을 통과한 컴파운드 계수를 적용하며,
-                미수집 서킷은 같은 열화 등급의 가까운 서킷 대체값임을 표시합니다. 랩별 타이어
-                온도·마모·그립은 공개 텔레메트리가 아닌 설명 가능한
-                재현 가능한 추정 모델입니다.
+                미수집 서킷은 같은 열화 등급의 가까운 서킷 대체값임을 표시합니다.
+                건식 타이어의 온도·마모율·그립은 공개 텔레메트리가 아닌 설명용 추정입니다.
+                우천 타이어는 수막·건조 누적 비용만 계산하며 온도·그립·마모율은 미모델링입니다.
               </p>
               <a
                 href="https://www.fia.com/news/fia-and-formula-1-announce-2026-calendar"
@@ -3021,7 +3021,8 @@ export default function StrategyLab({
               <ul>
                 <li>S/M/H/인터/웨트의 초기 성능·수막 불일치 비용</li>
                 <li>타이어 나이에 따른 1차·2차 열화</li>
-                <li>워밍업·온도·그립·그레이닝·과열·성능 급락 추정</li>
+                <li>건식 워밍업·그레이닝·과열·성능 급락 비용과 온도·그립 설명용 추정</li>
+                <li>우천 수막·건조 누적 과열 비용 · 온도·그립·마모율 미모델링</li>
                 <li>랩이 지날수록 감소하는 연료 효과</li>
                 <li>서킷별 고정 피트 손실</li>
                 <li>모델 탐색 범위: 건식 최대 2스톱·우천 최대 3스톱</li>
