@@ -1,6 +1,7 @@
 "use client";
 
 import { uiLabel } from "./ui-labels";
+import { TYRE_LABELS } from "./model/params";
 
 import { useMemo, useState } from "react";
 import {
@@ -10,7 +11,7 @@ import {
 } from "./lib/strategy-backtest";
 import type { StrategyStintInput } from "./lib/strategy";
 
-const COMPOUND_LABEL = { S: "소프트", M: "미디엄", H: "하드" } as const;
+const COMPOUND_LABEL = TYRE_LABELS;
 
 function StrategyTimeline({
   title,

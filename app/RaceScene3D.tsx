@@ -1,4 +1,5 @@
 "use client";
+import { TYRE_COLORS, MODEL_PARAMS } from "./model/params";
 
 import {
   forwardRef,
@@ -70,6 +71,8 @@ export interface RaceSceneGridVisual {
 }
 
 export interface RaceSceneTelemetry {
+  readonly water?: number;
+  readonly raining?: boolean;
   readonly speedKph: number;
   readonly speed01: number;
   readonly signedTurn: number;
@@ -162,6 +165,8 @@ interface GridFocus {
 }
 
 interface RaceSceneRuntime {
+  readonly wetRoadMaterial: THREE.MeshStandardMaterial;
+  readonly wetSpray: THREE.Points<THREE.BufferGeometry, THREE.PointsMaterial>;
   readonly renderer: THREE.WebGLRenderer;
   readonly scene: THREE.Scene;
   readonly camera: THREE.PerspectiveCamera;
@@ -187,11 +192,7 @@ interface RaceSceneRuntime {
   lastModelElapsedSeconds: number | null;
 }
 
-const COMPOUND_COLORS: Readonly<Record<Compound, number>> = {
-  S: 0xff3b45,
-  M: 0xffd43b,
-  H: 0xe9efec,
-};
+const COMPOUND_COLORS = Object.fromEntries(Object.entries(TYRE_COLORS).map(([compound, color]) => [compound, Number.parseInt(color.slice(1), 16)])) as Record<Compound, number>;
 
 const TRACK_SAMPLE_STEP = 1;
 const MOBILE_BREAKPOINT = 700;
@@ -2796,6 +2797,22 @@ function renderFrame(
   }
 
   runtime.sunTarget.position.copy(primaryPose.position);
+  const wetness = telemetry?.water ?? 0;
+  const wetVisual = MODEL_PARAMS.wetVisual;
+  runtime.wetRoadMaterial.roughness = THREE.MathUtils.lerp(wetVisual.roughnessDry, wetVisual.roughnessWet, wetness);
+  runtime.wetRoadMaterial.metalness = THREE.MathUtils.lerp(wetVisual.metalnessDry, wetVisual.metalnessWet, wetness);
+  runtime.wetSpray.visible = Boolean(telemetry?.raining) && wetness > 0;
+  runtime.wetSpray.material.opacity = wetVisual.sprayOpacity * wetness;
+  runtime.wetSpray.position.copy(primaryPose.position);
+  runtime.wetSpray.rotation.y = Math.atan2(primaryPose.tangent.x, primaryPose.tangent.z);
+  if (runtime.wetSpray.visible) {
+    const positions = runtime.wetSpray.geometry.getAttribute("position") as THREE.BufferAttribute;
+    for (let i = 0; i < wetVisual.sprayCount; i++) {
+      const phase = (i / wetVisual.sprayCount + frame.elapsedSeconds * wetVisual.phaseFrequency) % 1;
+      positions.setXYZ(i, Math.sin(i * wetVisual.phaseFrequency) * wetVisual.sprayWidthMeters * phase, phase * wetVisual.sprayHeightMeters, -wetVisual.sprayStartMeters - phase * wetVisual.sprayLengthMeters);
+    }
+    positions.needsUpdate = true;
+  }
   runtime.sun.position
     .copy(primaryPose.position)
     .add(runtime.sunOffset);
@@ -3288,6 +3305,12 @@ const RaceScene3D = forwardRef<RaceSceneHandle, RaceScene3DProps>(
         road.receiveShadow = true;
         road.userData.ownedTextures = [asphaltTexture];
         scene.add(road);
+        const wetSprayGeometry = new THREE.BufferGeometry();
+        wetSprayGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(MODEL_PARAMS.wetVisual.sprayCount * 3), 3));
+        const wetSpray = new THREE.Points(wetSprayGeometry, new THREE.PointsMaterial({ color: "#d4e4ed", size: MODEL_PARAMS.wetVisual.spraySizeMeters, transparent: true, opacity: MODEL_PARAMS.wetVisual.sprayOpacity, depthWrite: false }));
+        wetSpray.frustumCulled = false;
+        wetSpray.visible = false;
+        scene.add(wetSpray);
 
         const racingLineColor = new THREE.Color(
           theme.asphalt,
@@ -3843,6 +3866,8 @@ const RaceScene3D = forwardRef<RaceSceneHandle, RaceScene3DProps>(
 
         runtime = {
           renderer,
+          wetRoadMaterial: road.material,
+          wetSpray,
           scene,
           camera,
           worldPoints,

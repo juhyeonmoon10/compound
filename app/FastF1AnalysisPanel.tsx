@@ -1,6 +1,7 @@
 "use client";
 
 import { uiLabel } from "./ui-labels";
+import { TYRE_COLORS } from "./model/params";
 
 import { useMemo, useState, type CSSProperties } from "react";
 import {
@@ -11,11 +12,7 @@ import {
 } from "./lib/tyre-analysis";
 import type { Compound, TrackPresetId } from "./lib/strategy";
 
-const COMPOUND_COLORS: Readonly<Record<Compound, string>> = {
-  S: "#ff4a4a",
-  M: "#ffd43b",
-  H: "#eef3f1",
-};
+const COMPOUND_COLORS = TYRE_COLORS;
 
 const SLOPE_CHART_MAX = 0.15;
 

@@ -21,6 +21,10 @@ import { calculatePitWindows } from "./lib/pit-windows";
 import StrategyBacktestPanel from "./StrategyBacktestPanel";
 import ExperimentNotebook from "./ExperimentNotebook";
 import "./experience.css";
+import WeatherControls from "./WeatherControls";
+import WetEvidencePanel from "./WetEvidencePanel";
+import { TYRE_COLORS, TYRE_LABELS, RAIN_LABELS, MODEL_PARAMS } from "./model/params";
+import { calculatedCrossovers, type WeatherInput } from "./lib/weather";
 import type { RaceTrafficLevel } from "./RaceReplay";
 const RaceReplay = lazy(() => import("./RaceReplay"));
 import {
@@ -44,6 +48,7 @@ import {
 } from "./lib/manual-strategy";
 import {
   COMPOUNDS,
+  ALL_COMPOUNDS,
   STRATEGY_MODEL_VERSION,
   TRACK_PRESET_IDS,
   TRACK_PRESETS,
@@ -79,6 +84,7 @@ type RunConfig = {
   humidityPercent: number;
   startingGridPosition: number;
   trafficLevel: RaceTrafficLevel;
+  weather: WeatherInput;
 };
 
 type AnalysisMode = "top3" | "manual";
@@ -110,17 +116,8 @@ const RESULT_DETAIL_TABS: ReadonlyArray<{
   { id: "cost", label: "비용 분해" },
 ];
 
-const COMPOUND_NAMES: Record<Compound, string> = {
-  S: "소프트",
-  M: "미디엄",
-  H: "하드",
-};
-
-const COMPOUND_COLORS: Record<Compound, string> = {
-  S: "#ff4a4a",
-  M: "#ffd43b",
-  H: "#e9efec",
-};
+const COMPOUND_NAMES = TYRE_LABELS;
+const COMPOUND_COLORS = TYRE_COLORS;
 
 const TYRE_CONDITION_LABELS: Readonly<Record<TyreCondition, string>> = {
   warming: "워밍업",
@@ -154,6 +151,7 @@ const INITIAL_CONFIG: RunConfig = {
   humidityPercent: 58,
   startingGridPosition: 10,
   trafficLevel: "medium",
+  weather: { preset: "none" },
 };
 
 function configForTrack(
@@ -165,6 +163,7 @@ function configForTrack(
   return {
     ...current,
     trackId,
+    weather: { preset: current.weather.preset },
     modelSource:
       historicalCalibrationForTrack(trackId) !== null &&
       current.modelSource === "fastf1-2025"
@@ -211,6 +210,7 @@ function makeOptimizerInput(config: RunConfig): StrategyOptimizerInput {
     pitLossSeconds: config.pitLossSeconds,
     fuelGainSecondsPerLap: config.fuelGainSecondsPerLap,
     trackTemperatureC: config.trackTemperatureC,
+    weather: config.weather,
     compoundModels: {
       S: calibratedCompound("S"),
       M: calibratedCompound("M"),
@@ -238,7 +238,7 @@ function sameConfig(left: RunConfig, right: RunConfig) {
     left.airTemperatureC === right.airTemperatureC &&
     left.humidityPercent === right.humidityPercent &&
     left.startingGridPosition === right.startingGridPosition &&
-    left.trafficLevel === right.trafficLevel
+    left.trafficLevel === right.trafficLevel && JSON.stringify(left.weather) === JSON.stringify(right.weather)
   );
 }
 
@@ -451,6 +451,8 @@ function LapTimeChart({ strategy }: { strategy: StrategyEvaluation }) {
             열화로 랩타임이 증가합니다. 피트랩에서는 고정 피트 손실이
             더해집니다.
           </desc>
+          {strategy.lapCosts.filter(lap => lap.raining).map(lap => <rect key={`rain-${lap.lap}`} x={chart.x(lap.lap)} y={chart.padding.top} width={chart.innerWidth / Math.max(1, lastLap - 1)} height={chart.innerHeight} fill={TYRE_COLORS.WET} opacity="0.12" />)}
+          <polyline points={strategy.lapCosts.map(lap => `${chart.x(lap.lap)},${chart.padding.top + (1 - lap.water) * chart.innerHeight}`).join(" ")} fill="none" stroke={TYRE_COLORS.WET} strokeWidth="1" strokeDasharray="4 3"><title>수막 0~1 · 프로젝트 추정 (오른쪽 축)</title></polyline>
 
           {strategy.stints.map((stint) => {
             const startX =
@@ -612,6 +614,7 @@ function exhaustiveEightLapTop3(input: StrategyOptimizerInput) {
     ...baseTrack,
     laps: 8,
     compounds: {
+      ...baseTrack.compounds,
       S: { ...baseTrack.compounds.S, maxStintLaps: 8 },
       M: { ...baseTrack.compounds.M, maxStintLaps: 8 },
       H: { ...baseTrack.compounds.H, maxStintLaps: 8 },
@@ -719,6 +722,8 @@ function ValidationPanel({
       ...input,
       laps: 8,
       topK: 3,
+      weather: { preset: "none" },
+      rules: { ...input.rules, minStops: 1, maxStops: Math.min(2, input.rules?.maxStops ?? 2) as StopCount },
     };
     const shortDp = optimizeTyreStrategies(shortInput);
     const shortBrute = exhaustiveEightLapTop3(shortInput);
@@ -1386,6 +1391,7 @@ export default function StrategyLab({
             }}
           />
 
+          <p className="weather-model-summary">강수: {RAIN_LABELS[applied.weather.preset]} · 수막·우천 페널티: 프로젝트 추정. 슬릭→인터 경계 {calculatedCrossovers().slickInter.toFixed(2)} 초과, 인터→웨트 약 {calculatedCrossovers().interWet.toFixed(2)}. {selectedTopThree.ruleExplanation} 3D 노면 광택·물보라는 계산과 분리된 연출입니다.</p>
           <div className="lab-grid">
             <aside className="setup-column" aria-label="레이스 시나리오 설정">
               <section
@@ -1630,36 +1636,12 @@ export default function StrategyLab({
                     </label>
                   </div>
 
-                  <fieldset className="apex-surface-field">
-                    <legend>노면 상태</legend>
-                    <div>
-                      <button type="button" aria-pressed="true">
-                        건조
-                      </button>
-                      <button
-                        type="button"
-                        disabled
-                        title="Intermediate 타이어 모델 추가 후 활성화됩니다."
-                      >
-                        비
-                        <small>준비 중</small>
-                      </button>
-                      <button
-                        type="button"
-                        disabled
-                        title="Wet 타이어 모델 추가 후 활성화됩니다."
-                      >
-                        폭우
-                        <small>준비 중</small>
-                      </button>
-                    </div>
-                  </fieldset>
+                  <WeatherControls value={draft.weather} laps={draftTrack.laps} temperatureC={draft.trackTemperatureC} onChange={weather => setDraft(current => ({ ...current, weather, maxStops: weather.preset === "none" && current.maxStops === 3 ? 2 : current.maxStops }))} />
 
                   <p className="apex-condition-card__note">
                     노면 온도는 랩별 타이어 온도·그립 상태와 기준 열화
                     계수에 함께 반영합니다. 기온·습도는 열화 민감도
-                    보정값이며, 비·폭우는 I/W 타이어 모델 없이 결과를
-                    꾸미지 않도록 잠가 두었습니다.
+                    보정값입니다. 강수는 랩별 수막과 타이어 비용에 반영합니다. 우천 계수는 프로젝트 추정이며 실측으로 보정되지 않았습니다.
                   </p>
                 </section>
 
@@ -1784,7 +1766,7 @@ export default function StrategyLab({
               <fieldset className="field-group">
                 <legend>탐색할 최대 피트스톱</legend>
                 <div className="segmented-control">
-                  {([1, 2] as StopCount[]).map((stops) => (
+                  {(draft.weather.preset === "none" ? [1, 2] : [1, 2, 3] as StopCount[]).map((stops) => (
                     <label key={stops}>
                       <input
                         type="radio"
@@ -1794,7 +1776,7 @@ export default function StrategyLab({
                         onChange={() =>
                           setDraft((current) => ({
                             ...current,
-                            maxStops: stops,
+                            maxStops: stops as StopCount,
                           }))
                         }
                       />
@@ -1894,7 +1876,7 @@ export default function StrategyLab({
                 <span aria-hidden="true">→</span>
               </button>
               <p className="input-note">
-                1–2스톱은 모델 탐색 범위이며 FIA의 의무 정차 횟수를
+                건식 최대 2회·우천 최대 3회는 모델 탐색 범위이며 FIA의 의무 정차 횟수를
                 뜻하지 않습니다.{" "}
                 {draft.modelSource === "fastf1-2025"
                   ? `${analysisForTrack(draft.trackId)?.title} FastF1 정제 랩에서 신뢰 기준을 통과한 기울기만 사용하며, 나머지 항은 가정 기반 모델입니다.`
@@ -2099,7 +2081,7 @@ export default function StrategyLab({
                     <fieldset className="manual-stop-field">
                       <legend>정차 횟수</legend>
                       <div className="manual-stop-options">
-                        {([1, 2] as StopCount[]).map((stops) => (
+                        {([1, 2, MODEL_PARAMS.weather.maxStops] as StopCount[]).map((stops) => (
                           <label key={`manual-${stops}-stop`}>
                             <input
                               type="radio"
@@ -2135,11 +2117,10 @@ export default function StrategyLab({
                         const pitMinimum =
                           index === 0
                             ? 1
-                            : normalizedManualPlan.pitAfterLaps[0] + 1;
+                            : normalizedManualPlan.pitAfterLaps[index - 1] + 1;
                         const pitMaximum =
-                          index === 0 &&
-                          normalizedManualPlan.stopCount === 2
-                            ? normalizedManualPlan.pitAfterLaps[1] - 1
+                          index < normalizedManualPlan.stopCount - 1
+                            ? normalizedManualPlan.pitAfterLaps[index + 1] - 1
                             : appliedTrack.laps - 1;
 
                         return (
@@ -2160,7 +2141,7 @@ export default function StrategyLab({
                             <fieldset className="manual-compound-picker">
                               <legend>타이어</legend>
                               <div>
-                                {COMPOUNDS.map((compound) => (
+                                {ALL_COMPOUNDS.map((compound) => (
                                   <label
                                     key={`manual-${index}-${compound}`}
                                   >
@@ -2577,6 +2558,7 @@ export default function StrategyLab({
           aria-labelledby="data-analysis-title"
           hidden={pageView !== "data"}
         >
+          <WetEvidencePanel />
           <FastF1AnalysisPanel
             appliedTrackId={applied.trackId}
             isApplied={
@@ -3162,6 +3144,7 @@ return unique_top_3()`}</code>
                   </label>
                 </div>
 
+                <WeatherControls value={draft.weather} laps={draftTrack.laps} temperatureC={draft.trackTemperatureC} onChange={weather => setDraft(current => ({ ...current, weather, maxStops: weather.preset === "none" && current.maxStops === MODEL_PARAMS.weather.maxStops ? 2 : current.maxStops }))} />
                 <div className="race-setup-modal__conditions">
                   <label className="race-setup-modal__condition-wide">
                     <span>
@@ -3229,7 +3212,7 @@ return unique_top_3()`}</code>
 
                   <fieldset>
                     <legend>전략 탐색 범위</legend>
-                    {([1, 2] as StopCount[]).map((stops) => (
+                    {([1, 2, ...(draft.weather.preset !== "none" ? [MODEL_PARAMS.weather.maxStops] : [])] as StopCount[]).map((stops) => (
                       <label key={`modal-${stops}`}>
                         <input
                           type="radio"

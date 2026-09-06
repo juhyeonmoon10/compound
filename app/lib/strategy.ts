@@ -14,11 +14,15 @@ import {
   calculateTyreState,
   type TyreStateSnapshot,
 } from "./tyre-state.ts";
+import { MODEL_PARAMS, TYRE_COLORS, TYRE_LABELS } from "../model/params.ts";
+import { buildWeatherTimeline, dryLapsOnSet, wetPenalty, type WeatherInput, type WeatherTimeline } from "./weather.ts";
 
 export const COMPOUNDS = ["S", "M", "H"] as const;
 
-export type Compound = (typeof COMPOUNDS)[number];
-export type StopCount = 1 | 2;
+export const ALL_COMPOUNDS = [...COMPOUNDS, "INTER", "WET"] as const;
+export type DryCompound = (typeof COMPOUNDS)[number];
+export type Compound = (typeof ALL_COMPOUNDS)[number];
+export type StopCount = 1 | 2 | 3;
 
 /**
  * Original 2026 calendar order. Bahrain and Jeddah remain available as
@@ -83,6 +87,8 @@ export interface TrackModel {
   readonly tyreSeverity?: TyreSeverity;
   /** Dry track temperature used by the closed-form tyre-state proxy. */
   readonly trackTemperatureC?: number;
+  readonly weather?: WeatherInput;
+  readonly wetPenaltyMultiplier?: number;
   readonly compounds: Readonly<Record<Compound, CompoundModel>>;
 }
 
@@ -108,6 +114,8 @@ export interface RaceModelInput {
   readonly pitLossSeconds?: number;
   readonly fuelGainSecondsPerLap?: number;
   readonly trackTemperatureC?: number;
+  readonly weather?: WeatherInput;
+  readonly wetPenaltyMultiplier?: number;
   readonly compoundModels?: Partial<
     Record<Compound, Partial<CompoundModel>>
   >;
@@ -115,7 +123,7 @@ export interface RaceModelInput {
 
 export interface StrategyRules {
   /** The optimiser intentionally supports one- and two-stop races. */
-  readonly minStops: StopCount;
+  readonly minStops: 0 | StopCount;
   readonly maxStops: StopCount;
   /** Standard dry-race rule: use at least two distinct dry compounds. */
   readonly requireTwoDryCompounds: boolean;
@@ -127,6 +135,8 @@ export interface StrategyOptimizerInput extends RaceModelInput {
   /** Number of globally unique strategies to return. Defaults to 3. */
   readonly topK?: number;
   readonly allowedStartingCompounds?: readonly Compound[];
+  /** Restrict the whole candidate sequence; used by representative strategy search. */
+  readonly allowedCompounds?: readonly Compound[];
 }
 
 export interface StrategyStintInput {
@@ -171,6 +181,10 @@ export interface LapCostBreakdown {
   readonly pitLossSeconds: number;
   readonly lapTimeSeconds: number;
   readonly cumulativeSeconds: number;
+  /** Included in compoundOffsetSeconds, not added twice. */
+  readonly wetPenaltySeconds: number;
+  readonly water: number;
+  readonly raining: boolean;
 }
 
 export interface StrategyEvaluation {
@@ -186,6 +200,7 @@ export interface StrategyEvaluation {
   readonly lapCosts: readonly LapCostBreakdown[];
   readonly isLegal: boolean;
   readonly violations: readonly string[];
+  readonly ruleExplanation: string;
 }
 
 export interface StrategyResult extends StrategyEvaluation {
@@ -231,6 +246,8 @@ export const DEFAULT_COMPOUND_MODELS: Readonly<
     beta: 0.0009,
     maxStintLaps: 60,
   },
+  INTER: { label: TYRE_LABELS.INTER, color: TYRE_COLORS.INTER, offsetSeconds: 0, alpha: MODEL_PARAMS.weather.interWear, beta: 0, maxStintLaps: Number.MAX_SAFE_INTEGER },
+  WET: { label: TYRE_LABELS.WET, color: TYRE_COLORS.WET, offsetSeconds: 0, alpha: MODEL_PARAMS.weather.wetWear, beta: 0, maxStintLaps: Number.MAX_SAFE_INTEGER },
 };
 
 function compoundSet(
@@ -238,7 +255,7 @@ function compoundSet(
 ): Readonly<Record<Compound, CompoundModel>> {
   const result = {} as Record<Compound, CompoundModel>;
 
-  for (const compound of COMPOUNDS) {
+  for (const compound of ALL_COMPOUNDS) {
     result[compound] = {
       ...DEFAULT_COMPOUND_MODELS[compound],
       ...overrides[compound],
@@ -253,7 +270,7 @@ const SEVERITY_MODELS: Readonly<
     TyreSeverity,
     Readonly<
       Record<
-        Compound,
+        DryCompound,
         Readonly<
           Pick<
             CompoundModel,
@@ -798,6 +815,7 @@ interface PathNode {
   readonly compound: Compound;
   readonly tyreAge: number;
   readonly usedMask: number;
+  readonly usedWetCompound: boolean;
   readonly stops: number;
   readonly totalSeconds: number;
   readonly cost: PathCost;
@@ -810,6 +828,7 @@ interface ResolvedProblem {
   readonly model: TrackModel;
   readonly rules: StrategyRules;
 }
+const weatherCache = new WeakMap<TrackModel, WeatherTimeline>();
 
 /**
  * Produces a deterministic identity for every input that can change strategy
@@ -832,8 +851,10 @@ function createScenarioSignature(
       fuelGainSecondsPerLap: model.fuelGainSecondsPerLap,
       tyreSeverity: model.tyreSeverity ?? 3,
       trackTemperatureC: model.trackTemperatureC ?? 34,
+      weather: weatherCache.get(model)?.input ?? null,
+      wetPenaltyMultiplier: model.wetPenaltyMultiplier ?? 1,
     },
-    compounds: COMPOUNDS.map((compound) => {
+    compounds: ALL_COMPOUNDS.map((compound) => {
       const parameters = model.compounds[compound];
       return {
         compound,
@@ -856,6 +877,8 @@ const COMPOUND_BITS: Readonly<Record<Compound, number>> = {
   S: 1,
   M: 2,
   H: 4,
+  INTER: 0,
+  WET: 0,
 };
 
 const EMPTY_PATH_COST: PathCost = {
@@ -882,7 +905,7 @@ function assertFiniteNumber(
 }
 
 function isCompound(value: string): value is Compound {
-  return (COMPOUNDS as readonly string[]).includes(value);
+  return (ALL_COMPOUNDS as readonly string[]).includes(value);
 }
 
 function resolveProblem(
@@ -894,8 +917,9 @@ function resolveProblem(
       : TRACK_PRESETS[input.track ?? "melbourne"];
 
   const compounds = {} as Record<Compound, CompoundModel>;
-  for (const compound of COMPOUNDS) {
+  for (const compound of ALL_COMPOUNDS) {
     compounds[compound] = {
+      ...DEFAULT_COMPOUND_MODELS[compound],
       ...selectedTrack.compounds[compound],
       ...input.compoundModels?.[compound],
     };
@@ -912,6 +936,8 @@ function resolveProblem(
     tyreSeverity: selectedTrack.tyreSeverity ?? 3,
     trackTemperatureC:
       input.trackTemperatureC ?? selectedTrack.trackTemperatureC ?? 34,
+    weather: input.weather ?? selectedTrack.weather,
+    wetPenaltyMultiplier: input.wetPenaltyMultiplier ?? selectedTrack.wetPenaltyMultiplier ?? 1,
     compounds,
   };
 
@@ -922,6 +948,7 @@ function resolveProblem(
 
   validateModel(model);
   validateRules(rules);
+  weatherCache.set(model, buildWeatherTimeline(model.laps, model.trackTemperatureC ?? 34, model.weather));
 
   return { model, rules };
 }
@@ -953,7 +980,8 @@ function validateModel(model: TrackModel): void {
     throw new RangeError("tyreSeverity must be an integer from 2 to 5.");
   }
 
-  for (const compound of COMPOUNDS) {
+  assertFiniteNumber(model.wetPenaltyMultiplier ?? 1, "wetPenaltyMultiplier", 0);
+  for (const compound of ALL_COMPOUNDS) {
     const parameters = model.compounds[compound];
     assertFiniteNumber(
       parameters.offsetSeconds,
@@ -973,11 +1001,11 @@ function validateModel(model: TrackModel): void {
 }
 
 function validateRules(rules: StrategyRules): void {
-  if (rules.minStops !== 1 && rules.minStops !== 2) {
-    throw new RangeError("minStops must be 1 or 2.");
+  if (!Number.isInteger(rules.minStops) || rules.minStops < 0 || rules.minStops > MODEL_PARAMS.weather.maxStops) {
+    throw new RangeError("minStops must be 0, 1, 2 or 3.");
   }
-  if (rules.maxStops !== 1 && rules.maxStops !== 2) {
-    throw new RangeError("maxStops must be 1 or 2.");
+  if (!Number.isInteger(rules.maxStops) || rules.maxStops < 1 || rules.maxStops > MODEL_PARAMS.weather.maxStops) {
+    throw new RangeError("maxStops must be 1, 2 or 3.");
   }
   if (rules.minStops > rules.maxStops) {
     throw new RangeError("minStops cannot be greater than maxStops.");
@@ -996,9 +1024,16 @@ function lapCost(
 ): PathCost & {
   readonly tyreState: TyreStateSnapshot;
   readonly totalSeconds: number;
+  readonly wetPenaltySeconds: number;
+  readonly water: number;
+  readonly raining: boolean;
 } {
   const parameters = model.compounds[compound];
-  const linearDegradationSeconds = parameters.alpha * tyreAge;
+  const weather = weatherCache.get(model)!;
+  const weatherLap = weather.laps[lap - 1];
+  const dryAge = dryLapsOnSet(weather, compound, lap, tyreAge);
+  const linearDegradationSeconds = parameters.alpha * tyreAge + (compound === "INTER" ? (MODEL_PARAMS.weather.interDryWear - MODEL_PARAMS.weather.interWear) * dryAge : 0);
+  const wetPenaltySeconds = wetPenalty(compound, weatherLap.water, dryAge) * (model.wetPenaltyMultiplier ?? 1);
   const quadraticDegradationSeconds =
     parameters.beta * tyreAge * tyreAge;
   const tyreState = calculateTyreState({
@@ -1012,7 +1047,7 @@ function lapCost(
   });
   const cost = {
     baselineSeconds: model.baseLapTimeSeconds,
-    compoundOffsetSeconds: parameters.offsetSeconds,
+    compoundOffsetSeconds: parameters.offsetSeconds + wetPenaltySeconds,
     linearDegradationSeconds,
     quadraticDegradationSeconds,
     tyreStateLossSeconds: tyreState.totalStateLossSeconds,
@@ -1034,7 +1069,7 @@ function lapCost(
     );
   }
 
-  return { ...cost, tyreState, totalSeconds };
+  return { ...cost, tyreState, totalSeconds, wetPenaltySeconds, water: weatherLap.water, raining: weatherLap.raining };
 }
 
 function addPathCost(left: PathCost, right: PathCost): PathCost {
@@ -1066,8 +1101,9 @@ function stateKey(
   tyreAge: number,
   usedMask: number,
   stops: number,
+  usedWetCompound = false,
 ): string {
-  return `${compound}:${tyreAge}:${usedMask}:${stops}`;
+  return `${compound}:${tyreAge}:${usedMask}:${stops}:${Number(usedWetCompound)}`;
 }
 
 function insertKBest(
@@ -1217,7 +1253,7 @@ function uniqueCompounds(
   for (const stint of stints) {
     used.add(stint.compound);
   }
-  return COMPOUNDS.filter((compound) => used.has(compound));
+  return ALL_COMPOUNDS.filter((compound) => used.has(compound));
 }
 
 /**
@@ -1304,6 +1340,9 @@ export function evaluateStrategy(
         pitLossSeconds: components.pitLossSeconds,
         lapTimeSeconds: components.totalSeconds,
         cumulativeSeconds,
+        wetPenaltySeconds: components.wetPenaltySeconds,
+        water: components.water,
+        raining: components.raining,
       });
     }
   }
@@ -1330,7 +1369,8 @@ export function evaluateStrategy(
   }
 
   const compoundsUsed = uniqueCompounds(stints);
-  if (rules.requireTwoDryCompounds && compoundsUsed.length < 2) {
+  const usedWetCompound = compoundsUsed.some(c => c === "INTER" || c === "WET");
+  if (rules.requireTwoDryCompounds && !usedWetCompound && compoundsUsed.length < 2) {
     violations.push(
       "A dry race must use at least two distinct compounds.",
     );
@@ -1362,6 +1402,9 @@ export function evaluateStrategy(
     lapCosts,
     isLegal: violations.length === 0,
     violations,
+    ruleExplanation: usedWetCompound
+      ? "인터·웨트 실제 사용으로 건식 2종 의무 면제 · 공식 자료 FIA B6.3.6. 수막 기준의 젖은 조건 판정은 프로젝트 추정입니다."
+      : rules.requireTwoDryCompounds ? "건식 타이어 2종 사용 의무 · 공식 자료 FIA B6.3.6" : "건식 2종 의무를 비활성화한 사용자 실험 조건 · 프로젝트 추정",
   };
 }
 
@@ -1392,9 +1435,11 @@ export function optimizeTyreStrategies(
     throw new RangeError("topK must be an integer between 1 and 20.");
   }
 
+  const activeCompounds = input.allowedCompounds ?? ((model.weather?.preset ?? "none") !== "none" || (model.weather?.initialWater ?? 0) > 0 ? ALL_COMPOUNDS : COMPOUNDS);
+  if (!activeCompounds.length || activeCompounds.some(c => !isCompound(c))) throw new RangeError("allowedCompounds is invalid.");
   const startingCompounds =
     input.allowedStartingCompounds === undefined
-      ? COMPOUNDS
+      ? activeCompounds
       : [...new Set(input.allowedStartingCompounds)];
   if (startingCompounds.length === 0) {
     throw new RangeError(
@@ -1402,7 +1447,7 @@ export function optimizeTyreStrategies(
     );
   }
   for (const compound of startingCompounds) {
-    if (!isCompound(compound)) {
+    if (!isCompound(compound) || !activeCompounds.includes(compound as never)) {
       throw new TypeError(`Unknown starting compound: ${String(compound)}.`);
     }
   }
@@ -1421,6 +1466,7 @@ export function optimizeTyreStrategies(
       compound,
       tyreAge: 0,
       usedMask: COMPOUND_BITS[compound],
+      usedWetCompound: compound === "INTER" || compound === "WET",
       stops: 0,
       totalSeconds: components.totalSeconds,
       cost: addPathCost(EMPTY_PATH_COST, components),
@@ -1430,7 +1476,7 @@ export function optimizeTyreStrategies(
     };
     insertKBest(
       dp[1],
-      stateKey(compound, 0, node.usedMask, 0),
+      stateKey(compound, 0, node.usedMask, 0, node.usedWetCompound),
       node,
       requestedTopK,
     );
@@ -1460,6 +1506,7 @@ export function optimizeTyreStrategies(
             compound: candidate.compound,
             tyreAge: nextAge,
             usedMask: candidate.usedMask,
+            usedWetCompound: candidate.usedWetCompound,
             stops: candidate.stops,
             totalSeconds:
               candidate.totalSeconds + components.totalSeconds,
@@ -1475,6 +1522,7 @@ export function optimizeTyreStrategies(
               continued.tyreAge,
               continued.usedMask,
               continued.stops,
+              continued.usedWetCompound,
             ),
             continued,
             requestedTopK,
@@ -1489,7 +1537,7 @@ export function optimizeTyreStrategies(
           continue;
         }
 
-        for (const nextCompound of COMPOUNDS) {
+        for (const nextCompound of activeCompounds) {
           const components = lapCost(
             model,
             nextLap,
@@ -1503,6 +1551,7 @@ export function optimizeTyreStrategies(
             tyreAge: 0,
             usedMask:
               candidate.usedMask | COMPOUND_BITS[nextCompound],
+            usedWetCompound: candidate.usedWetCompound || nextCompound === "INTER" || nextCompound === "WET",
             stops: candidate.stops + 1,
             totalSeconds:
               candidate.totalSeconds + components.totalSeconds,
@@ -1518,6 +1567,7 @@ export function optimizeTyreStrategies(
               pitted.tyreAge,
               pitted.usedMask,
               pitted.stops,
+              pitted.usedWetCompound,
             ),
             pitted,
             requestedTopK,
@@ -1534,7 +1584,7 @@ export function optimizeTyreStrategies(
         candidate.stops < rules.minStops ||
         candidate.stops > rules.maxStops ||
         candidate.tyreAge + 1 < rules.minStintLaps ||
-        (rules.requireTwoDryCompounds &&
+        (rules.requireTwoDryCompounds && !candidate.usedWetCompound &&
           countUsedCompounds(candidate.usedMask) < 2)
       ) {
         continue;

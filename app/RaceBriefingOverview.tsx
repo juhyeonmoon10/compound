@@ -30,6 +30,8 @@ const COMPOUND_NAMES: Readonly<Record<Compound, string>> = {
   S: "소프트",
   M: "미디엄",
   H: "하드",
+  INTER: "인터미디어트",
+  WET: "웨트",
 };
 
 const COMPOUND_DISPLAY: Readonly<
@@ -38,6 +40,8 @@ const COMPOUND_DISPLAY: Readonly<
   S: { colour: "빨강", descriptor: "소프트" },
   M: { colour: "노랑", descriptor: "미디엄" },
   H: { colour: "흰색", descriptor: "하드" },
+  INTER: { colour: "초록", descriptor: "인터미디어트" },
+  WET: { colour: "파랑", descriptor: "웨트" },
 };
 
 const TRAFFIC_LABELS: Readonly<Record<RaceTrafficLevel, string>> = {
@@ -361,7 +365,7 @@ export default function RaceBriefingOverview({
               className="briefing-board__compounds"
               aria-label="드라이 타이어 컴파운드"
             >
-              {(["H", "M", "S"] as const).map((compound) => (
+              {(["H", "M", "S", "INTER", "WET"] as const).map((compound) => (
                 <span
                   className={`briefing-compound is-${compound.toLowerCase()}`}
                   key={compound}

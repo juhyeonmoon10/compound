@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync as readRawFileSync, readdirSync } from "node:fs";
+// Source contracts must work with both Git CRLF checkouts and LF worktrees.
+const readFileSync = (path, options) => {
+  const value = readRawFileSync(path, options);
+  return typeof value === "string" ? value.replace(/\r\n/g, "\n") : value;
+};
 import {
   COMPOUNDS,
   TRACK_PRESET_IDS,
@@ -1725,9 +1730,7 @@ test("Option 3 workspace connects the race briefing to five research views and e
     styles,
     /\.participant-theme\s*\{[\s\S]*?--team-primary:\s*var\(--apex\);[\s\S]*?--team-secondary:\s*var\(--apex-dark\);[\s\S]*?--team-on-primary:\s*var\(--participant-on-accent\);/,
   );
-  assert.ok(component.includes('S: "#ff4a4a"'));
-  assert.ok(component.includes('M: "#ffd43b"'));
-  assert.ok(component.includes('H: "#e9efec"'));
+  assert.ok(component.includes('const COMPOUND_COLORS = TYRE_COLORS'));
 });
 
 test("2026 official-grid profiles contain eleven teams and twenty-two unique drivers", () => {

@@ -1,0 +1,282 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-06T14:28:12.502960+00:00",
+  "libraryVersion": "3.8.3",
+  "generatedBy": "tools/collect_historical_evidence.py",
+  "source": "FastF1 public timing data",
+  "isLive": false,
+  "methodology": {
+    "formula": "LapTime ~ Driver + RaceLap + RaceLap² + TrackTemp + Compound + Compound×TyreLife + Compound×TyreLife²",
+    "units": {
+      "lapTime": "seconds",
+      "alpha": "seconds / tyre-life lap",
+      "beta": "seconds / tyre-life lap²",
+      "pitLoss": "seconds",
+      "temperature": "°C",
+      "humidity": "%",
+      "rainfall": "boolean weather-station flag, NOT intensity"
+    },
+    "filter": [
+      "S/M/H; complete LapTime, TyreLife, Stint",
+      "IsAccurate=True; Deleted!=True; FastF1Generated=False",
+      "TrackStatus exactly 1",
+      "exclude pit in/out and race lap 1",
+      "at least 5 normal laps per single-compound monotonic-life stint",
+      "up to 3 residual IQR passes, fences Q1−3IQR / Q3+3IQR"
+    ],
+    "validation": "First 75% of each qualifying stint trains; final 25% tests. IQR trimming is fitted on training only for holdout; test rows are not trimmed.",
+    "intervals": "Asymptotic 95% intervals from driver-stint cluster-robust covariance; exploratory, not a causal tyre-wear measurement.",
+    "thresholds": {
+      "minimumStintLaps": {
+        "value": 5,
+        "unit": "laps",
+        "source": "project quality filter, unchanged from analysis/fastf1_austria_2025.py"
+      },
+      "iqrMultiplier": {
+        "value": 3,
+        "unit": "IQR",
+        "source": "project robust filter"
+      },
+      "minimumReliableLaps": {
+        "value": 40,
+        "unit": "laps",
+        "source": "project confidence gate"
+      },
+      "minimumReliableStints": {
+        "value": 4,
+        "unit": "stints",
+        "source": "project confidence gate"
+      },
+      "holdoutFraction": {
+        "value": 0.25,
+        "unit": "fraction of each stint",
+        "source": "project temporal validation design"
+      },
+      "minimumDistinctTyreLives": {
+        "value": 4,
+        "unit": "distinct age values",
+        "source": "project quadratic identifiability gate"
+      },
+      "minimumTeamLaps": {
+        "value": 20,
+        "unit": "laps per team and compound",
+        "source": "project exploratory team proxy gate"
+      },
+      "minimumTeamStints": {
+        "value": 2,
+        "unit": "driver-stint groups",
+        "source": "project exploratory team proxy gate; not a reliability guarantee"
+      },
+      "pitLocalWindow": {
+        "value": 4,
+        "unit": "race laps before in-lap / after out-lap",
+        "source": "project local baseline estimator"
+      },
+      "minimumPitBaselineLaps": {
+        "value": 4,
+        "unit": "normal same-driver laps",
+        "source": "project pit-loss quality gate"
+      },
+      "minimumPitSamples": {
+        "value": 3,
+        "unit": "retained pit pairs per event",
+        "source": "project pit-loss reporting gate"
+      },
+      "pitIqrMultiplier": {
+        "value": 1.5,
+        "unit": "IQR",
+        "source": "project outlier filter, applied with at least four pairs"
+      },
+      "minimumIqr": {
+        "value": 0.05,
+        "unit": "seconds",
+        "source": "project numerical floor for residual and pit IQR filters"
+      },
+      "confidenceCriticalValue": {
+        "value": 1.96,
+        "unit": "standard errors",
+        "source": "asymptotic two-sided 95% normal approximation"
+      }
+    },
+    "limitations": [
+      "Relative SOFT/MEDIUM/HARD labels are event-specific; absolute C1–C5 allocations are not inferred or pooled.",
+      "Driver effects, race progress and temperature do not fully identify fuel, traffic, tyre management or team ability.",
+      "No 2026 calibration claim: 2023–2025 tyre regulations and cars differ.",
+      "Pit-loss and wet same-lap differences are observational proxies, not pit-lane telemetry or wetness sensors."
+    ]
+  },
+  "events": [
+    {
+      "trackId": "melbourne",
+      "season": 2025,
+      "rawCompoundCounts": {
+        "INTERMEDIATE": 750,
+        "HARD": 92,
+        "MEDIUM": 85
+      },
+      "retainedCompoundSummary": [
+        {
+          "compound": "DRY",
+          "laps": 36,
+          "drivers": 16,
+          "rainfallTrueLaps": 4,
+          "rainfallKnownLaps": 36,
+          "meanTrackTempC": 19.3,
+          "meanHumidityPercent": 69.92,
+          "medianLapSeconds": 85.427
+        },
+        {
+          "compound": "INTERMEDIATE",
+          "laps": 511,
+          "drivers": 17,
+          "rainfallTrueLaps": 184,
+          "rainfallKnownLaps": 511,
+          "meanTrackTempC": 19.14,
+          "meanHumidityPercent": 75.24,
+          "medianLapSeconds": 92.035
+        }
+      ],
+      "sameLapComparisons": [
+        {
+          "lap": 46,
+          "firstCompound": "DRY",
+          "secondCompound": "INTERMEDIATE",
+          "firstSamples": 4,
+          "secondSamples": 6,
+          "firstMinusSecondSeconds": 6.367,
+          "rainfallTrue": true,
+          "trackTempC": 19.3,
+          "humidityPercent": 80.0
+        }
+      ],
+      "intermediateWetMatchedLaps": 0,
+      "status": "matched-observations",
+      "caveat": "Different drivers/teams on the same race lap are observational comparisons, not controlled tyre tests. Rainfall is a weather-station boolean; it does not measure road water or grip. Wet crossover is not estimated without adequate simultaneous samples."
+    },
+    {
+      "trackId": "silverstone",
+      "season": 2025,
+      "rawCompoundCounts": {
+        "INTERMEDIATE": 608,
+        "MEDIUM": 140,
+        "HARD": 41,
+        "SOFT": 36
+      },
+      "retainedCompoundSummary": [
+        {
+          "compound": "DRY",
+          "laps": 138,
+          "drivers": 17,
+          "rainfallTrueLaps": 0,
+          "rainfallKnownLaps": 138,
+          "meanTrackTempC": 24.07,
+          "meanHumidityPercent": 66.9,
+          "medianLapSeconds": 91.669
+        },
+        {
+          "compound": "INTERMEDIATE",
+          "laps": 297,
+          "drivers": 17,
+          "rainfallTrueLaps": 13,
+          "rainfallKnownLaps": 297,
+          "meanTrackTempC": 23.16,
+          "meanHumidityPercent": 77.19,
+          "medianLapSeconds": 104.096
+        }
+      ],
+      "sameLapComparisons": [
+        {
+          "lap": 8,
+          "firstCompound": "DRY",
+          "secondCompound": "INTERMEDIATE",
+          "firstSamples": 6,
+          "secondSamples": 11,
+          "firstMinusSecondSeconds": -2.342,
+          "rainfallTrue": false,
+          "trackTempC": 24.2,
+          "humidityPercent": 75.0
+        },
+        {
+          "lap": 9,
+          "firstCompound": "DRY",
+          "secondCompound": "INTERMEDIATE",
+          "firstSamples": 5,
+          "secondSamples": 10,
+          "firstMinusSecondSeconds": -6.186,
+          "rainfallTrue": false,
+          "trackTempC": 24.8,
+          "humidityPercent": 74.0
+        },
+        {
+          "lap": 40,
+          "firstCompound": "DRY",
+          "secondCompound": "INTERMEDIATE",
+          "firstSamples": 2,
+          "secondSamples": 7,
+          "firstMinusSecondSeconds": 2.056,
+          "rainfallTrue": false,
+          "trackTempC": 23.6,
+          "humidityPercent": 70.0
+        },
+        {
+          "lap": 41,
+          "firstCompound": "DRY",
+          "secondCompound": "INTERMEDIATE",
+          "firstSamples": 2,
+          "secondSamples": 6,
+          "firstMinusSecondSeconds": 0.714,
+          "rainfallTrue": false,
+          "trackTempC": 23.6,
+          "humidityPercent": 68.88
+        }
+      ],
+      "intermediateWetMatchedLaps": 0,
+      "status": "matched-observations",
+      "caveat": "Different drivers/teams on the same race lap are observational comparisons, not controlled tyre tests. Rainfall is a weather-station boolean; it does not measure road water or grip. Wet crossover is not estimated without adequate simultaneous samples."
+    },
+    {
+      "trackId": "spa",
+      "season": 2025,
+      "rawCompoundCounts": {
+        "MEDIUM": 510,
+        "INTERMEDIATE": 240,
+        "HARD": 72,
+        "None": 57
+      },
+      "retainedCompoundSummary": [
+        {
+          "compound": "DRY",
+          "laps": 549,
+          "drivers": 20,
+          "rainfallTrueLaps": 0,
+          "rainfallKnownLaps": 549,
+          "meanTrackTempC": 24.53,
+          "meanHumidityPercent": 79.93,
+          "medianLapSeconds": 107.517
+        },
+        {
+          "compound": "INTERMEDIATE",
+          "laps": 132,
+          "drivers": 20,
+          "rainfallTrueLaps": 0,
+          "rainfallKnownLaps": 132,
+          "meanTrackTempC": 25.62,
+          "meanHumidityPercent": 82.36,
+          "medianLapSeconds": 123.203
+        }
+      ],
+      "sameLapComparisons": [],
+      "intermediateWetMatchedLaps": 0,
+      "status": "no-same-lap-comparison",
+      "caveat": "Different drivers/teams on the same race lap are observational comparisons, not controlled tyre tests. Rainfall is a weather-station boolean; it does not measure road water or grip. Wet crossover is not estimated without adequate simultaneous samples."
+    }
+  ],
+  "requestedEvents": [
+    "2025-melbourne",
+    "2025-silverstone",
+    "2025-spa"
+  ],
+  "missingEvents": [],
+  "supportsWetCrossoverCalibration": false,
+  "reason": "Same-lap comparisons are descriptive; no water-depth/intensity sensor and sparse/no full-wet overlaps."
+}

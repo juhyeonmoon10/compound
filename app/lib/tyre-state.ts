@@ -1,4 +1,5 @@
-import type { Compound } from "./strategy.ts";
+import type { Compound, DryCompound } from "./strategy.ts";
+import { MODEL_PARAMS } from "../model/params.ts";
 
 /**
  * Closed-form, deterministic tyre-state proxy used by the school project.
@@ -54,7 +55,7 @@ interface ThermalProfile {
   readonly firstLapWarmupLossSeconds: number;
 }
 
-const THERMAL_PROFILES: Readonly<Record<Compound, ThermalProfile>> = {
+const THERMAL_PROFILES: Readonly<Record<DryCompound, ThermalProfile>> = {
   S: {
     startTemperatureC: 82,
     equilibriumTemperatureC: 103,
@@ -102,6 +103,13 @@ function thermalState(
 export function calculateTyreState(
   input: TyreStateInput,
 ): TyreStateSnapshot {
+  if (input.compound === "INTER" || input.compound === "WET") {
+    const p = MODEL_PARAMS.weather;
+    // Wet heat depends on the stint's dry-lap history and is accounted for in strategy.lapCost.
+    return { temperatureC: p.wetDisplayTemperatureC, optimalMinC: p.wetDisplayMinC, optimalMaxC: p.wetDisplayMaxC,
+      thermalState: "optimal", condition: "optimal", wearPercent: Math.min(p.maxPercent, p.maxPercent * (input.tyreAge + 1) / input.maxStintLaps),
+      gripPercent: p.maxPercent, warmupLossSeconds: 0, grainingLossSeconds: 0, overheatLossSeconds: 0, cliffLossSeconds: 0, totalStateLossSeconds: 0 };
+  }
   const profile = THERMAL_PROFILES[input.compound];
   const tyreAge = Math.max(0, input.tyreAge);
   const lapsOnSet = tyreAge + 1;

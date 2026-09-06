@@ -1,4 +1,5 @@
 "use client";
+import { TYRE_LABELS } from "./model/params";
 
 import {
   useCallback,
@@ -120,11 +121,7 @@ interface RaceReplayProps {
   readonly onOpenAnalysis?: () => void;
 }
 
-const COMPOUND_NAMES: Readonly<Record<Compound, string>> = {
-  S: "소프트",
-  M: "미디엄",
-  H: "하드",
-};
+const COMPOUND_NAMES = TYRE_LABELS;
 
 const TYRE_CONDITION_LABELS: Readonly<Record<TyreCondition, string>> = {
   warming: "예열",
@@ -1154,7 +1151,9 @@ export default function RaceReplay({
             overtakePulse,
           )
         : latestTelemetryRef.current;
-      latestTelemetryRef.current = telemetry;
+      const weatherLap = strategy.lapCosts[Math.min(strategy.lapCosts.length - 1, Math.max(0, (playerFrame?.lap ?? nextRaceFrame.primary.lap) - 1))];
+      const weatherTelemetry = { ...telemetry, water: weatherLap?.water ?? 0, raining: weatherLap?.raining ?? false };
+      latestTelemetryRef.current = weatherTelemetry;
 
       if (
         cameraModeRef.current !== "map" &&
@@ -1164,7 +1163,7 @@ export default function RaceReplay({
           nextRaceFrame,
           cameraModeRef.current,
           nextGridFrame,
-          telemetry,
+          weatherTelemetry,
         );
       }
 

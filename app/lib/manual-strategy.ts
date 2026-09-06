@@ -5,8 +5,8 @@ import type {
   StrategyStintInput,
 } from "./strategy";
 
-export type ManualCompoundSelection = [Compound, Compound, Compound];
-export type ManualPitSelection = [number, number];
+export type ManualCompoundSelection = Compound[];
+export type ManualPitSelection = number[];
 
 export interface ManualStrategyPlan {
   readonly stopCount: StopCount;
@@ -49,8 +49,12 @@ export function normalizeManualPlan(
 ): ManualStrategyPlan {
   assertRaceDistance(totalLaps);
 
-  const stopCount: StopCount =
-    plan.stopCount === 2 && maximumStops === 2 ? 2 : 1;
+  const stopCount = Math.min(maximumStops, Math.max(1, plan.stopCount), totalLaps - 1) as StopCount;
+  if (stopCount === 3) {
+    const pits: number[] = [];
+    for (let i = 0; i < stopCount; i++) pits.push(clampInteger(plan.pitAfterLaps[i] ?? totalLaps * (i + 1) / (stopCount + 1), i ? pits[i - 1] + 1 : 1, totalLaps - stopCount + i));
+    return { stopCount, compounds: Array.from({ length: stopCount + 1 }, (_, i) => plan.compounds[i] ?? "M"), pitAfterLaps: pits };
+  }
   const firstPitMaximum =
     stopCount === 2 ? totalLaps - 2 : totalLaps - 1;
   const firstPit = clampInteger(
@@ -78,7 +82,8 @@ export function buildManualStints(
   plan: ManualStrategyPlan,
   totalLaps: number,
 ): StrategyStintInput[] {
-  const normalized = normalizeManualPlan(plan, totalLaps);
+  const normalized = normalizeManualPlan(plan, totalLaps, plan.stopCount);
+  if (normalized.stopCount === 3) return normalized.compounds.map((compound, i) => ({ compound, startLap: i ? normalized.pitAfterLaps[i - 1] + 1 : 1, endLap: i < normalized.stopCount ? normalized.pitAfterLaps[i] : totalLaps }));
   const [firstPit, secondPit] = normalized.pitAfterLaps;
 
   if (normalized.stopCount === 1) {
@@ -120,6 +125,7 @@ export function manualPlanFromStrategy(
   totalLaps: number,
 ): ManualStrategyPlan {
   const fallback = createDefaultManualPlan(totalLaps);
+  if (strategy.stopCount === 3) return normalizeManualPlan({ stopCount: 3, compounds: strategy.stints.map(s => s.compound), pitAfterLaps: strategy.stints.slice(0, -1).map(s => s.endLap) }, totalLaps, 3);
   if (strategy.stopCount !== 1 && strategy.stopCount !== 2) {
     return fallback;
   }

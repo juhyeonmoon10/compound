@@ -12,7 +12,7 @@
     "build:pages": "vite build --config vite.pages.config.ts",
     "preview:pages": "vite preview --config vite.pages.config.ts",
     "start": "vite preview --config vite.pages.config.ts",
-    "test": "node --experimental-strip-types --test tests/strategy-algorithm.test.mjs tests/tyre-analysis.test.mjs tests/strategy-backtest.test.mjs tests/pit-windows.test.mjs tests/experiment-notebook.test.mjs tests/public-assets.test.mjs",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "lint": "eslint . --ignore-pattern out --ignore-pattern .next"
   },
   "dependencies": {
