@@ -18,6 +18,8 @@ import RaceScene3D, {
 } from "./RaceScene3D";
 import { resolveEntryPerformance } from "./lib/entry-performance";
 import { buildSharedRaceGrid, sharedRaceParticipants } from "./lib/shared-race-grid";
+import ReplayTelemetry from "./ReplayTelemetry";
+import type { RaceExperimentTimeline } from "./lib/race-experiments";
 import { RACE_CAR_ASSET } from "./lib/visual-assets";
 import type {
   DriverProfile,
@@ -119,6 +121,7 @@ interface RaceReplayProps {
   readonly startingGridPosition: number;
   readonly trafficLevel: RaceTrafficLevel;
   readonly entryContext?: { readonly teamId: TeamId; readonly driverId: string; readonly equalPerformance: boolean };
+  readonly experimentTimeline?: RaceExperimentTimeline | null;
   readonly onOpenSetup?: () => void;
   readonly onEditStrategy?: () => void;
   readonly onOpenAnalysis?: () => void;
@@ -758,6 +761,7 @@ export default function RaceReplay({
   startingGridPosition,
   trafficLevel,
   entryContext,
+  experimentTimeline,
   onOpenSetup,
   onEditStrategy,
   onOpenAnalysis,
@@ -2666,6 +2670,14 @@ export default function RaceReplay({
         </div>
       </div>
       )}
+
+      <ReplayTelemetry
+        grid={raceGridData.grid}
+        frame={gridFrame}
+        playerId={driver.id}
+        hasStarted={phase !== "ready" && phase !== "countdown"}
+        experimentTimeline={experimentTimeline}
+      />
 
       <p className="race-replay__disclaimer">
         실제 서킷 윤곽 기반의 모델 시각화입니다. 실제 고도·차량 물리를

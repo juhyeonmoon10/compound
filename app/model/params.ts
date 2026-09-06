@@ -54,6 +54,8 @@ export const MODEL_PARAMS = {
     // 단위: 경기당 발생 확률/지속 랩. 공식 2018–2025 통계 미확보 시 사용하는 실험용 사전값.
     fallbackScProbability: 0.35, fallbackVscProbability: 0.25,
     scDurations: [2, 3, 4, 5] as readonly number[], vscDurations: [1, 2] as readonly number[],
+    // 단위: 경기/상태 구간. 관측 빈도·지속 랩 채택의 프로젝트 최소 표본 기준(공식 규정 아님).
+    minObservedRaces: 5, minDurationEpisodes: 3,
     eventStartFraction: 0.08, eventEndFraction: 0.9,
     overtakeBase: 0.15, racecraftReference: 80, overtakePerRating: 0.008,
     overtakePerPaceSecond: 0.2, overtakeMin: 0.02, overtakeMax: 0.85,
@@ -65,8 +67,13 @@ export const MODEL_PARAMS = {
     // 단위: 초/비율/랩. 사용자 요구의 회귀 검사 허용 범위(실측 주장이 아님).
     toleranceSeconds: 1e-7, fuelMinSeconds: 1.2, fuelMaxSeconds: 3,
     cliffMinimumSeconds: 2, cliffOldAge: 24, cliffNewAge: 4,
-    pitSensitivitySeconds: 0.3, bruteForceLaps: 8,
+    pitSensitivitySeconds: 0.3, pitSensitivityAfterLap: 20, bruteForceLaps: 8,
     crossoverStep: 0.0001,
+  },
+  chart: {
+    // 단위: px / 수막(무차원). 기존 랩타임 차트 크기와 보조 수막 축을 위한 프로젝트 UI 배치.
+    width: 920, height: 270, padding: { top: 24, right: 52, bottom: 40, left: 52 },
+    waterTicks: [0, 0.5, 1] as readonly number[],
   },
   board: {
     // 단위: px, 출처: 사용자 제공 Pirelli 2026 그래픽 실측 명세 (1500×844 기준).

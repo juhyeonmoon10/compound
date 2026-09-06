@@ -7,6 +7,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -382,9 +383,7 @@ function strategyReason(
 }
 
 function getChartGeometry(strategy: StrategyEvaluation) {
-  const width = 920;
-  const height = 270;
-  const padding = { top: 24, right: 20, bottom: 40, left: 52 };
+  const { width, height, padding } = MODEL_PARAMS.chart;
   const values = strategy.lapCosts.map((lap) => lap.lapTimeSeconds);
   const rawMin = Math.min(...values);
   const rawMax = Math.max(...values);
@@ -451,6 +450,7 @@ function StrategyTimeline({
 }
 
 function LapTimeChart({ strategy }: { strategy: StrategyEvaluation }) {
+  const chartId = useId();
   const chart = getChartGeometry(strategy);
   const yTicks = [chart.max, (chart.max + chart.min) / 2, chart.min];
   const lastLap = strategy.lapCosts.length;
@@ -463,16 +463,17 @@ function LapTimeChart({ strategy }: { strategy: StrategyEvaluation }) {
           className="lap-chart"
           viewBox={`0 0 ${chart.width} ${chart.height}`}
           role="img"
-          aria-labelledby="lap-chart-title lap-chart-desc"
+          aria-labelledby={`${chartId}-title ${chartId}-desc`}
         >
-          <title id="lap-chart-title">선택 전략의 예상 랩타임 변화</title>
-          <desc id="lap-chart-desc">
+          <title id={`${chartId}-title`}>선택 전략의 예상 랩타임 변화</title>
+          <desc id={`${chartId}-desc`}>
             연료 감소로 기본 랩타임이 낮아지고, 각 스틴트 안에서는 타이어
             열화로 랩타임이 증가합니다. 피트랩에서는 고정 피트 손실이
             더해집니다.
           </desc>
-          {strategy.lapCosts.filter(lap => lap.raining).map(lap => <rect key={`rain-${lap.lap}`} x={chart.x(lap.lap)} y={chart.padding.top} width={chart.innerWidth / Math.max(1, lastLap - 1)} height={chart.innerHeight} fill={TYRE_COLORS.WET} opacity="0.12" />)}
+          {strategy.lapCosts.filter(lap => lap.raining).map(lap => { const step = chart.innerWidth / Math.max(1, lastLap - 1); return <rect key={`rain-${lap.lap}`} x={Math.max(chart.padding.left, chart.x(lap.lap) - step / 2)} y={chart.padding.top} width={lap.lap === 1 || lap.lap === lastLap ? step / 2 : step} height={chart.innerHeight} fill={TYRE_COLORS.WET} opacity="0.12" />; })}
           <polyline points={strategy.lapCosts.map(lap => `${chart.x(lap.lap)},${chart.padding.top + (1 - lap.water) * chart.innerHeight}`).join(" ")} fill="none" stroke={TYRE_COLORS.WET} strokeWidth="1" strokeDasharray="4 3"><title>수막 0~1 · 프로젝트 추정 (오른쪽 축)</title></polyline>
+          {MODEL_PARAMS.chart.waterTicks.map(water => <text key={`water-${water}`} x={chart.width - chart.padding.right + 9} y={chart.padding.top + (1 - water) * chart.innerHeight + 4} fill="#91afc9" fontSize="12">{water.toFixed(1)}</text>)}
 
           {strategy.stints.map((stint) => {
             const startX =
@@ -515,7 +516,7 @@ function LapTimeChart({ strategy }: { strategy: StrategyEvaluation }) {
                 fill="#7f8881"
                 fontSize="12"
               >
-                {tick.toFixed(1)}s
+                {tick.toFixed(1)}초
               </text>
             </g>
           ))}
@@ -581,6 +582,7 @@ function LapTimeChart({ strategy }: { strategy: StrategyEvaluation }) {
           ))}
         </svg>
       </div>
+      <p className="weather-model-summary">프로젝트 추정 · 흰 선: 랩타임(왼쪽 초) · 파란 점선: 수막(오른쪽 0–1) · 파란 배경: 비가 오는 랩. 물보라·광택 연출과 독립된 계산값입니다.</p>
       <details className="data-table">
         <summary>원본 랩 데이터 드로어 열기</summary>
         <div className="table-scroll">
@@ -2548,6 +2550,7 @@ export default function StrategyLab({
                 startingGridPosition={applied.startingGridPosition}
                 trafficLevel={applied.trafficLevel}
                 entryContext={{ teamId: applied.teamId, driverId: applied.driverId, equalPerformance: applied.equalPerformance }}
+                experimentTimeline={raceExperiment?.eventTimelines[experimentTrial] ?? null}
                 onOpenSetup={openScenarioSetup}
                 onEditStrategy={() => {
                   setWorkspace("manual");
@@ -2568,6 +2571,7 @@ export default function StrategyLab({
                     });
                 }}
               /></Suspense>}
+              {pageView === "strategy" && workspace === "replay" && <details className="panel replay-lap-details"><summary>자세히 보기 · 선택 전략 랩타임</summary><LapTimeChart strategy={replayStrategy} /></details>}
 
               {workspace === "notebook" && <ExperimentNotebook currentSnapshot={analysisStrategy.isLegal ? {
                 trackId: applied.trackId,
