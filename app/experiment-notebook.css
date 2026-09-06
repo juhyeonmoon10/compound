@@ -18,6 +18,8 @@
 .experiment-current > strong { font-size: 15px; font-weight: 700; }
 .experiment-current > b { font-size: 17px; font-variant-numeric: tabular-nums; }
 .experiment-current > small { flex-basis: 100%; color: #87929f; font-size: 10px; }
+.experiment-current > .experiment-research-preview { color: #b1bdc8; line-height: 1.7; }
+.experiment-scenario-summary { max-height: 9em; overflow: auto; line-height: 1.65; overflow-wrap: anywhere; white-space: pre-line; }
 .experiment-current > p { margin: 0; color: #bbc3cd; font-size: 12px; line-height: 1.6; }
 .experiment-sequence, .experiment-sequence-step { display: inline-flex; align-items: center; gap: 7px; }
 .experiment-sequence { white-space: nowrap; flex-shrink: 0; }

@@ -21,6 +21,7 @@ import type { StrategyWorkspace } from "./RaceBriefingOverview";
 import { calculatePitWindows } from "./lib/pit-windows";
 const StrategyBacktestPanel = lazy(() => import("./StrategyBacktestPanel"));
 import ExperimentNotebook from "./ExperimentNotebook";
+import { buildExperimentResearch } from "./lib/notebook-research";
 import "./experience.css";
 import WeatherControls from "./WeatherControls";
 import WetEvidencePanel from "./WetEvidencePanel";
@@ -2579,7 +2580,11 @@ export default function StrategyLab({
               /></Suspense>}
               {pageView === "strategy" && workspace === "replay" && <details className="panel replay-lap-details"><summary>자세히 보기 · 선택 전략 랩타임</summary><LapTimeChart strategy={replayStrategy} /></details>}
 
-              {workspace === "notebook" && <ExperimentNotebook currentSnapshot={analysisStrategy.isLegal ? {
+              {workspace === "notebook" && <ExperimentNotebook research={buildExperimentResearch({
+                weather: applied.weather, seed: experimentSeed, teamId: applied.teamId, driverId: applied.driverId,
+                performanceEnabled: !applied.equalPerformance, driver: entryProfile.driver, strategy: analysisStrategy,
+                isManual: analysisMode === "manual", experiment: raceExperiment, trialIndex: experimentTrial,
+              })} currentSnapshot={analysisStrategy.isLegal ? {
                 trackId: applied.trackId,
                 trackName: appliedTrack.koreanName,
                 laps: appliedTrack.laps,
