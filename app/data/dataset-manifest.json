@@ -1,0 +1,475 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-06T14:28:12.502960+00:00",
+  "libraryVersion": "3.8.3",
+  "generatedBy": "tools/collect_historical_evidence.py",
+  "source": "FastF1 public timing data",
+  "isLive": false,
+  "methodology": {
+    "formula": "LapTime ~ Driver + RaceLap + RaceLap² + TrackTemp + Compound + Compound×TyreLife + Compound×TyreLife²",
+    "units": {
+      "lapTime": "seconds",
+      "alpha": "seconds / tyre-life lap",
+      "beta": "seconds / tyre-life lap²",
+      "pitLoss": "seconds",
+      "temperature": "°C",
+      "humidity": "%",
+      "rainfall": "boolean weather-station flag, NOT intensity"
+    },
+    "filter": [
+      "S/M/H; complete LapTime, TyreLife, Stint",
+      "IsAccurate=True; Deleted!=True; FastF1Generated=False",
+      "TrackStatus exactly 1",
+      "exclude pit in/out and race lap 1",
+      "at least 5 normal laps per single-compound monotonic-life stint",
+      "up to 3 residual IQR passes, fences Q1−3IQR / Q3+3IQR"
+    ],
+    "validation": "First 75% of each qualifying stint trains; final 25% tests. IQR trimming is fitted on training only for holdout; test rows are not trimmed.",
+    "intervals": "Asymptotic 95% intervals from driver-stint cluster-robust covariance; exploratory, not a causal tyre-wear measurement.",
+    "thresholds": {
+      "minimumStintLaps": {
+        "value": 5,
+        "unit": "laps",
+        "source": "project quality filter, unchanged from analysis/fastf1_austria_2025.py"
+      },
+      "iqrMultiplier": {
+        "value": 3,
+        "unit": "IQR",
+        "source": "project robust filter"
+      },
+      "minimumReliableLaps": {
+        "value": 40,
+        "unit": "laps",
+        "source": "project confidence gate"
+      },
+      "minimumReliableStints": {
+        "value": 4,
+        "unit": "stints",
+        "source": "project confidence gate"
+      },
+      "holdoutFraction": {
+        "value": 0.25,
+        "unit": "fraction of each stint",
+        "source": "project temporal validation design"
+      },
+      "minimumDistinctTyreLives": {
+        "value": 4,
+        "unit": "distinct age values",
+        "source": "project quadratic identifiability gate"
+      },
+      "minimumTeamLaps": {
+        "value": 20,
+        "unit": "laps per team and compound",
+        "source": "project exploratory team proxy gate"
+      },
+      "minimumTeamStints": {
+        "value": 2,
+        "unit": "driver-stint groups",
+        "source": "project exploratory team proxy gate; not a reliability guarantee"
+      },
+      "pitLocalWindow": {
+        "value": 4,
+        "unit": "race laps before in-lap / after out-lap",
+        "source": "project local baseline estimator"
+      },
+      "minimumPitBaselineLaps": {
+        "value": 4,
+        "unit": "normal same-driver laps",
+        "source": "project pit-loss quality gate"
+      },
+      "minimumPitSamples": {
+        "value": 3,
+        "unit": "retained pit pairs per event",
+        "source": "project pit-loss reporting gate"
+      },
+      "pitIqrMultiplier": {
+        "value": 1.5,
+        "unit": "IQR",
+        "source": "project outlier filter, applied with at least four pairs"
+      },
+      "minimumIqr": {
+        "value": 0.05,
+        "unit": "seconds",
+        "source": "project numerical floor for residual and pit IQR filters"
+      },
+      "confidenceCriticalValue": {
+        "value": 1.96,
+        "unit": "standard errors",
+        "source": "asymptotic two-sided 95% normal approximation"
+      }
+    },
+    "limitations": [
+      "Relative SOFT/MEDIUM/HARD labels are event-specific; absolute C1–C5 allocations are not inferred or pooled.",
+      "Driver effects, race progress and temperature do not fully identify fuel, traffic, tyre management or team ability.",
+      "No 2026 calibration claim: 2023–2025 tyre regulations and cars differ.",
+      "Pit-loss and wet same-lap differences are observational proxies, not pit-lane telemetry or wetness sensors."
+    ]
+  },
+  "summary": {
+    "requestedDryEvents": 21,
+    "collectedDryEvents": 21,
+    "analysedDryEvents": 21,
+    "circuits": 7,
+    "rawLaps": 23229,
+    "modelLaps": 18778,
+    "stints": 1034,
+    "holdoutLaps": 4388,
+    "weightedHoldoutMaeSeconds": 0.583883,
+    "weightedHoldoutRmseSeconds": 0.986216,
+    "byYear": [
+      {
+        "season": 2023,
+        "events": 7,
+        "rawLaps": 7718,
+        "modelLaps": 6433,
+        "stints": 367
+      },
+      {
+        "season": 2024,
+        "events": 7,
+        "rawLaps": 8008,
+        "modelLaps": 6747,
+        "stints": 377
+      },
+      {
+        "season": 2025,
+        "events": 7,
+        "rawLaps": 7503,
+        "modelLaps": 5598,
+        "stints": 290
+      }
+    ]
+  },
+  "events": [
+    {
+      "id": "2023-bahrain",
+      "status": "collected",
+      "rawLaps": 1056,
+      "modelLaps": 859
+    },
+    {
+      "id": "2023-barcelona",
+      "status": "collected",
+      "rawLaps": 1312,
+      "modelLaps": 1173
+    },
+    {
+      "id": "2023-hungaroring",
+      "status": "collected",
+      "rawLaps": 1252,
+      "modelLaps": 1107
+    },
+    {
+      "id": "2023-monza",
+      "status": "collected",
+      "rawLaps": 957,
+      "modelLaps": 857
+    },
+    {
+      "id": "2023-silverstone",
+      "status": "collected",
+      "rawLaps": 971,
+      "modelLaps": 776
+    },
+    {
+      "id": "2023-spa",
+      "status": "collected",
+      "rawLaps": 816,
+      "modelLaps": 620
+    },
+    {
+      "id": "2023-spielberg",
+      "status": "collected",
+      "rawLaps": 1354,
+      "modelLaps": 1041
+    },
+    {
+      "id": "2024-bahrain",
+      "status": "collected",
+      "rawLaps": 1129,
+      "modelLaps": 974
+    },
+    {
+      "id": "2024-barcelona",
+      "status": "collected",
+      "rawLaps": 1310,
+      "modelLaps": 1164
+    },
+    {
+      "id": "2024-hungaroring",
+      "status": "collected",
+      "rawLaps": 1355,
+      "modelLaps": 1194
+    },
+    {
+      "id": "2024-monza",
+      "status": "collected",
+      "rawLaps": 1008,
+      "modelLaps": 898
+    },
+    {
+      "id": "2024-silverstone",
+      "status": "collected",
+      "rawLaps": 960,
+      "modelLaps": 588
+    },
+    {
+      "id": "2024-spa",
+      "status": "collected",
+      "rawLaps": 841,
+      "modelLaps": 720
+    },
+    {
+      "id": "2024-spielberg",
+      "status": "collected",
+      "rawLaps": 1405,
+      "modelLaps": 1209
+    },
+    {
+      "id": "2025-bahrain",
+      "status": "collected",
+      "rawLaps": 1128,
+      "modelLaps": 904
+    },
+    {
+      "id": "2025-barcelona",
+      "status": "collected",
+      "rawLaps": 1203,
+      "modelLaps": 960
+    },
+    {
+      "id": "2025-hungaroring",
+      "status": "collected",
+      "rawLaps": 1368,
+      "modelLaps": 1260
+    },
+    {
+      "id": "2025-melbourne",
+      "status": "collected",
+      "rawLaps": 927,
+      "modelLaps": 0
+    },
+    {
+      "id": "2025-monza",
+      "status": "collected",
+      "rawLaps": 974,
+      "modelLaps": 859
+    },
+    {
+      "id": "2025-silverstone",
+      "status": "collected",
+      "rawLaps": 825,
+      "modelLaps": 126
+    },
+    {
+      "id": "2025-spa",
+      "status": "collected",
+      "rawLaps": 879,
+      "modelLaps": 515
+    },
+    {
+      "id": "2025-spielberg",
+      "status": "collected",
+      "rawLaps": 1126,
+      "modelLaps": 974
+    }
+  ],
+  "pitLossCoverage": [
+    {
+      "trackId": "melbourne",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "shanghai",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "suzuka",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "bahrain",
+      "status": "observational-estimate",
+      "samples": 98,
+      "medianSeconds": 23.97,
+      "events": [
+        "2023-bahrain",
+        "2024-bahrain",
+        "2025-bahrain"
+      ]
+    },
+    {
+      "trackId": "jeddah",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "miami",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "montreal",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "monaco",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "barcelona",
+      "status": "observational-estimate",
+      "samples": 117,
+      "medianSeconds": 22.947,
+      "events": [
+        "2023-barcelona",
+        "2024-barcelona",
+        "2025-barcelona"
+      ]
+    },
+    {
+      "trackId": "spielberg",
+      "status": "observational-estimate",
+      "samples": 93,
+      "medianSeconds": 21.074,
+      "events": [
+        "2023-spielberg",
+        "2024-spielberg",
+        "2025-spielberg"
+      ]
+    },
+    {
+      "trackId": "silverstone",
+      "status": "observational-estimate",
+      "samples": 12,
+      "medianSeconds": 19.708,
+      "events": [
+        "2023-silverstone",
+        "2024-silverstone"
+      ]
+    },
+    {
+      "trackId": "spa",
+      "status": "observational-estimate",
+      "samples": 66,
+      "medianSeconds": 18.203,
+      "events": [
+        "2023-spa",
+        "2024-spa"
+      ]
+    },
+    {
+      "trackId": "hungaroring",
+      "status": "observational-estimate",
+      "samples": 98,
+      "medianSeconds": 20.932,
+      "events": [
+        "2023-hungaroring",
+        "2024-hungaroring",
+        "2025-hungaroring"
+      ]
+    },
+    {
+      "trackId": "zandvoort",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "monza",
+      "status": "observational-estimate",
+      "samples": 63,
+      "medianSeconds": 25.172,
+      "events": [
+        "2023-monza",
+        "2024-monza",
+        "2025-monza"
+      ]
+    },
+    {
+      "trackId": "madrid",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "baku",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "singapore",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "austin",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "mexico-city",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "sao-paulo",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "las-vegas",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "lusail",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    },
+    {
+      "trackId": "yas-marina",
+      "status": "not-collected-or-insufficient",
+      "samples": 0,
+      "medianSeconds": null,
+      "events": []
+    }
+  ],
+  "reproduce": "python -m pip install -r analysis/requirements.txt && python tools/collect_historical_evidence.py --workers 3",
+  "unverifiedUserFiguresUsed": false
+}

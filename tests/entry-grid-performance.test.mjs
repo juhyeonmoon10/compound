@@ -62,6 +62,19 @@ test("all twenty cars have exactly zero relative adjustments in equal-performanc
   }
 });
 
+test("new 2026 teams use observed primary pace without being reapplied in replay", () => {
+  for (const driverId of ["nico-hulkenberg", "sergio-perez"]) {
+    const { grid, strategy, primaryProfile } = fixture({ driverId });
+    assert.equal(primaryProfile.team.source.currentSeasonCollected, true);
+    assert.ok(primaryProfile.team.source.events >= MODEL_PARAMS.historical.minTeamEvents);
+    assert.notEqual(primaryProfile.team.observedPaceSeconds, null);
+    assert.equal(primaryProfile.team.pitStationarySeconds, null);
+    const primary = grid.cars.find(car => car.id === driverId);
+    assertNear(primary.totalSeconds, strategy.totalSeconds);
+    assert.ok(primary.lapTimings.every(lap => lap.entryModelAdjustmentSeconds === 0));
+  }
+});
+
 test("rivals receive only pace difference and relative wear/wet ratios", () => {
   const { grid, strategy, primaryProfile } = fixture({ wet: true });
   const rival = grid.cars.find((car) => car.id === "lewis-hamilton");

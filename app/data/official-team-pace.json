@@ -1,0 +1,357 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-06",
+  "status": "no-verified-chart-values",
+  "purpose": "최근 완료 확인된 5개 2026 GP의 F1/Pirelli 공식 팀별 Race Simulation Pace 차트 수치 확보 여부 기록",
+  "selection": {
+    "cutoffUtc": "2026-09-06T14:42:50Z",
+    "timezone": "UTC",
+    "season": 2026,
+    "requestedRaceCount": 5,
+    "definition": "확인 시점 공식 F1 캘린더에서 경기 종료일이 지났고 레이스 순위 요약이 표시된 그랑프리 5개. 스프린트·연습·예선은 별도 경기로 세지 않음.",
+    "scheduleUrl": "https://www.formula1.com/en/racing/2026",
+    "eventOrder": "newest-first",
+    "excludedCurrentEvent": {
+      "eventName": "Italian Grand Prix",
+      "raceDate": "2026-09-06",
+      "url": "https://www.formula1.com/en/racing/2026/italy",
+      "reason": "조사 기준 시점 캘린더에는 Current로만 표시되고 레이스 결과 요약이 없어 완료를 확정하지 못함. 미래 경기라고 단정하지 않으며, 공식 종료 결과 확인 후 창을 갱신해야 함."
+    }
+  },
+  "provenance": {
+    "sourceType": "availability-audit-of-official-published-analysis-not-team-telemetry",
+    "authorisedAccess": "공개 페이지와 공개 링크만 조회; F1 Unlocked 로그인 이후 콘텐츠 우회 없음",
+    "inclusionRule": "팀 이름과 그 팀에 대응하는 숫자 라벨 또는 표 셀, 단위, 기준값이 명시되고 확인 가능한 경우에만 전사",
+    "excludedInference": [
+      "막대의 픽셀 길이·눈대중 보간",
+      "차트 순위로 초 차이 생성",
+      "예선·연습 최고기록을 레이스 시뮬레이션 페이스로 대체",
+      "타이어 전략 간 총시간 차이를 팀별 성능 차이로 대체",
+      "2025년 기사를 2026년 기사로 취급",
+      "확인일을 기사 공개일로 취급"
+    ],
+    "missingValuePolicy": "null = 확인 가능한 원자료 값 미확보. 숫자 0은 실제로 검증된 기준팀의 0초일 때만 허용. 모델 중립 fallback과 원자료 누락은 별도."
+  },
+  "coverage": {
+    "expectedEventCount": 5,
+    "reviewedEventCount": 5,
+    "expectedTeamCount": 11,
+    "verifiedNumericEventCount": 0,
+    "verifiedTeamEventValueCount": 0,
+    "requiredTeamEventValueCount": 55,
+    "teamIds": [
+      "mercedes",
+      "ferrari",
+      "mclaren",
+      "red-bull",
+      "racing-bulls",
+      "alpine",
+      "haas",
+      "audi",
+      "williams",
+      "aston-martin",
+      "cadillac"
+    ]
+  },
+  "events": [
+    {
+      "id": "2026-netherlands",
+      "season": 2026,
+      "eventName": "Dutch Grand Prix",
+      "label": "네덜란드 GP",
+      "trackId": "zandvoort",
+      "raceDate": "2026-08-23",
+      "round": 12,
+      "completionEvidence": {
+        "url": "https://www.formula1.com/en/racing/2026",
+        "status": "race-date-past-and-classification-summary-present-at-cutoff"
+      },
+      "source": {
+        "publisher": "Formula 1",
+        "title": "What the teams said – Sprint day and Qualifying in the Netherlands",
+        "url": "https://www.formula1.com/en/latest/article/what-the-teams-said-sprint-day-and-qualifying-in-the-netherlands-2026.1vJ9dLmIstL3qivbyY0OEu",
+        "publishedAt": null,
+        "access": "public-text",
+        "kind": "pirelli-pre-race-strategy-commentary"
+      },
+      "requestedChartTitle": "Race Simulation Pace",
+      "observedChartTitle": null,
+      "chartImageUrl": null,
+      "axisUnit": null,
+      "referenceTeamId": null,
+      "transcriptionMethod": null,
+      "availability": "exact-chart-not-located",
+      "note": "Pirelli 사전 전략 설명의 피트 구간과 타이어 조합은 공개되어 있으나, 열람한 공개 본문에 팀별 Race Simulation Pace 명시값이 없습니다.",
+      "teamPaceSeconds": {
+        "mercedes": null,
+        "ferrari": null,
+        "mclaren": null,
+        "red-bull": null,
+        "racing-bulls": null,
+        "alpine": null,
+        "haas": null,
+        "audi": null,
+        "williams": null,
+        "aston-martin": null,
+        "cadillac": null
+      },
+      "paceMeaning": "unavailable; do not treat null as zero or infer from qualifying times, standings, prose or bar lengths"
+    },
+    {
+      "id": "2026-hungary",
+      "season": 2026,
+      "eventName": "Hungarian Grand Prix",
+      "label": "헝가리 GP",
+      "trackId": "hungaroring",
+      "raceDate": "2026-07-26",
+      "round": 11,
+      "completionEvidence": {
+        "url": "https://www.formula1.com/en/racing/2026",
+        "status": "race-date-past-and-classification-summary-present-at-cutoff"
+      },
+      "source": {
+        "publisher": "Formula 1",
+        "title": "What the teams said – Qualifying in Hungary",
+        "url": "https://www.formula1.com/en/latest/article/what-the-teams-said-qualifying-in-hungary-2026.3feA3778bfyv3miQvTeRha",
+        "publishedAt": null,
+        "access": "public-text",
+        "kind": "pirelli-pre-race-strategy-commentary"
+      },
+      "requestedChartTitle": "Race Simulation Pace",
+      "observedChartTitle": null,
+      "chartImageUrl": null,
+      "axisUnit": null,
+      "referenceTeamId": null,
+      "transcriptionMethod": null,
+      "availability": "exact-chart-not-located",
+      "note": "Pirelli의 1스톱·2스톱 비교와 피트 구간 설명은 확인했으나, 열람한 공개 본문에서 팀별 레이스 시뮬레이션 페이스 수치는 확보하지 못했습니다.",
+      "teamPaceSeconds": {
+        "mercedes": null,
+        "ferrari": null,
+        "mclaren": null,
+        "red-bull": null,
+        "racing-bulls": null,
+        "alpine": null,
+        "haas": null,
+        "audi": null,
+        "williams": null,
+        "aston-martin": null,
+        "cadillac": null
+      },
+      "paceMeaning": "unavailable; do not treat null as zero or infer from qualifying times, standings, prose or bar lengths"
+    },
+    {
+      "id": "2026-belgium",
+      "season": 2026,
+      "eventName": "Belgian Grand Prix",
+      "label": "벨기에 GP",
+      "trackId": "spa",
+      "raceDate": "2026-07-19",
+      "round": 10,
+      "completionEvidence": {
+        "url": "https://www.formula1.com/en/racing/2026",
+        "status": "race-date-past-and-classification-summary-present-at-cutoff"
+      },
+      "source": {
+        "publisher": "Formula 1",
+        "title": "What the teams said – Qualifying in Belgium",
+        "url": "https://www.formula1.com/en/latest/article/what-the-teams-said-qualifying-in-belgium-2026.2zTZf4gN1Db4YuqMTTMZhO",
+        "publishedAt": "2026-07-18T18:28:00Z",
+        "access": "public-text",
+        "kind": "pirelli-pre-race-strategy-commentary"
+      },
+      "requestedChartTitle": "Race Simulation Pace",
+      "observedChartTitle": null,
+      "chartImageUrl": null,
+      "axisUnit": null,
+      "referenceTeamId": null,
+      "transcriptionMethod": null,
+      "availability": "exact-chart-not-located",
+      "note": "Pirelli 사전 전략 설명은 공개되어 있으나, 전략 간 총시간 차이와 예선 기록은 팀별 Race Simulation Pace 값이 아니므로 채택하지 않았습니다.",
+      "teamPaceSeconds": {
+        "mercedes": null,
+        "ferrari": null,
+        "mclaren": null,
+        "red-bull": null,
+        "racing-bulls": null,
+        "alpine": null,
+        "haas": null,
+        "audi": null,
+        "williams": null,
+        "aston-martin": null,
+        "cadillac": null
+      },
+      "paceMeaning": "unavailable; do not treat null as zero or infer from qualifying times, standings, prose or bar lengths",
+      "additionalSources": [
+        {
+          "publisher": "Pirelli",
+          "title": "FORMULA 1 MOËT & CHANDON BELGIAN GRAND PRIX 2026",
+          "url": "https://www.pirelli.com/global/en-ww/emotions-and-numbers/formula-1-moet-chandon-belgian-grand-prix-2026-195553/",
+          "note": "페이지가 공개 링크로 제공하는 항목은 PREVIEW / RACE / PIT STOPS입니다. 후자의 두 이미지 요청은 웹 도구에서 Internal Error로 실패했습니다. 이를 Race Simulation Pace 차트나 페이스 0으로 해석하지 않았습니다."
+        }
+      ]
+    },
+    {
+      "id": "2026-britain",
+      "season": 2026,
+      "eventName": "British Grand Prix",
+      "label": "영국 GP",
+      "trackId": "silverstone",
+      "raceDate": "2026-07-05",
+      "round": 9,
+      "completionEvidence": {
+        "url": "https://www.formula1.com/en/racing/2026",
+        "status": "race-date-past-and-classification-summary-present-at-cutoff"
+      },
+      "source": {
+        "publisher": "Formula 1",
+        "title": "STRATEGY GUIDE: What are the tactical options for the British GP?",
+        "url": "https://www.formula1.com/en/latest/article/strategy-guide-what-are-the-tactical-options-for-the-british-gp.361P7x4M10QJA3Dyuj5aNb",
+        "publishedAt": null,
+        "access": "public-introduction-then-f1-unlocked-sign-in",
+        "kind": "strategy-guide"
+      },
+      "requestedChartTitle": "Race Simulation Pace",
+      "observedChartTitle": null,
+      "chartImageUrl": null,
+      "axisUnit": null,
+      "referenceTeamId": null,
+      "transcriptionMethod": null,
+      "availability": "article-found-content-gated",
+      "note": "2026 전략 가이드 도입부 이후 F1 Unlocked 로그인 안내가 표시됩니다. 권한이 필요한 본문·차트를 우회하지 않았으며 해당 차트의 존재·숫자를 확인하지 못했습니다.",
+      "teamPaceSeconds": {
+        "mercedes": null,
+        "ferrari": null,
+        "mclaren": null,
+        "red-bull": null,
+        "racing-bulls": null,
+        "alpine": null,
+        "haas": null,
+        "audi": null,
+        "williams": null,
+        "aston-martin": null,
+        "cadillac": null
+      },
+      "paceMeaning": "unavailable; do not treat null as zero or infer from qualifying times, standings, prose or bar lengths"
+    },
+    {
+      "id": "2026-austria",
+      "season": 2026,
+      "eventName": "Austrian Grand Prix",
+      "label": "오스트리아 GP",
+      "trackId": "spielberg",
+      "raceDate": "2026-06-28",
+      "round": 8,
+      "completionEvidence": {
+        "url": "https://www.formula1.com/en/racing/2026",
+        "status": "race-date-past-and-classification-summary-present-at-cutoff"
+      },
+      "source": {
+        "publisher": "Formula 1",
+        "title": "STRATEGY GUIDE: What are the options for the Austrian GP?",
+        "url": "https://www.formula1.com/en/latest/article/strategy-guide-what-are-the-options-for-the-2026-austrian-grnad-prix.4oSu1owWYz8ZtHv79KW3zv.4oSu1owWYz8ZtHv79KW3zv.4oSu1owWYz8ZtHv79KW3zv",
+        "publishedAt": null,
+        "access": "public-introduction-then-f1-unlocked-sign-in",
+        "kind": "strategy-guide"
+      },
+      "requestedChartTitle": "Race Simulation Pace",
+      "observedChartTitle": null,
+      "chartImageUrl": null,
+      "axisUnit": null,
+      "referenceTeamId": null,
+      "transcriptionMethod": null,
+      "availability": "article-found-content-gated",
+      "note": "2026 전략 가이드 도입부 이후 F1 Unlocked 로그인 안내가 표시됩니다. 공개 도입부의 2025년 전략 복기는 최신 팀 페이스 데이터로 사용하지 않았습니다.",
+      "teamPaceSeconds": {
+        "mercedes": null,
+        "ferrari": null,
+        "mclaren": null,
+        "red-bull": null,
+        "racing-bulls": null,
+        "alpine": null,
+        "haas": null,
+        "audi": null,
+        "williams": null,
+        "aston-martin": null,
+        "cadillac": null
+      },
+      "paceMeaning": "unavailable; do not treat null as zero or infer from qualifying times, standings, prose or bar lengths"
+    }
+  ],
+  "availabilityAudit": {
+    "result": "공식 팀별 페이스 차트의 검증된 수치 0개. 자료가 전 세계에 존재하지 않는다는 주장이 아니라 이번 공개 접근·검색에서 확보하지 못했다는 뜻.",
+    "strategyGuideIndexUrl": "https://www.formula1.com/en/latest/tags/strategy-guide.1gNf1yTbtu1b9tQ5F93lLH",
+    "indexCaveat": "검색 도구로 열린 태그 페이지는 영국 GP까지의 오래된 목록을 반환했으므로 최신 게시물 부재를 증명하는 근거로 사용하지 않음.",
+    "queries": [
+      "site:formula1.com 2026 STRATEGY GUIDE Dutch/Hungarian/Belgian/British/Austrian",
+      "site:formula1.com 2026 Race Simulation Pace",
+      "site:formula1.com 2026 PRACTICE DEBRIEF Hungary/Belgium/Netherlands/Austria/Silverstone",
+      "site:press.pirelli.com 2026 Hungarian Grand Prix / Belgian Grand Prix"
+    ],
+    "excludedWrongSeasonSource": {
+      "url": "https://www.formula1.com/en/latest/article/strategy-guide-what-are-the-tactical-options-for-the-dutch-grand-prix.6wROSudsWbMzzIFvkSK2rh.6wROSudsWbMzzIFvkSK2rh",
+      "publishedAt": "2025-08-30T19:08:00Z",
+      "reason": "2025 기사이므로 최근 2026 표본에서 제외"
+    }
+  },
+  "fastf1Reachability": {
+    "status": "two-session-metadata-endpoints-reachable",
+    "probes": [
+      {
+        "eventId": "2026-netherlands",
+        "eventName": "Dutch Grand Prix",
+        "libraryVersion": "3.8.3",
+        "checkedAt": "2026-09-06T14:47:52.307050+00:00",
+        "method": "GET SessionInfo.json only; no session.load, lap collection or analysis",
+        "apiPath": "/static/2026/2026-08-23_Dutch_Grand_Prix/2026-08-23_Race/",
+        "url": "https://livetiming.formula1.com/static/2026/2026-08-23_Dutch_Grand_Prix/2026-08-23_Race/SessionInfo.json",
+        "httpStatus": 200,
+        "returnedMeetingName": "Dutch Grand Prix",
+        "returnedSessionName": "Race",
+        "returnedStartDate": "2026-08-23T15:00:00",
+        "returnedEndDate": "2026-08-23T17:00:00",
+        "timingLapsChecked": false,
+        "qualityValidated": false
+      },
+      {
+        "eventId": "2026-hungary",
+        "eventName": "Hungarian Grand Prix",
+        "libraryVersion": "3.8.3",
+        "checkedAt": "2026-09-06T14:47:52.307050+00:00",
+        "method": "GET SessionInfo.json only; no session.load, lap collection or analysis",
+        "apiPath": "/static/2026/2026-07-26_Hungarian_Grand_Prix/2026-07-26_Race/",
+        "url": "https://livetiming.formula1.com/static/2026/2026-07-26_Hungarian_Grand_Prix/2026-07-26_Race/SessionInfo.json",
+        "httpStatus": 200,
+        "returnedMeetingName": "Hungarian Grand Prix",
+        "returnedSessionName": "Race",
+        "returnedStartDate": "2026-07-26T15:00:00",
+        "returnedEndDate": "2026-07-26T17:00:00",
+        "timingLapsChecked": false,
+        "qualityValidated": false
+      }
+    ],
+    "caveats": [
+      "SessionInfo 200은 랩·타이어·기상 데이터 완전성 또는 분석 가능성을 보장하지 않음.",
+      "2026 실제 타이밍이 전부 미래라 존재하지 않는다는 설명은 부정확함.",
+      "FastF1에서 계산한 팀 페이스는 별도 프로젝트 분석이며 공식 Race Simulation Pace 차트 전사값으로 바꾸어 표기하면 안 됨.",
+      "기본 샌드박스 네트워크/패키지 접근 실패 후 승인된 읽기 전용 확인을 수행함."
+    ]
+  },
+  "modelUse": {
+    "available": false,
+    "paceSecondsByTeam": {
+      "mercedes": null,
+      "ferrari": null,
+      "mclaren": null,
+      "red-bull": null,
+      "racing-bulls": null,
+      "alpine": null,
+      "haas": null,
+      "audi": null,
+      "williams": null,
+      "aston-martin": null,
+      "cadillac": null
+    },
+    "adoption": "본 파일은 근거·누락 기록이며 아직 팀 페이스 입력으로 사용할 수 없음. 실행 중립 보정은 소비자에서 별도 표시하고 이 JSON의 null을 0으로 덮어쓰지 않음."
+  }
+}

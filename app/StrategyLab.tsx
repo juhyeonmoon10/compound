@@ -13,7 +13,7 @@ import {
   type CSSProperties,
   type KeyboardEvent,
 } from "react";
-import FastF1AnalysisPanel from "./FastF1AnalysisPanel";
+const HistoricalEvidencePanel = lazy(() => import("./HistoricalEvidencePanel"));
 import { publicAsset } from "./lib/public-assets";
 import RaceBriefingOverview from "./RaceBriefingOverview";
 import type { StrategyWorkspace } from "./RaceBriefingOverview";
@@ -66,11 +66,13 @@ import {
   type TrackPresetId,
 } from "./lib/strategy";
 import type { TyreCondition } from "./lib/tyre-state";
-import {
-  FASTF1_ANALYSIS_SUMMARY,
-  analysisForTrack,
-  historicalCalibrationForTrack,
-} from "./lib/tyre-analysis";
+import { getHistoricalCalibration, HISTORICAL_EVIDENCE } from "./lib/historical-calibration";
+const FASTF1_ANALYSIS_SUMMARY = HISTORICAL_EVIDENCE.summary;
+// Preserve the stored v1 model-source identifier while expanding its evidence.
+function historicalCalibrationForTrack(trackId: TrackPresetId) {
+  const value = getHistoricalCalibration(trackId);
+  return { ...value, compoundModels: value.compoundModels ?? {}, note: value.summaryKorean };
+}
 
 type ModelSource = "project" | "fastf1-2025";
 
@@ -145,7 +147,7 @@ const TRAFFIC_LEVELS: ReadonlyArray<{
 
 const INITIAL_CONFIG: RunConfig = {
   trackId: "melbourne",
-  modelSource: "project",
+  modelSource: "fastf1-2025",
   maxStops: 2,
   pitLossSeconds: TRACK_PRESETS.melbourne.pitLossSeconds,
   degradationPercent: 100,
@@ -177,7 +179,7 @@ function configForTrack(
       current.modelSource === "fastf1-2025"
         ? "fastf1-2025"
         : "project",
-    pitLossSeconds: preset.pitLossSeconds,
+    pitLossSeconds: current.modelSource === "fastf1-2025" ? getHistoricalCalibration(trackId).pitLossSeconds ?? preset.pitLossSeconds : preset.pitLossSeconds,
     fuelGainSecondsPerLap: preset.fuelGainSecondsPerLap,
     degradationPercent: 100,
   };
@@ -204,6 +206,7 @@ function makeOptimizerInput(config: RunConfig): StrategyOptimizerInput {
   const calibratedCompound = (compound: Compound) => {
     const learned = calibration?.compoundModels[compound];
     return {
+      offsetSeconds: learned?.offsetSeconds ?? preset.compounds[compound].offsetSeconds,
       alpha:
         (learned?.alpha ?? preset.compounds[compound].alpha) *
         degradationScale,
@@ -1038,10 +1041,6 @@ export default function StrategyLab({
 
   const applyHistoricalCalibration = (trackId: TrackPresetId) => {
     const calibration = historicalCalibrationForTrack(trackId);
-    const dataCase = analysisForTrack(trackId);
-    if (!calibration || !dataCase) {
-      return;
-    }
     const nextConfig = {
       ...configForTrack(
         { ...applied, modelSource: "fastf1-2025" },
@@ -1052,7 +1051,7 @@ export default function StrategyLab({
     applyConfiguration(nextConfig);
     setPageView("strategy");
     setAnnouncement(
-      `${dataCase.title}에서 신뢰 기준을 통과한 타이어 열화 기울기를 ${TRACK_PRESETS[trackId].koreanName} 전략에 적용했습니다.`,
+      calibration.summaryKorean,
     );
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -1309,7 +1308,7 @@ export default function StrategyLab({
             <article>
               <span>현재 조건의 예측 전략</span>
               <strong>{appliedTrack.koreanName}</strong>
-              <small>{appliedTrack.laps}랩 · 건식 모델 추정</small>
+              <small>{appliedTrack.laps}랩 · {RAIN_LABELS[applied.weather.preset]} · 프로젝트 추정</small>
               <StrategyTimeline strategy={best} totalLaps={appliedTrack.laps} />
               <p>{strategySequence(best)} · {best.formattedTime}</p>
             </article>
@@ -1320,6 +1319,7 @@ export default function StrategyLab({
             <div><dt>실측 · 분석 스틴트</dt><dd>{FASTF1_ANALYSIS_SUMMARY.stints}</dd></div>
             <div><dt>공식 제원 · 서킷</dt><dd>{TRACK_PRESET_IDS.length}</dd></div>
           </dl>
+          <p className="weather-model-summary">실측 분석 · 7서킷 21경기, 랩 수 가중 홀드아웃 MAE {HISTORICAL_EVIDENCE.selectedModelSummary.weightedHoldoutMaeSeconds?.toFixed(3)}초/랩. 회귀의 예측 오차이며 전체 레이스 시뮬레이션 정확도가 아닙니다.</p>
           <ol className="home-page__flow">
             <li><span>01</span><strong>공개 데이터</strong><small>FastF1 랩·타이어·날씨</small></li>
             <li><span>02</span><strong>열화 추정</strong><small>연료와 환경을 통제한 회귀</small></li>
@@ -1750,7 +1750,7 @@ export default function StrategyLab({
                   <label
                     title={
                       historicalCalibrationForTrack(draft.trackId)
-                        ? `${analysisForTrack(draft.trackId)?.title}의 신뢰 기준 통과 기울기를 적용합니다.`
+                        ? getHistoricalCalibration(draft.trackId).summaryKorean
                         : "이 서킷은 아직 실제 데이터 보정 사례가 없습니다."
                     }
                   >
@@ -1763,13 +1763,10 @@ export default function StrategyLab({
                         historicalCalibrationForTrack(draft.trackId) === null
                       }
                       onChange={() =>
-                        setDraft((current) => ({
-                          ...current,
-                          modelSource: "fastf1-2025",
-                        }))
+                        setDraft((current) => configForTrack({ ...current, modelSource: "fastf1-2025" }, current.trackId))
                       }
                     />
-                    <span>2025 실데이터 보정</span>
+                    <span>2023–2025 관측 기반 보정</span>
                   </label>
                 </div>
                 <small>
@@ -1895,7 +1892,7 @@ export default function StrategyLab({
                 건식 최대 2회·우천 최대 3회는 모델 탐색 범위이며 FIA의 의무 정차 횟수를
                 뜻하지 않습니다.{" "}
                 {draft.modelSource === "fastf1-2025"
-                  ? `${analysisForTrack(draft.trackId)?.title} FastF1 정제 랩에서 신뢰 기준을 통과한 기울기만 사용하며, 나머지 항은 가정 기반 모델입니다.`
+                  ? getHistoricalCalibration(draft.trackId).summaryKorean
                   : "현재 선택은 서킷 등급 기반 가정 계수입니다."}
               </p>
             </section>
@@ -2578,14 +2575,7 @@ export default function StrategyLab({
           <PerformanceEvidencePanel selectedDriverId={applied.driverId} equalPerformance={applied.equalPerformance} />
           <p className="weather-model-summary">프로젝트 추정 · 현재 팀 페이스 +{entryProfile.teamPaceSeconds.toFixed(3)}초/랩 (관측 확보 팀 중 최속 기준 0), 팀·선수 합산 열화 {entryProfile.wearMultiplier.toFixed(4)}배. {entryProfile.team.explanation}</p>
           <WetEvidencePanel />
-          <FastF1AnalysisPanel
-            appliedTrackId={applied.trackId}
-            isApplied={
-              historicalCalibrationForTrack(applied.trackId) !== null &&
-              applied.modelSource === "fastf1-2025"
-            }
-            onApply={applyHistoricalCalibration}
-          />
+          {pageView === "data" && <Suspense fallback={<p role="status">관측 자료를 불러오는 중…</p>}><HistoricalEvidencePanel appliedTrackId={applied.trackId} onApply={applyHistoricalCalibration} /></Suspense>}
         </section>
 
         <section
@@ -2747,7 +2737,7 @@ return unique_top_3()`}</code>
           {pageView === "method" && sensitivity && (
             <>
               <ValidationPanel input={optimizerInput} results={results} />
-              <StrategyBacktestPanel />
+              {pageView === "method" && <StrategyBacktestPanel />}
 
               <section
                 className={`sensitivity-card ${
@@ -2785,7 +2775,7 @@ return unique_top_3()`}</code>
             </div>
             <p>
               완전탐색 대조는 코드가 정해진 비용식을 정확히 최소화하는지
-              확인합니다. 데이터 분석 탭의 2025년 5개 건식 레이스는
+              확인합니다. 데이터 분석 탭의 2023–2025년 21개 레이스는
               별도로 시간순 랩 예측 오차를 검증합니다. 두 검증 모두 실제
               순위나 실제 피트 전략이 정답임을 증명하지는 않습니다.
             </p>
@@ -2827,9 +2817,9 @@ return unique_top_3()`}</code>
                 표시하되 역사·가상 분석용으로 유지합니다. 재생 화면의
                 24개 서킷 윤곽은 CC BY 4.0 공개 SVG를 사용합니다. 열화
                 등급, 피트 손실과 대부분의 랩타임 계수는 알고리즘 시연용
-                모델 추정값입니다. 바레인·바르셀로나·레드불 링·
-                헝가로링·몬차에서는 2025 실제 정제 랩의 신뢰 가능한
-                컴파운드 기울기를 선택 적용할 수 있습니다. 랩별 타이어
+                모델 추정값입니다. 7서킷의 2023–2025 실제 정제 랩에서
+                학습 신뢰 기준을 통과한 컴파운드 계수를 적용하며,
+                미수집 서킷은 같은 열화 등급의 가까운 서킷 대체값임을 표시합니다. 랩별 타이어
                 온도·마모·그립은 공개 텔레메트리가 아닌 설명 가능한
                 재현 가능한 추정 모델입니다.
               </p>
@@ -2843,7 +2833,7 @@ return unique_top_3()`}</code>
             </article>
             <article>
               <span>실측 분석 자료</span>
-              <h3>FastF1 2025 건식 레이스 5개</h3>
+              <h3>FastF1 2023–2025 · 7서킷 21경기</h3>
               <p>
                 실제 결승 세션 {FASTF1_ANALYSIS_SUMMARY.rawLaps.toLocaleString()}
                 랩을 시작으로 건식·녹색기·정확 랩과 정상 스틴트를
@@ -2940,7 +2930,7 @@ return unique_top_3()`}</code>
               <div>
                 <strong>계수 추정</strong>
                 <small>
-                  5개 레이스 {FASTF1_ANALYSIS_SUMMARY.modelLaps.toLocaleString()}
+                  21개 레이스 {FASTF1_ANALYSIS_SUMMARY.modelLaps.toLocaleString()}
                   랩
                 </small>
               </div>
@@ -3304,7 +3294,7 @@ return unique_top_3()`}</code>
                     <label
                       title={
                         historicalCalibrationForTrack(draft.trackId)
-                          ? `${analysisForTrack(draft.trackId)?.title}의 신뢰 기준 통과 기울기를 적용합니다.`
+                          ? getHistoricalCalibration(draft.trackId).summaryKorean
                           : "이 서킷은 아직 실제 데이터 보정 사례가 없습니다."
                       }
                     >
@@ -3316,13 +3306,10 @@ return unique_top_3()`}</code>
                           historicalCalibrationForTrack(draft.trackId) === null
                         }
                         onChange={() =>
-                          setDraft((current) => ({
-                            ...current,
-                            modelSource: "fastf1-2025",
-                          }))
+                          setDraft((current) => configForTrack({ ...current, modelSource: "fastf1-2025" }, current.trackId))
                         }
                       />
-                      <span>2025 실데이터 보정</span>
+                      <span>2023–2025 관측 기반 보정</span>
                     </label>
                   </fieldset>
 

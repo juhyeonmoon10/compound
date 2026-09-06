@@ -1,4 +1,5 @@
 import evidence from "../data/calibration-summary.json" with { type: "json" };
+import pitEvidence from "../data/pit-loss-summary.json" with { type: "json" };
 import { MODEL_PARAMS } from "../model/params.ts";
 import { TRACK_PRESETS, TRACK_PRESET_IDS, type Compound, type CompoundModel, type TrackPresetId } from "./strategy.ts";
 import type { TeamId } from "./participants.ts";
@@ -26,6 +27,47 @@ export interface CoefficientGate {
 }
 
 export const HISTORICAL_EVIDENCE = evidence;
+/** Compact metadata; raw per-pair laps are loaded only on explicit audit/download. */
+export const PIT_LOSS_EVIDENCE = pitEvidence;
+export async function loadPitLossRawEvidence() {
+  return (await import("../data/pit-loss-evidence.json", { with: { type: "json" } })).default;
+}
+
+export interface PitLossCoverage {
+  readonly trackId: TrackPresetId;
+  readonly status: "observational-estimate" | "no-historical-event" | "unavailable-or-insufficient";
+  readonly sourceKind: "pooled-historical" | "single-historical-event" | "unavailable";
+  readonly sourceTrackId: TrackPresetId;
+  readonly sourceDocument: string;
+  readonly sourceLabel: string;
+  readonly samples: number;
+  readonly medianSeconds: number | null;
+  readonly selectedSeason: number | null;
+  readonly seasons: readonly number[];
+  readonly events: readonly string[];
+  readonly sourceUrls: readonly string[];
+  readonly fallbackReason: string | null;
+  readonly unit: "seconds";
+  readonly interpretation: string;
+}
+
+/** The existing larger pooled samples win over a new single-event estimate. */
+export const PIT_LOSS_COVERAGE: readonly PitLossCoverage[] = Object.freeze(TRACK_PRESET_IDS.map((trackId): PitLossCoverage => {
+  const pooled = evidence.pitLossCoverage.find(row => row.trackId === trackId);
+  const single = pitEvidence.tracks.find(row => row.trackId === trackId);
+  const common = { trackId, sourceTrackId: trackId, unit: "seconds" as const, interpretation: "프로젝트 관측 추정: 인·아웃랩의 정상랩 대비 손실. 정차 교체 시간이나 2026 정밀 피트 통과 시간의 실측이 아님." };
+  if (pooled?.status === "observational-estimate" && pooled.medianSeconds !== null && pooled.samples >= pitEvidence.method.thresholds.minimumPairs.value) {
+    const sourceEvents = evidence.events.filter(event => pooled.events.includes(event.id));
+    const seasons = [...new Set(sourceEvents.map(event => event.season))].sort();
+    return Object.freeze({ ...common, status: "observational-estimate", sourceKind: "pooled-historical", sourceDocument: "historical-dry-2023-2025.json", sourceLabel: `${seasons.join("·")} 같은 서킷 관측 풀링 · 기존 다경기 표본 유지`, samples: pooled.samples, medianSeconds: pooled.medianSeconds, selectedSeason: null, seasons: Object.freeze(seasons), events: Object.freeze([...pooled.events]), sourceUrls: Object.freeze(sourceEvents.map(event => event.timingSourceUrl)), fallbackReason: null });
+  }
+  if (single?.status === "observational-estimate" && single.medianSeconds !== null && single.selectedSeason !== null && single.selectedAttemptIndex !== null) {
+    const attempt = single.attempts[single.selectedAttemptIndex];
+    return Object.freeze({ ...common, status: "observational-estimate", sourceKind: "single-historical-event", sourceDocument: pitEvidence.sourceDocument, sourceLabel: `${single.selectedSeason} 단일 경기 관측${single.fallbackReason ? " · 2025 표본 부족으로 이전 시즌 사용" : ""}`, samples: single.retainedSamples, medianSeconds: single.medianSeconds, selectedSeason: single.selectedSeason, seasons: Object.freeze([single.selectedSeason]), events: Object.freeze([`${single.selectedSeason}-${trackId}`]), sourceUrls: Object.freeze(attempt?.timingSourceUrl ? [attempt.timingSourceUrl] : []), fallbackReason: single.fallbackReason });
+  }
+  return Object.freeze({ ...common, status: single?.status === "no-historical-event" ? "no-historical-event" : "unavailable-or-insufficient", sourceKind: "unavailable", sourceDocument: pitEvidence.sourceDocument, sourceLabel: single?.status === "no-historical-event" ? "2023–2025 해당 서킷 역사 경기 없음" : "관측 자료 또는 최소 표본 미확보", samples: 0, medianSeconds: null, selectedSeason: null, seasons: Object.freeze([]), events: Object.freeze([]), sourceUrls: Object.freeze([]), fallbackReason: single?.reason ?? null });
+}));
+
 export const OBSERVED_TRACK_IDS = [...new Set(evidence.events.map((event) => event.trackId))] as TrackPresetId[];
 const DRY_COMPOUNDS = ["S", "M", "H"] as const;
 
@@ -86,7 +128,7 @@ export function getHistoricalCalibration(trackId: TrackPresetId) {
     }
   }
   const appliedCompounds = Object.keys(compoundModels) as Compound[];
-  const pit = evidence.pitLossCoverage.find((row) => row.trackId === trackId);
+  const pit = PIT_LOSS_COVERAGE.find((row) => row.trackId === trackId)!;
   const observedPitLossSeconds = pit?.status === "observational-estimate" && pit.medianSeconds !== null ? pit.medianSeconds : undefined;
   const pitDifferenceSeconds = observedPitLossSeconds === undefined ? undefined : observedPitLossSeconds - TRACK_PRESETS[trackId].pitLossSeconds;
   const pitLossSeconds = observedPitLossSeconds !== undefined && Math.abs(pitDifferenceSeconds!) >= MODEL_PARAMS.historical.pitAdoptionDifferenceSeconds ? observedPitLossSeconds : undefined;
@@ -99,9 +141,9 @@ export function getHistoricalCalibration(trackId: TrackPresetId) {
     compoundModels: appliedCompounds.length ? compoundModels : undefined,
     pitLossSeconds,
     sourceTrackId,
-    summaryKorean: `${note}. 피트 손실은 ${pitLossSeconds !== undefined ? `관측 ${pit?.samples}쌍의 중앙값 ${pitLossSeconds.toFixed(2)}초 채택` : observedPitLossSeconds === undefined ? "이 서킷 관측 미확보로 가정값 유지" : `관측 차이가 ${MODEL_PARAMS.historical.pitAdoptionDifferenceSeconds}초 미만이므로 기존값 유지`}.`,
-    provenance: { mode: appliedCompounds.length ? borrowed ? "same-severity-fallback" : "same-circuit-observational" : "prior-retained", borrowed, eventIds: events.map((event) => event.id), sourceUrls: events.map((event) => event.timingSourceUrl), currentSeasonCollected: false, note: "2023–2025 경기별 상대 S/M/H 관측을 이용한 프로젝트 초깃값이며 절대 배합 동일성·2026 타이어 물성을 주장하지 않음" },
-    coverage: { hasDirectData, appliedCompounds, retainedCompounds: DRY_COMPOUNDS.filter((compound) => !appliedCompounds.includes(compound)), observedCircuits: OBSERVED_TRACK_IDS.length, totalCircuits: TRACK_PRESET_IDS.length, pitSamples: pit?.samples ?? 0, pitStatus: pitLossSeconds === undefined ? "prior" : "observational-estimate", observedPitLossSeconds, pitDifferenceSeconds },
+    summaryKorean: `${note}. 피트 손실은 ${pitLossSeconds !== undefined ? `관측 ${pit.samples}쌍의 중앙값 ${pitLossSeconds.toFixed(2)}초 채택` : observedPitLossSeconds === undefined ? "이 서킷 관측 미확보로 가정값 유지" : `관측 차이가 ${MODEL_PARAMS.historical.pitAdoptionDifferenceSeconds}초 미만이므로 기존값 유지`}. ${pit.sourceLabel}; 정차 시간 아닌 인·아웃랩 손실의 프로젝트 관측 추정입니다.`,
+    provenance: { mode: appliedCompounds.length ? borrowed ? "same-severity-fallback" : "same-circuit-observational" : "prior-retained", borrowed, eventIds: events.map((event) => event.id), sourceUrls: events.map((event) => event.timingSourceUrl), currentSeasonCollected: false, pitSource: pit, note: "2023–2025 경기별 상대 S/M/H 관측을 이용한 프로젝트 초깃값이며 절대 배합 동일성·2026 타이어 물성을 주장하지 않음" },
+    coverage: { hasDirectData, appliedCompounds, retainedCompounds: DRY_COMPOUNDS.filter((compound) => !appliedCompounds.includes(compound)), observedCircuits: OBSERVED_TRACK_IDS.length, totalCircuits: TRACK_PRESET_IDS.length, observedPitCircuits: PIT_LOSS_COVERAGE.filter(row => row.status === "observational-estimate").length, pitSamples: pit.samples, pitStatus: pitLossSeconds === undefined ? "prior" : "observational-estimate", pitObservationStatus: pit.status, pitSourceKind: pit.sourceKind, observedPitLossSeconds, pitDifferenceSeconds },
   };
 }
 
