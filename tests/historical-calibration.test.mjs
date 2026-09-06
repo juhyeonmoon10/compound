@@ -57,6 +57,10 @@ test("same-severity fallback is labelled, and pit losses never transfer between 
   assert.equal(unobserved.coverage.hasDirectData, false);
   assert.equal(unobserved.provenance.borrowed, true);
   assert.equal(unobserved.pitLossSeconds, undefined);
+  assert.equal(unobserved.provenance.pitSource.sourceTrackId, "melbourne");
+  assert.equal(unobserved.coverage.observedPitLossSeconds, 20.45);
+  assert.equal(unobserved.coverage.observedCircuits, 7);
+  assert.equal(unobserved.coverage.observedPitCircuits, 23);
   assert.equal(unobserved.provenance.currentSeasonCollected, false);
 });
 

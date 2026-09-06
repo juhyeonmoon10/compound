@@ -197,7 +197,7 @@ def summary_document(data, source_digest):
                 compact["pitLoss"] = {key: value for key, value in attempt["pitLoss"].items() if key not in ("samples", "excludedPairs")}
             attempts.append(compact)
         tracks.append({**row, "attempts": attempts})
-    return {**data, "tracks": tracks, "sourceDocument": OUTPUT.name, "sourceSha256": source_digest, "note": "Compact metadata only. Individual in/out and baseline laps remain in the source document, loaded only for audit/download."}
+    return {**data, "tracks": tracks, "sourceDocument": OUTPUT.name, "sourceSha256": source_digest, "sourceHashNormalization": "UTF-8 text with LF line endings (portable across Git CRLF conversion)", "note": "Compact metadata only. Individual in/out and baseline laps remain in the source document, loaded only for audit/download."}
 
 
 def save(rows):
@@ -207,7 +207,7 @@ def save(rows):
     temporary = OUTPUT.with_suffix(".tmp")
     temporary.write_bytes(raw_text.encode("utf-8"))
     temporary.replace(OUTPUT)
-    compact = summary_document(data, hashlib.sha256(OUTPUT.read_bytes()).hexdigest())
+    compact = summary_document(data, hashlib.sha256(OUTPUT.read_text(encoding="utf-8").encode("utf-8")).hexdigest())
     temporary_summary = SUMMARY_OUTPUT.with_suffix(".tmp")
     temporary_summary.write_bytes((json.dumps(compact, ensure_ascii=False, separators=(",", ":"), allow_nan=False) + "\n").encode("utf-8"))
     temporary_summary.replace(SUMMARY_OUTPUT)
@@ -216,7 +216,7 @@ def save(rows):
 def check_output():
     data = json.loads(OUTPUT.read_text(encoding="utf-8"))
     compact = json.loads(SUMMARY_OUTPUT.read_text(encoding="utf-8"))
-    assert compact == summary_document(data, hashlib.sha256(OUTPUT.read_bytes()).hexdigest()), "raw/compact metadata or source hash mismatch"
+    assert compact == summary_document(data, hashlib.sha256(OUTPUT.read_text(encoding="utf-8").encode("utf-8")).hexdigest()), "raw/compact metadata or source hash mismatch"
     assert [row["trackId"] for row in data["tracks"]] == [row[0] for row in EVENTS]
     for row in data["tracks"]:
         assert row["status"] != "pending", row["trackId"]

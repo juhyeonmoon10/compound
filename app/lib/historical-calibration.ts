@@ -68,6 +68,12 @@ export const PIT_LOSS_COVERAGE: readonly PitLossCoverage[] = Object.freeze(TRACK
   return Object.freeze({ ...common, status: single?.status === "no-historical-event" ? "no-historical-event" : "unavailable-or-insufficient", sourceKind: "unavailable", sourceDocument: pitEvidence.sourceDocument, sourceLabel: single?.status === "no-historical-event" ? "2023–2025 해당 서킷 역사 경기 없음" : "관측 자료 또는 최소 표본 미확보", samples: 0, medianSeconds: null, selectedSeason: null, seasons: Object.freeze([]), events: Object.freeze([]), sourceUrls: Object.freeze([]), fallbackReason: single?.reason ?? null });
 }));
 
+/** A measured proxy is adopted only across the explicitly declared >= boundary. */
+export function adoptHistoricalPitLoss(observedSeconds: number | null | undefined, presetSeconds: number): number | undefined {
+  return observedSeconds !== null && observedSeconds !== undefined && Number.isFinite(observedSeconds) && observedSeconds > 0 && Number.isFinite(presetSeconds)
+    && Math.abs(observedSeconds - presetSeconds) >= MODEL_PARAMS.historical.pitAdoptionDifferenceSeconds ? observedSeconds : undefined;
+}
+
 export const OBSERVED_TRACK_IDS = [...new Set(evidence.events.map((event) => event.trackId))] as TrackPresetId[];
 const DRY_COMPOUNDS = ["S", "M", "H"] as const;
 
@@ -131,7 +137,7 @@ export function getHistoricalCalibration(trackId: TrackPresetId) {
   const pit = PIT_LOSS_COVERAGE.find((row) => row.trackId === trackId)!;
   const observedPitLossSeconds = pit?.status === "observational-estimate" && pit.medianSeconds !== null ? pit.medianSeconds : undefined;
   const pitDifferenceSeconds = observedPitLossSeconds === undefined ? undefined : observedPitLossSeconds - TRACK_PRESETS[trackId].pitLossSeconds;
-  const pitLossSeconds = observedPitLossSeconds !== undefined && Math.abs(pitDifferenceSeconds!) >= MODEL_PARAMS.historical.pitAdoptionDifferenceSeconds ? observedPitLossSeconds : undefined;
+  const pitLossSeconds = adoptHistoricalPitLoss(observedPitLossSeconds, TRACK_PRESETS[trackId].pitLossSeconds);
   const events = sourceTrackId ? evidence.events.filter((event) => event.trackId === sourceTrackId) : [];
   const borrowed = sourceTrackId !== null && sourceTrackId !== trackId;
   const note = appliedCompounds.length
