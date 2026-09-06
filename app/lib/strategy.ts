@@ -1032,7 +1032,7 @@ function lapCost(
   const weather = weatherCache.get(model)!;
   const weatherLap = weather.laps[lap - 1];
   const dryAge = dryLapsOnSet(weather, compound, lap, tyreAge);
-  const linearDegradationSeconds = parameters.alpha * tyreAge + (compound === "INTER" ? (MODEL_PARAMS.weather.interDryWear - MODEL_PARAMS.weather.interWear) * dryAge : 0);
+  const linearDegradationSeconds = parameters.alpha * tyreAge + (compound === "INTER" ? (MODEL_PARAMS.weather.interDryWear - MODEL_PARAMS.weather.interWear) * (parameters.alpha / MODEL_PARAMS.weather.interWear) * dryAge : 0);
   const wetPenaltySeconds = wetPenalty(compound, weatherLap.water, dryAge) * (model.wetPenaltyMultiplier ?? 1);
   const quadraticDegradationSeconds =
     parameters.beta * tyreAge * tyreAge;

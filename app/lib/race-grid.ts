@@ -18,6 +18,41 @@ import {
 
 export const RACE_GRID_SIZE = 20;
 
+/** Project scalar conversion, NOT measured seconds from EA or an F1 team. */
+export interface RaceEntryModelAdjustment {
+  readonly sourceKind: "project-mapping-relative-to-dp";
+  readonly referenceDriverId: string;
+  readonly paceDeltaSeconds: number;
+  readonly wearMultiplierRatio: number;
+  readonly wetPenaltyMultiplierRatio: number;
+}
+
+interface EntryModelScalars {
+  readonly paceSeconds: number;
+  readonly wearMultiplier: number;
+  readonly wetPenaltyMultiplier: number;
+}
+
+/** The input DP already includes the reference driver's absolute coefficients. */
+export function relativeEntryModelAdjustment(
+  referenceDriverId: string, reference: EntryModelScalars, other: EntryModelScalars,
+): RaceEntryModelAdjustment {
+  for (const profile of [reference, other]) {
+    if (!Number.isFinite(profile.paceSeconds) || !Number.isFinite(profile.wearMultiplier) || profile.wearMultiplier <= 0 ||
+      !Number.isFinite(profile.wetPenaltyMultiplier) || profile.wetPenaltyMultiplier <= 0) {
+      throw new RangeError("Entry model profiles require finite pace and positive finite multipliers.");
+    }
+  }
+  const adjustment: RaceEntryModelAdjustment = {
+    sourceKind: "project-mapping-relative-to-dp", referenceDriverId,
+    paceDeltaSeconds: other.paceSeconds - reference.paceSeconds,
+    wearMultiplierRatio: other.wearMultiplier / reference.wearMultiplier,
+    wetPenaltyMultiplierRatio: other.wetPenaltyMultiplier / reference.wetPenaltyMultiplier,
+  };
+  validateEntryModelAdjustment(adjustment);
+  return adjustment;
+}
+
 export interface RaceGridEntry {
   readonly id: string;
   readonly label?: string;
@@ -26,6 +61,8 @@ export interface RaceGridEntry {
   readonly pitGroup: string;
   readonly strategy: StrategyEvaluation;
   readonly performance?: RacePerformanceRatings;
+  /** Additional relative mapping only; never reapply the primary DP profile. */
+  readonly entryModelAdjustment?: RaceEntryModelAdjustment;
 }
 
 export interface RaceGridParameters {
@@ -59,6 +96,11 @@ export interface RaceGridLapTiming {
   readonly consistencyAdjustmentSeconds: number;
   readonly racecraftAdjustmentSeconds: number;
   readonly pitCrewAdjustmentSeconds: number;
+  readonly entryPaceAdjustmentSeconds: number;
+  readonly entryLinearWearAdjustmentSeconds: number;
+  readonly entryQuadraticWearAdjustmentSeconds: number;
+  readonly entryWetPenaltyAdjustmentSeconds: number;
+  readonly entryModelAdjustmentSeconds: number;
   readonly performanceAdjustmentSeconds: number;
   readonly pitLossSeconds: number;
   readonly adjustedLapTimeSeconds: number;
@@ -72,6 +114,7 @@ export interface RaceGridCar {
   readonly pitGroup: string;
   readonly strategy: StrategyEvaluation;
   readonly performance: RacePerformanceRatings;
+  readonly entryModelAdjustment?: RaceEntryModelAdjustment;
   readonly lapTimings: readonly RaceGridLapTiming[];
   readonly totalSeconds: number;
   readonly replay: PreparedStrategyReplay;
@@ -252,6 +295,16 @@ function validatePerformanceRatings(
   }
 }
 
+function validateEntryModelAdjustment(adjustment: RaceEntryModelAdjustment | undefined): void {
+  if (!adjustment) return;
+  if (adjustment.sourceKind !== "project-mapping-relative-to-dp" ||
+    !adjustment.referenceDriverId?.trim() || !Number.isFinite(adjustment.paceDeltaSeconds) ||
+    !Number.isFinite(adjustment.wearMultiplierRatio) || adjustment.wearMultiplierRatio <= 0 ||
+    !Number.isFinite(adjustment.wetPenaltyMultiplierRatio) || adjustment.wetPenaltyMultiplierRatio <= 0) {
+    throw new RangeError("Entry model adjustment requires a reference driver, finite pace delta and positive finite ratios.");
+  }
+}
+
 function validateEntries(entries: readonly RaceGridEntry[]): void {
   if (entries.length !== RACE_GRID_SIZE) {
     throw new RangeError(
@@ -263,6 +316,10 @@ function validateEntries(entries: readonly RaceGridEntry[]): void {
   const gridPositions = new Set<number>();
   const pitGroupCounts = new Map<string, number>();
   const scenarioSignature = entries[0]?.strategy.scenarioSignature;
+  const modelReference = entries.find((entry) => entry.entryModelAdjustment)?.entryModelAdjustment?.referenceDriverId;
+  if (modelReference && !entries.some((entry) => entry.id === modelReference)) {
+    throw new RangeError("The reference driver must be present in the race grid.");
+  }
   const totalLaps = entries[0]?.strategy.lapCosts.length;
 
   for (const entry of entries) {
@@ -295,6 +352,10 @@ function validateEntries(entries: readonly RaceGridEntry[]): void {
     }
     pitGroupCounts.set(pitGroup, pitGroupCount);
     validatePerformanceRatings(entry.performance);
+    validateEntryModelAdjustment(entry.entryModelAdjustment);
+    if (entry.entryModelAdjustment && entry.entryModelAdjustment.referenceDriverId !== modelReference) {
+      throw new RangeError("All relative entry model adjustments must share the primary DP reference driver.");
+    }
 
     if (!entry.strategy.isLegal) {
       throw new RangeError(
@@ -443,7 +504,8 @@ function buildAdjustedStrategy(
       lap.carPaceAdjustmentSeconds +
       lap.driverPaceAdjustmentSeconds +
       lap.tyreManagementAdjustmentSeconds +
-      lap.consistencyAdjustmentSeconds,
+      lap.consistencyAdjustmentSeconds +
+      lap.entryPaceAdjustmentSeconds,
     0,
   );
   const pitStackAdjustment = lapTimings.reduce(
@@ -455,6 +517,9 @@ function buildAdjustedStrategy(
   );
   const totalSeconds =
     lapTimings[lapTimings.length - 1]?.cumulativeSeconds ?? 0;
+  const entryLinearWearAdjustment = lapTimings.reduce((sum, lap) => sum + lap.entryLinearWearAdjustmentSeconds, 0);
+  const entryQuadraticWearAdjustment = lapTimings.reduce((sum, lap) => sum + lap.entryQuadraticWearAdjustmentSeconds, 0);
+  const entryWetPenaltyAdjustment = lapTimings.reduce((sum, lap) => sum + lap.entryWetPenaltyAdjustmentSeconds, 0);
 
   return {
     ...strategy,
@@ -464,6 +529,9 @@ function buildAdjustedStrategy(
       ...strategy.breakdown,
       baselineSeconds:
         strategy.breakdown.baselineSeconds + onTrackAdjustment,
+      linearDegradationSeconds: strategy.breakdown.linearDegradationSeconds + entryLinearWearAdjustment,
+      quadraticDegradationSeconds: strategy.breakdown.quadraticDegradationSeconds + entryQuadraticWearAdjustment,
+      compoundOffsetSeconds: strategy.breakdown.compoundOffsetSeconds + entryWetPenaltyAdjustment,
       pitLossSeconds:
         strategy.breakdown.pitLossSeconds + pitStackAdjustment,
       totalSeconds,
@@ -479,7 +547,14 @@ function buildAdjustedStrategy(
           timing.carPaceAdjustmentSeconds +
           timing.driverPaceAdjustmentSeconds +
           timing.tyreManagementAdjustmentSeconds +
-          timing.consistencyAdjustmentSeconds,
+          timing.consistencyAdjustmentSeconds +
+          timing.entryPaceAdjustmentSeconds,
+        linearDegradationSeconds: lapCost.linearDegradationSeconds + timing.entryLinearWearAdjustmentSeconds,
+        quadraticDegradationSeconds: lapCost.quadraticDegradationSeconds + timing.entryQuadraticWearAdjustmentSeconds,
+        // wetPenalty is a labelled component of compoundOffset, not another term
+        // to sum on top of it. Keeping both fields in sync avoids double counting.
+        compoundOffsetSeconds: lapCost.compoundOffsetSeconds + timing.entryWetPenaltyAdjustmentSeconds,
+        wetPenaltySeconds: (lapCost.wetPenaltySeconds ?? 0) + timing.entryWetPenaltyAdjustmentSeconds,
         pitLossSeconds:
           lapCost.pitLossSeconds +
           timing.pitStackLossSeconds +
@@ -502,6 +577,9 @@ export function createRaceGrid(
   validateEntries(entries);
   const parameters = resolveParameters(options);
   const performanceMode = resolvePerformanceMode(options);
+  if (performanceMode === "realistic" && entries.some((entry) => entry.entryModelAdjustment)) {
+    throw new RangeError("Relative entry model adjustments cannot be combined with legacy realistic point mappings.");
+  }
   const orderedEntries = [...entries].sort(compareEntryOrder);
   const totalLaps = orderedEntries[0].strategy.lapCosts.length;
   const mutableCars: MutableGridCar[] = orderedEntries.map((entry) => ({
@@ -509,6 +587,7 @@ export function createRaceGrid(
       ...entry,
       label: entry.label ?? entry.id,
       pitGroup: entry.pitGroup.trim(),
+      ...(entry.entryModelAdjustment ? { entryModelAdjustment: { ...entry.entryModelAdjustment } } : {}),
     },
     performance:
       performanceMode === "realistic"
@@ -594,13 +673,22 @@ export function createRaceGrid(
           ? -0.25 *
             normalizedRating(car.performance.pitCrew)
           : 0;
+      const entryAdjustment = car.entry.entryModelAdjustment;
+      const entryPaceAdjustmentSeconds = entryAdjustment?.paceDeltaSeconds ?? 0;
+      const entryWearDelta = (entryAdjustment?.wearMultiplierRatio ?? 1) - 1;
+      const entryLinearWearAdjustmentSeconds = lapCost.linearDegradationSeconds * entryWearDelta;
+      const entryQuadraticWearAdjustmentSeconds = lapCost.quadraticDegradationSeconds * entryWearDelta;
+      const entryWetPenaltyAdjustmentSeconds = (lapCost.wetPenaltySeconds ?? 0)
+        * ((entryAdjustment?.wetPenaltyMultiplierRatio ?? 1) - 1);
+      const entryModelAdjustmentSeconds = entryPaceAdjustmentSeconds + entryLinearWearAdjustmentSeconds
+        + entryQuadraticWearAdjustmentSeconds + entryWetPenaltyAdjustmentSeconds;
       const performanceAdjustmentSeconds =
         carPaceAdjustmentSeconds +
         driverPaceAdjustmentSeconds +
         tyreManagementAdjustmentSeconds +
         consistencyAdjustmentSeconds +
         trafficAdjustment.racecraftAdjustmentSeconds +
-        pitCrewAdjustmentSeconds;
+        pitCrewAdjustmentSeconds + entryModelAdjustmentSeconds;
       const adjustedLapTimeSeconds =
         lapCost.lapTimeSeconds +
         oneTimeGridOffset +
@@ -610,7 +698,11 @@ export function createRaceGrid(
         driverPaceAdjustmentSeconds +
         tyreManagementAdjustmentSeconds +
         consistencyAdjustmentSeconds +
-        pitCrewAdjustmentSeconds;
+        pitCrewAdjustmentSeconds + entryModelAdjustmentSeconds;
+      const adjustedPitLossSeconds = lapCost.pitLossSeconds + pitStackLoss + pitCrewAdjustmentSeconds;
+      if (!Number.isFinite(adjustedLapTimeSeconds) || adjustedLapTimeSeconds <= adjustedPitLossSeconds) {
+        throw new RangeError(`Entry model adjustment must retain positive on-track time for ${car.entry.id}, lap ${lap}.`);
+      }
       car.cumulativeSeconds += adjustedLapTimeSeconds;
       car.lapTimings.push({
         lap,
@@ -627,6 +719,11 @@ export function createRaceGrid(
         racecraftAdjustmentSeconds:
           trafficAdjustment.racecraftAdjustmentSeconds,
         pitCrewAdjustmentSeconds,
+        entryPaceAdjustmentSeconds,
+        entryLinearWearAdjustmentSeconds,
+        entryQuadraticWearAdjustmentSeconds,
+        entryWetPenaltyAdjustmentSeconds,
+        entryModelAdjustmentSeconds,
         performanceAdjustmentSeconds,
         pitLossSeconds:
           lapCost.pitLossSeconds +
@@ -657,6 +754,7 @@ export function createRaceGrid(
       pitGroup: car.entry.pitGroup,
       strategy: car.entry.strategy,
       performance: car.performance,
+      ...(car.entry.entryModelAdjustment ? { entryModelAdjustment: car.entry.entryModelAdjustment } : {}),
       lapTimings: car.lapTimings,
       totalSeconds: adjustedStrategy.totalSeconds,
       replay: prepareStrategyReplay(adjustedStrategy),

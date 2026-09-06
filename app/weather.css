@@ -21,3 +21,5 @@
 .weather-evidence th,.weather-evidence td { padding:10px; border-bottom:1px solid #24323c; }
 .weather-evidence .analysis-table-wrap { overflow:auto; }
 .weather-evidence summary { cursor:pointer; margin:12px 0; }
+.equal-performance-toggle { display:flex; align-items:center; gap:8px; font-size:12px; white-space:nowrap; padding:8px 12px; border:1px solid #33424c; }
+.equal-performance-toggle input { accent-color:#9daeba; }

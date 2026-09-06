@@ -16,9 +16,11 @@ import RaceScene3D, {
   type RaceScenePoint,
   type RaceSceneTelemetry,
 } from "./RaceScene3D";
+import { resolveEntryPerformance } from "./lib/entry-performance";
 import { RACE_CAR_ASSET } from "./lib/visual-assets";
 import type {
   DriverProfile,
+  TeamId,
   TeamProfile,
 } from "./lib/participants";
 import { TEAM_PROFILES } from "./lib/participants";
@@ -36,6 +38,7 @@ import {
   createRaceGrid,
   raceGridCar,
   raceGridFrameAt,
+  relativeEntryModelAdjustment,
   type RaceGrid,
   type RaceGridCarFrame,
   type RaceGridEntry,
@@ -116,6 +119,7 @@ interface RaceReplayProps {
   readonly optimalStrategy: StrategyResult;
   readonly startingGridPosition: number;
   readonly trafficLevel: RaceTrafficLevel;
+  readonly entryContext?: { readonly teamId: TeamId; readonly driverId: string; readonly equalPerformance: boolean };
   readonly onOpenSetup?: () => void;
   readonly onEditStrategy?: () => void;
   readonly onOpenAnalysis?: () => void;
@@ -219,11 +223,17 @@ function makeRaceGrid(
   startingGridPosition: number,
   trafficLevel: RaceTrafficLevel,
   performanceMode: RacePerformanceMode,
+  entryContext?: RaceReplayProps["entryContext"],
 ): {
   readonly grid: RaceGrid;
   readonly visuals: readonly RaceSceneGridVisual[];
 } {
   const participants = raceParticipants(selectedTeam, selectedDriver);
+  if (entryContext && (entryContext.teamId !== selectedTeam.id || entryContext.driverId !== selectedDriver.id)) {
+    throw new RangeError("Replay entry context must match the primary DP team and driver.");
+  }
+  const primaryEntry = entryContext
+    ? resolveEntryPerformance(entryContext.teamId, entryContext.driverId, entryContext.equalPerformance) : null;
   const opponentStrategies =
     strategies.length > 0 ? strategies : [playerStrategy];
   const playerGridPosition = Math.min(
@@ -242,10 +252,15 @@ function makeRaceGrid(
       label: participant.driver.code,
       gridPosition: gridSlots[index],
       pitGroup: participant.team.id,
-      performance: racePerformanceProfile(
+      ...(!entryContext ? { performance: racePerformanceProfile(
         participant.team,
         participant.driver,
-      ).ratings,
+      ).ratings } : {}),
+      ...(entryContext && primaryEntry ? { entryModelAdjustment: relativeEntryModelAdjustment(
+        entryContext.driverId, primaryEntry,
+        participant.driver.id === entryContext.driverId ? primaryEntry : resolveEntryPerformance(
+          participant.team.id, participant.driver.id, entryContext.equalPerformance),
+      ) } : {}),
       strategy:
         index === 0
           ? playerStrategy
@@ -268,7 +283,7 @@ function makeRaceGrid(
   return {
     grid: createRaceGrid(entries, {
       ...TRAFFIC_PARAMETERS[trafficLevel],
-      performanceMode,
+      performanceMode: entryContext ? "equal" : performanceMode,
     }),
     visuals,
   };
@@ -769,6 +784,7 @@ export default function RaceReplay({
   optimalStrategy,
   startingGridPosition,
   trafficLevel,
+  entryContext,
   onOpenSetup,
   onEditStrategy,
   onOpenAnalysis,
@@ -785,8 +801,15 @@ export default function RaceReplay({
     () => strategyRaceFrameAt(primaryReplay, referenceReplay, 0),
     [primaryReplay, referenceReplay],
   );
-  const [performanceMode, setPerformanceMode] =
+  const [legacyPerformanceMode, setPerformanceMode] =
     useState<RacePerformanceMode>("equal");
+  const performanceMode = entryContext ? "equal" : legacyPerformanceMode;
+  const entryTeamId = entryContext?.teamId;
+  const entryDriverId = entryContext?.driverId;
+  const equalEntryPerformance = entryContext?.equalPerformance;
+  const entryPerformance = useMemo(() => entryTeamId !== undefined && entryDriverId !== undefined
+    ? resolveEntryPerformance(entryTeamId, entryDriverId, equalEntryPerformance) : null,
+  [entryTeamId, entryDriverId, equalEntryPerformance]);
   const raceGridData = useMemo(
     () =>
       makeRaceGrid(
@@ -797,9 +820,14 @@ export default function RaceReplay({
         startingGridPosition,
         trafficLevel,
         performanceMode,
+        entryTeamId !== undefined && entryDriverId !== undefined && equalEntryPerformance !== undefined
+          ? { teamId: entryTeamId, driverId: entryDriverId, equalPerformance: equalEntryPerformance } : undefined,
       ),
     [
       driver,
+      entryTeamId,
+      entryDriverId,
+      equalEntryPerformance,
       gridStrategies,
       performanceMode,
       startingGridPosition,
@@ -1624,7 +1652,7 @@ export default function RaceReplay({
   };
 
   const handlePerformanceMode = (nextMode: RacePerformanceMode) => {
-    if (nextMode === performanceMode) return;
+    if (entryContext || nextMode === performanceMode) return;
     cancelCountdown();
     if (resultsTimerRef.current !== null) {
       window.clearTimeout(resultsTimerRef.current);
@@ -1722,6 +1750,9 @@ export default function RaceReplay({
     ["RACE", "레이스 운영", playerPerformance.ratings.racecraft],
     ["PIT", "피트 크루", playerPerformance.ratings.pitCrew],
   ] as const;
+  const performanceModeLabel = entryContext
+    ? entryContext.equalPerformance ? "상단 설정 · 동일 성능" : "EA 레이팅 기반 프로젝트 매핑"
+    : performanceMode === "realistic" ? "2026 성능 추정" : "동일 기본 페이스";
 
   return (
     <section
@@ -1737,10 +1768,10 @@ export default function RaceReplay({
           <span>자동 전략 레이스 · 20대 시뮬레이션</span>
           <h3 id="race-replay-title">전략만 바꿔 승부하는 자동 레이스</h3>
           <p>
-            20대 모두 같은 자동 주행선을 사용합니다. 동일 성능 모드는
+            {entryContext ? "20대 모두 같은 자동 주행선을 사용합니다. 상단의 동일 성능 설정을 그대로 사용하며, 추천 전략에 이미 반영한 내 차의 능력치는 다시 더하지 않습니다. 상대 차량에만 내 차 대비 페이스·마모·젖은 노면 보정 차이를 적용합니다. 사용자 조작은 결과에 들어가지 않습니다." : <>20대 모두 같은 자동 주행선을 사용합니다. 동일 성능 모드는
             타이어 전략만 분리해 비교하고, 추정 성능 모드는 공식 2026
             결과 기반의 보수적인 팀·드라이버 추정치를 추가합니다. 사용자
-            조작은 어느 모드에서도 결과에 들어가지 않습니다.
+            조작은 어느 모드에서도 결과에 들어가지 않습니다.</>}
           </p>
         </div>
         <div className="race-replay__identity">
@@ -1801,7 +1832,19 @@ export default function RaceReplay({
         </div>
       </div>
 
-      <div className="race-replay__performance-panel">
+      {entryContext && entryPerformance ? <div className="race-replay__performance-panel">
+        <div className="race-replay__performance-copy">
+          <span>상단 동일 성능 모드 사용</span>
+          <strong>{entryContext.equalPerformance ? "동일 성능 · 추가 능력치 보정 0" : "EA 공식 점수 → 프로젝트 추정"}</strong>
+          <small>내 차는 DP 계산값을 그대로 사용합니다. 상대만 내 차 대비 계수 차이를 적용하며, 이전 포인트 기반 재생 전용 능력치는 중복 적용하지 않습니다. 그리드·교통·피트 대기 손실은 별도입니다.</small>
+        </div>
+        <div className="race-replay__performance-source">
+          <span>EA 게임 점수 · {entryPerformance.driver.iteration.label} · 확인 {entryPerformance.driver.source.checkedAt}</span>
+          <a href={entryPerformance.driver.source.url} target="_blank" rel="noreferrer">EA 레이팅 원문</a>
+          <span>점수→초/마모 변환은 실측이 아닌 프로젝트 규칙입니다.</span>
+          <span>{entryPerformance.team.explanation}</span>
+        </div>
+      </div> : <div className="race-replay__performance-panel">
         <div className="race-replay__performance-copy">
           <span>차량·선수 성능 추정</span>
           <strong>
@@ -1880,7 +1923,7 @@ export default function RaceReplay({
             </a>
           </span>
         </div>
-      </div>
+      </div>}
 
       <div className="race-replay__grid">
         <div className="race-replay__stage">
@@ -2094,9 +2137,7 @@ export default function RaceReplay({
                   </ol>
                   <p>
                     자동 주행 ·{" "}
-                    {performanceMode === "realistic"
-                      ? "2026 성능 추정"
-                      : "동일 기본 페이스"}
+                    {performanceModeLabel}
                   </p>
                 </aside>
 
@@ -2221,7 +2262,7 @@ export default function RaceReplay({
                       <b aria-hidden="true">→</b>
                     </button>
                     <small>
-                      {performanceMode === "realistic"
+                      {entryContext ? `${performanceModeLabel} · 상대 계수 차이만 추가` : performanceMode === "realistic"
                         ? "2026 성능 추정 · 동일 입력 재현 · 전략 우선"
                         : "동일 기본 성능 · 재현 가능한 교통 · 전략 비교"}
                     </small>
@@ -2268,7 +2309,7 @@ export default function RaceReplay({
                       {countdown === "GO" ? "출발" : "대기"}
                     </strong>
                     <small>
-                      {performanceMode === "realistic"
+                      {entryContext ? `${performanceModeLabel} · 전략 중심` : performanceMode === "realistic"
                         ? "성능 추정 · 타이어 전략 중심"
                         : "동일한 기본 페이스 · 전략만 승부"}
                     </small>
@@ -2656,8 +2697,7 @@ export default function RaceReplay({
       <p className="race-replay__disclaimer">
         실제 서킷 윤곽 기반의 모델 시각화입니다. 실제 고도·차량 물리를
         재현하지 않습니다. 결과 차이는 타이어 전략과 공개한 결정론적
-        그리드·교통·피트 규칙에서 발생하며, 추정 성능 모드에서는
-        팀·드라이버 추정치가 작은 범위로 추가됩니다. 표시 속도·시야각·카메라
+        그리드·교통·피트 규칙에서 발생합니다. {entryContext ? "상단 성능 설정에 따라 내 차에 이미 반영한 계수는 유지하고 상대의 계수 차이만 추가합니다." : "추정 성능 모드에서는 팀·드라이버 추정치가 작은 범위로 추가됩니다."} 표시 속도·시야각·카메라
         효과는 연출용이며 전략 계산에는 사용하지 않습니다.
       </p>
       <p className="sr-only" aria-live="polite">

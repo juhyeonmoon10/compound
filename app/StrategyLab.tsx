@@ -23,6 +23,8 @@ import ExperimentNotebook from "./ExperimentNotebook";
 import "./experience.css";
 import WeatherControls from "./WeatherControls";
 import WetEvidencePanel from "./WetEvidencePanel";
+import PerformanceEvidencePanel from "./PerformanceEvidencePanel";
+import { applyEntryPerformance, resolveEntryPerformance } from "./lib/entry-performance";
 import { TYRE_COLORS, TYRE_LABELS, RAIN_LABELS, MODEL_PARAMS } from "./model/params";
 import { calculatedCrossovers, type WeatherInput } from "./lib/weather";
 import type { RaceTrafficLevel } from "./RaceReplay";
@@ -85,6 +87,9 @@ type RunConfig = {
   startingGridPosition: number;
   trafficLevel: RaceTrafficLevel;
   weather: WeatherInput;
+  teamId: TeamId;
+  driverId: string;
+  equalPerformance: boolean;
 };
 
 type AnalysisMode = "top3" | "manual";
@@ -152,6 +157,9 @@ const INITIAL_CONFIG: RunConfig = {
   startingGridPosition: 10,
   trafficLevel: "medium",
   weather: { preset: "none" },
+  teamId: DEFAULT_TEAM_ID,
+  driverId: findTeamProfile(DEFAULT_TEAM_ID).drivers[0].id,
+  equalPerformance: false,
 };
 
 function configForTrack(
@@ -205,7 +213,7 @@ function makeOptimizerInput(config: RunConfig): StrategyOptimizerInput {
     };
   };
 
-  return {
+  return applyEntryPerformance({
     track: config.trackId,
     pitLossSeconds: config.pitLossSeconds,
     fuelGainSecondsPerLap: config.fuelGainSecondsPerLap,
@@ -223,7 +231,7 @@ function makeOptimizerInput(config: RunConfig): StrategyOptimizerInput {
       minStintLaps: 1,
     },
     topK: 3,
-  };
+  }, config.teamId, config.driverId, config.equalPerformance);
 }
 
 function sameConfig(left: RunConfig, right: RunConfig) {
@@ -238,7 +246,7 @@ function sameConfig(left: RunConfig, right: RunConfig) {
     left.airTemperatureC === right.airTemperatureC &&
     left.humidityPercent === right.humidityPercent &&
     left.startingGridPosition === right.startingGridPosition &&
-    left.trafficLevel === right.trafficLevel && JSON.stringify(left.weather) === JSON.stringify(right.weather)
+    left.trafficLevel === right.trafficLevel && JSON.stringify(left.weather) === JSON.stringify(right.weather) && left.equalPerformance === right.equalPerformance && left.teamId === right.teamId && left.driverId === right.driverId
   );
 }
 
@@ -891,6 +899,9 @@ export default function StrategyLab({
     [applied],
   );
   const appliedTrack = TRACK_PRESETS[applied.trackId];
+  const entryProfile = useMemo(() => resolveEntryPerformance(applied.teamId, applied.driverId, applied.equalPerformance), [applied.teamId, applied.driverId, applied.equalPerformance]);
+  const equalReference = useMemo(() => optimizeTyreStrategies(makeOptimizerInput({ ...applied, equalPerformance: true }))[0], [applied]);
+  const performanceSummary = applied.equalPerformance ? "동일 성능 모드 · 팀·선수 시간 보정 없음" : `능력치 반영 · 동일 성능 대비 추천 1번 ${equalReference?.signature === results[0]?.signature ? "구성 유지" : "구성 변경"} · 총시간 차이 ${formatDelta((results[0]?.totalSeconds ?? 0) - (equalReference?.totalSeconds ?? 0))} · 프로젝트 추정`;
   const strategyPitWindows = useMemo(
     () =>
       results
@@ -976,12 +987,14 @@ export default function StrategyLab({
     const nextTeam = findTeamProfile(nextTeamId);
     setTeamId(nextTeamId);
     setDriverId(nextTeam.drivers[0].id);
+    applyConfiguration(applied, nextTeam.drivers[0]);
   };
 
   const applyConfiguration = (
     nextConfig: RunConfig,
     profileDriver = selectedDriver,
   ) => {
+    nextConfig = { ...nextConfig, driverId: profileDriver.id, teamId: TEAM_PROFILES.find(team => team.drivers.some(driver => driver.id === profileDriver.id))?.id ?? nextConfig.teamId };
     const nextTrack = TRACK_PRESETS[nextConfig.trackId];
     const nextResults = optimizeTyreStrategies(
       makeOptimizerInput(nextConfig),
@@ -1258,7 +1271,7 @@ export default function StrategyLab({
               </button>
             ))}
           </div>
-          <span className="project-chip">FastF1 분석 · 동적계획법 3.0</span>
+          <label className="equal-performance-toggle"><input type="checkbox" checked={applied.equalPerformance} onChange={event => applyConfiguration({ ...applied, equalPerformance: event.target.checked })} />동일 성능 모드</label>
         </nav>
 
       </header>
@@ -1278,6 +1291,7 @@ export default function StrategyLab({
             <div>
               <span>데이터 기반 F1 전략 분석</span>
               <h1 id="home-title">더 빠른 한 랩보다,<br />더 빠른 레이스.</h1>
+              <p>{performanceSummary}</p>
               <p>
                 실제 F1 공개 랩을 분석하고, 설명 가능한 동적계획법으로
                 타이어 전략 상위 3개를 만든 뒤 반복 실험과 백테스트로
@@ -1393,6 +1407,7 @@ export default function StrategyLab({
 
           <p className="weather-model-summary">강수: {RAIN_LABELS[applied.weather.preset]} · 수막·우천 페널티: 프로젝트 추정. 슬릭→인터 경계 {calculatedCrossovers().slickInter.toFixed(2)} 초과, 인터→웨트 약 {calculatedCrossovers().interWet.toFixed(2)}. {selectedTopThree.ruleExplanation} 3D 노면 광택·물보라는 계산과 분리된 연출입니다.</p>
           <div className="lab-grid">
+            <p className="sr-only">{performanceSummary}</p>
             <aside className="setup-column" aria-label="레이스 시나리오 설정">
               <section
                 className="participant-panel participant-theme"
@@ -1405,8 +1420,7 @@ export default function StrategyLab({
                     <h2 id="participant-title">서킷·팀·드라이버 선택</h2>
                   </div>
                   <p>
-                    선택한 참가자는 화면 맥락으로 사용하며, 현재
-                    알고리즘에는 팀·선수 능력치를 임의로 넣지 않습니다.
+                    EA 공식 레이팅과 공개 랩 기반 팀 추정치를 전략 비용에 반영합니다. 상단 동일 성능 모드로 보정을 끌 수 있습니다.
                   </p>
                 </div>
 
@@ -1461,9 +1475,11 @@ export default function StrategyLab({
                       <select
                         id="context-driver"
                         value={selectedDriver.id}
-                        onChange={(event) =>
-                          setDriverId(event.target.value)
-                        }
+                        onChange={(event) => {
+                          setDriverId(event.target.value);
+                          const driver = selectedTeam.drivers.find(driver => driver.id === event.target.value);
+                          if (driver) applyConfiguration(applied, driver);
+                        }}
                       >
                         {selectedTeam.drivers.map((driver) => (
                           <option value={driver.id} key={driver.id}>
@@ -2514,6 +2530,7 @@ export default function StrategyLab({
                 optimalStrategy={best}
                 startingGridPosition={applied.startingGridPosition}
                 trafficLevel={applied.trafficLevel}
+                entryContext={{ teamId: applied.teamId, driverId: applied.driverId, equalPerformance: applied.equalPerformance }}
                 onOpenSetup={openScenarioSetup}
                 onEditStrategy={() => {
                   setWorkspace("manual");
@@ -2558,6 +2575,8 @@ export default function StrategyLab({
           aria-labelledby="data-analysis-title"
           hidden={pageView !== "data"}
         >
+          <PerformanceEvidencePanel selectedDriverId={applied.driverId} equalPerformance={applied.equalPerformance} />
+          <p className="weather-model-summary">프로젝트 추정 · 현재 팀 페이스 +{entryProfile.teamPaceSeconds.toFixed(3)}초/랩 (관측 확보 팀 중 최속 기준 0), 팀·선수 합산 열화 {entryProfile.wearMultiplier.toFixed(4)}배. {entryProfile.team.explanation}</p>
           <WetEvidencePanel />
           <FastF1AnalysisPanel
             appliedTrackId={applied.trackId}
@@ -3053,9 +3072,7 @@ return unique_top_3()`}</code>
                 <span>레이스 조건 설정</span>
                 <h2 id="race-setup-title">그리드에 들어가기 전 설정</h2>
                 <p>
-                  팀·선수 선택은 타이어 전략 상위 3개 계산에 영향을 주지 않습니다.
-                  레이스 리플레이의 선택형 성능 모드에서는 추정 능력치
-                  모델이 적용됩니다.
+                  팀·선수 능력치를 타이어 전략 비용에 기본 반영합니다. EA 게임 점수는 공식 자료이며, 초·열화·우천 배수로의 변환은 프로젝트 추정입니다. 상단 동일 성능 모드로 끌 수 있습니다.
                 </p>
               </div>
               <button

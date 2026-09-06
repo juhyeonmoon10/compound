@@ -51,7 +51,7 @@ export const MODEL_PARAMS = {
     scPitFactor: 0.55, vscPitFactor: 0.7, followingGapSeconds: 1,
     trafficLossFraction: 0.4, undercutSettlingLaps: 3,
     minimumDistinctSeconds: 0.5,
-    // 단위: 확률/랩. 공식 2018–2025 통계 미확보 시 명시적으로 사용하는 실험용 사전값.
+    // 단위: 경기당 발생 확률/지속 랩. 공식 2018–2025 통계 미확보 시 사용하는 실험용 사전값.
     fallbackScProbability: 0.35, fallbackVscProbability: 0.25,
     scDurations: [2, 3, 4, 5] as readonly number[], vscDurations: [1, 2] as readonly number[],
     eventStartFraction: 0.08, eventEndFraction: 0.9,

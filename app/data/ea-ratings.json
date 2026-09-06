@@ -1,0 +1,537 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "publisher": "EA SPORTS",
+    "url": "https://www.ea.com/games/f1/ratings",
+    "jsonPath": "props.pageProps.ratingDetails.items",
+    "type": "official-game-ratings-not-measured-driver-performance"
+  },
+  "iteration": {
+    "id": "2026june",
+    "label": "F1 25: 2026 Season Pack - June"
+  },
+  "checkedAt": "2026-09-06",
+  "coverage": {
+    "expectedDriverCount": 22,
+    "sourceDriverCount": 22,
+    "matchedDriverCount": 22,
+    "missingDriverIds": [],
+    "unexpectedSourceDriverIds": []
+  },
+  "lineupSources": [
+    "https://www.formula1.com/en/latest/article/who-are-the-2026-formula-1-drivers.3mVj9UTWK7Puz2QuScnzuz.3mVj9UTWK7Puz2QuScnzuz",
+    "https://www.formula1.com/en/latest/article/all-the-2026-f1-driver-numbers-confirmed-in-full.5rh7o9mPntG7NerzVk9onc"
+  ],
+  "metadataDiscrepancies": [
+    {
+      "driverId": "max-verstappen",
+      "field": "carNumber",
+      "eaValue": 1,
+      "projectValue": 3
+    },
+    {
+      "driverId": "lando-norris",
+      "field": "carNumber",
+      "eaValue": 4,
+      "projectValue": 1
+    },
+    {
+      "driverId": "isack-hadjar",
+      "field": "team",
+      "eaValue": "Visa Cash App RB",
+      "projectValue": "red-bull"
+    }
+  ],
+  "notes": [
+    "EA game ratings are edition-specific judgement values, not measured real-world abilities.",
+    "Use ratings only; team assignments and race numbers follow participants.ts, not EA metadata.",
+    "No missing rating is substituted. Unmatched drivers remain explicitly listed in coverage.",
+    "The checked date is the retrieval date, not the rating iteration's release date."
+  ],
+  "drivers": [
+    {
+      "driverId": "max-verstappen",
+      "eaId": 1,
+      "name": "Max Verstappen",
+      "ratings": {
+        "OVR": 95,
+        "EXP": 88,
+        "RAC": 96,
+        "AWA": 82,
+        "PAC": 97
+      },
+      "eaMetadata": {
+        "teamName": "Red Bull",
+        "carNumber": 1
+      },
+      "projectMetadata": {
+        "driverId": "max-verstappen",
+        "teamId": "red-bull",
+        "number": 3,
+        "code": "VER"
+      }
+    },
+    {
+      "driverId": "lewis-hamilton",
+      "eaId": 6,
+      "name": "Lewis Hamilton",
+      "ratings": {
+        "OVR": 92,
+        "EXP": 98,
+        "RAC": 93,
+        "AWA": 91,
+        "PAC": 90
+      },
+      "eaMetadata": {
+        "teamName": "Ferrari",
+        "carNumber": 44
+      },
+      "projectMetadata": {
+        "driverId": "lewis-hamilton",
+        "teamId": "ferrari",
+        "number": 44,
+        "code": "HAM"
+      }
+    },
+    {
+      "driverId": "george-russell",
+      "eaId": 7,
+      "name": "George Russell",
+      "ratings": {
+        "OVR": 92,
+        "EXP": 83,
+        "RAC": 94,
+        "AWA": 93,
+        "PAC": 92
+      },
+      "eaMetadata": {
+        "teamName": "Mercedes-AMG Petronas",
+        "carNumber": 63
+      },
+      "projectMetadata": {
+        "driverId": "george-russell",
+        "teamId": "mercedes",
+        "number": 63,
+        "code": "RUS"
+      }
+    },
+    {
+      "driverId": "charles-leclerc",
+      "eaId": 5,
+      "name": "Charles Leclerc",
+      "ratings": {
+        "OVR": 92,
+        "EXP": 83,
+        "RAC": 92,
+        "AWA": 91,
+        "PAC": 93
+      },
+      "eaMetadata": {
+        "teamName": "Ferrari",
+        "carNumber": 16
+      },
+      "projectMetadata": {
+        "driverId": "charles-leclerc",
+        "teamId": "ferrari",
+        "number": 16,
+        "code": "LEC"
+      }
+    },
+    {
+      "driverId": "lando-norris",
+      "eaId": 3,
+      "name": "Lando Norris",
+      "ratings": {
+        "OVR": 92,
+        "EXP": 83,
+        "RAC": 93,
+        "AWA": 85,
+        "PAC": 94
+      },
+      "eaMetadata": {
+        "teamName": "McLaren",
+        "carNumber": 4
+      },
+      "projectMetadata": {
+        "driverId": "lando-norris",
+        "teamId": "mclaren",
+        "number": 1,
+        "code": "NOR"
+      }
+    },
+    {
+      "driverId": "oscar-piastri",
+      "eaId": 4,
+      "name": "Oscar Piastri",
+      "ratings": {
+        "OVR": 91,
+        "EXP": 78,
+        "RAC": 95,
+        "AWA": 84,
+        "PAC": 91
+      },
+      "eaMetadata": {
+        "teamName": "McLaren",
+        "carNumber": 81
+      },
+      "projectMetadata": {
+        "driverId": "oscar-piastri",
+        "teamId": "mclaren",
+        "number": 81,
+        "code": "PIA"
+      }
+    },
+    {
+      "driverId": "fernando-alonso",
+      "eaId": 9,
+      "name": "Fernando Alonso",
+      "ratings": {
+        "OVR": 89,
+        "EXP": 99,
+        "RAC": 87,
+        "AWA": 85,
+        "PAC": 90
+      },
+      "eaMetadata": {
+        "teamName": "Aston Martin",
+        "carNumber": 14
+      },
+      "projectMetadata": {
+        "driverId": "fernando-alonso",
+        "teamId": "aston-martin",
+        "number": 14,
+        "code": "ALO"
+      }
+    },
+    {
+      "driverId": "kimi-antonelli",
+      "eaId": 8,
+      "name": "Kimi Antonelli",
+      "ratings": {
+        "OVR": 88,
+        "EXP": 71,
+        "RAC": 85,
+        "AWA": 77,
+        "PAC": 93
+      },
+      "eaMetadata": {
+        "teamName": "Mercedes-AMG Petronas",
+        "carNumber": 12
+      },
+      "projectMetadata": {
+        "driverId": "kimi-antonelli",
+        "teamId": "mercedes",
+        "number": 12,
+        "code": "ANT"
+      }
+    },
+    {
+      "driverId": "pierre-gasly",
+      "eaId": 11,
+      "name": "Pierre Gasly",
+      "ratings": {
+        "OVR": 85,
+        "EXP": 83,
+        "RAC": 84,
+        "AWA": 78,
+        "PAC": 86
+      },
+      "eaMetadata": {
+        "teamName": "Alpine",
+        "carNumber": 10
+      },
+      "projectMetadata": {
+        "driverId": "pierre-gasly",
+        "teamId": "alpine",
+        "number": 10,
+        "code": "GAS"
+      }
+    },
+    {
+      "driverId": "carlos-sainz",
+      "eaId": 14,
+      "name": "Carlos Sainz",
+      "ratings": {
+        "OVR": 85,
+        "EXP": 88,
+        "RAC": 87,
+        "AWA": 80,
+        "PAC": 85
+      },
+      "eaMetadata": {
+        "teamName": "Williams",
+        "carNumber": 55
+      },
+      "projectMetadata": {
+        "driverId": "carlos-sainz",
+        "teamId": "williams",
+        "number": 55,
+        "code": "SAI"
+      }
+    },
+    {
+      "driverId": "nico-hulkenberg",
+      "eaId": 17,
+      "name": "Nico Hülkenberg",
+      "ratings": {
+        "OVR": 85,
+        "EXP": 88,
+        "RAC": 85,
+        "AWA": 85,
+        "PAC": 85
+      },
+      "eaMetadata": {
+        "teamName": "Audi Revolut",
+        "carNumber": 27
+      },
+      "projectMetadata": {
+        "driverId": "nico-hulkenberg",
+        "teamId": "audi",
+        "number": 27,
+        "code": "HUL"
+      }
+    },
+    {
+      "driverId": "sergio-perez",
+      "eaId": 23,
+      "name": "Sergio Perez",
+      "ratings": {
+        "OVR": 85,
+        "EXP": 92,
+        "RAC": 83,
+        "AWA": 81,
+        "PAC": 85
+      },
+      "eaMetadata": {
+        "teamName": "Cadillac",
+        "carNumber": 11
+      },
+      "projectMetadata": {
+        "driverId": "sergio-perez",
+        "teamId": "cadillac",
+        "number": 11,
+        "code": "PER"
+      }
+    },
+    {
+      "driverId": "isack-hadjar",
+      "eaId": 20,
+      "name": "Isack Hadjar",
+      "ratings": {
+        "OVR": 84,
+        "EXP": 72,
+        "RAC": 81,
+        "AWA": 82,
+        "PAC": 87
+      },
+      "eaMetadata": {
+        "teamName": "Visa Cash App RB",
+        "carNumber": 6
+      },
+      "projectMetadata": {
+        "driverId": "isack-hadjar",
+        "teamId": "red-bull",
+        "number": 6,
+        "code": "HAD"
+      }
+    },
+    {
+      "driverId": "esteban-ocon",
+      "eaId": 16,
+      "name": "Esteban Ocon",
+      "ratings": {
+        "OVR": 84,
+        "EXP": 83,
+        "RAC": 85,
+        "AWA": 84,
+        "PAC": 84
+      },
+      "eaMetadata": {
+        "teamName": "Haas",
+        "carNumber": 31
+      },
+      "projectMetadata": {
+        "driverId": "esteban-ocon",
+        "teamId": "haas",
+        "number": 31,
+        "code": "OCO"
+      }
+    },
+    {
+      "driverId": "oliver-bearman",
+      "eaId": 15,
+      "name": "Oliver Bearman",
+      "ratings": {
+        "OVR": 83,
+        "EXP": 73,
+        "RAC": 88,
+        "AWA": 70,
+        "PAC": 84
+      },
+      "eaMetadata": {
+        "teamName": "Haas",
+        "carNumber": 87
+      },
+      "projectMetadata": {
+        "driverId": "oliver-bearman",
+        "teamId": "haas",
+        "number": 87,
+        "code": "BEA"
+      }
+    },
+    {
+      "driverId": "alexander-albon",
+      "eaId": 13,
+      "name": "Alexander Albon",
+      "ratings": {
+        "OVR": 83,
+        "EXP": 84,
+        "RAC": 86,
+        "AWA": 76,
+        "PAC": 83
+      },
+      "eaMetadata": {
+        "teamName": "Williams",
+        "carNumber": 23
+      },
+      "projectMetadata": {
+        "driverId": "alexander-albon",
+        "teamId": "williams",
+        "number": 23,
+        "code": "ALB"
+      }
+    },
+    {
+      "driverId": "valtteri-bottas",
+      "eaId": 24,
+      "name": "Valtteri Bottas",
+      "ratings": {
+        "OVR": 82,
+        "EXP": 89,
+        "RAC": 76,
+        "AWA": 93,
+        "PAC": 83
+      },
+      "eaMetadata": {
+        "teamName": "Cadillac",
+        "carNumber": 77
+      },
+      "projectMetadata": {
+        "driverId": "valtteri-bottas",
+        "teamId": "cadillac",
+        "number": 77,
+        "code": "BOT"
+      }
+    },
+    {
+      "driverId": "gabriel-bortoleto",
+      "eaId": 18,
+      "name": "Gabriel Bortoleto",
+      "ratings": {
+        "OVR": 81,
+        "EXP": 70,
+        "RAC": 82,
+        "AWA": 77,
+        "PAC": 82
+      },
+      "eaMetadata": {
+        "teamName": "Audi Revolut",
+        "carNumber": 5
+      },
+      "projectMetadata": {
+        "driverId": "gabriel-bortoleto",
+        "teamId": "audi",
+        "number": 5,
+        "code": "BOR"
+      }
+    },
+    {
+      "driverId": "liam-lawson",
+      "eaId": 2,
+      "name": "Liam Lawson",
+      "ratings": {
+        "OVR": 80,
+        "EXP": 74,
+        "RAC": 81,
+        "AWA": 74,
+        "PAC": 81
+      },
+      "eaMetadata": {
+        "teamName": "Visa Cash App RB",
+        "carNumber": 30
+      },
+      "projectMetadata": {
+        "driverId": "liam-lawson",
+        "teamId": "racing-bulls",
+        "number": 30,
+        "code": "LAW"
+      }
+    },
+    {
+      "driverId": "lance-stroll",
+      "eaId": 10,
+      "name": "Lance Stroll",
+      "ratings": {
+        "OVR": 77,
+        "EXP": 84,
+        "RAC": 77,
+        "AWA": 73,
+        "PAC": 76
+      },
+      "eaMetadata": {
+        "teamName": "Aston Martin",
+        "carNumber": 18
+      },
+      "projectMetadata": {
+        "driverId": "lance-stroll",
+        "teamId": "aston-martin",
+        "number": 18,
+        "code": "STR"
+      }
+    },
+    {
+      "driverId": "franco-colapinto",
+      "eaId": 21,
+      "name": "Franco Colapinto",
+      "ratings": {
+        "OVR": 73,
+        "EXP": 70,
+        "RAC": 71,
+        "AWA": 74,
+        "PAC": 75
+      },
+      "eaMetadata": {
+        "teamName": "Alpine",
+        "carNumber": 43
+      },
+      "projectMetadata": {
+        "driverId": "franco-colapinto",
+        "teamId": "alpine",
+        "number": 43,
+        "code": "COL"
+      }
+    },
+    {
+      "driverId": "arvid-lindblad",
+      "eaId": 22,
+      "name": "Arvid Lindblad",
+      "ratings": {
+        "OVR": 73,
+        "EXP": 50,
+        "RAC": 72,
+        "AWA": 66,
+        "PAC": 78
+      },
+      "eaMetadata": {
+        "teamName": "Visa Cash App RB",
+        "carNumber": 41
+      },
+      "projectMetadata": {
+        "driverId": "arvid-lindblad",
+        "teamId": "racing-bulls",
+        "number": 41,
+        "code": "LIN"
+      }
+    }
+  ]
+}
