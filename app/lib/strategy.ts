@@ -1042,6 +1042,7 @@ function lapCost(
     maxStintLaps: parameters.maxStintLaps,
     tyreSeverity: model.tyreSeverity ?? 3,
     trackTemperatureC: model.trackTemperatureC ?? 34,
+    previousDryLaps: dryAge,
     degradationSeconds:
       linearDegradationSeconds + quadraticDegradationSeconds,
   });

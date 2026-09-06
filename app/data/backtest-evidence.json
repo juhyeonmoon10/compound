@@ -1,0 +1,4074 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-06T14:43:28.184781+00:00",
+  "generatedBy": "tools/collect_backtest_evidence.py",
+  "events": [
+    {
+      "id": "austria-2025",
+      "trackId": "spielberg",
+      "eventName": "Austrian Grand Prix",
+      "label": "2025 오스트리아 GP",
+      "season": 2025,
+      "raceLaps": 70,
+      "drivers": [
+        {
+          "code": "NOR",
+          "name": "Lando Norris",
+          "team": "McLaren",
+          "finish": 1,
+          "stints": [
+            {
+              "compound": "M",
+              "startLap": 1,
+              "endLap": 20,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 20
+            },
+            {
+              "compound": "H",
+              "startLap": 21,
+              "endLap": 52,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 32
+            },
+            {
+              "compound": "M",
+              "startLap": 53,
+              "endLap": 70,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 18
+            }
+          ],
+          "raceLaps": 70,
+          "raceElapsedSeconds": 5027.693,
+          "gapToWinnerSeconds": 0.0,
+          "resultTimeSeconds": 5027.693,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 5027.693,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        },
+        {
+          "code": "PIA",
+          "name": "Oscar Piastri",
+          "team": "McLaren",
+          "finish": 2,
+          "stints": [
+            {
+              "compound": "M",
+              "startLap": 1,
+              "endLap": 24,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 24
+            },
+            {
+              "compound": "H",
+              "startLap": 25,
+              "endLap": 53,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 29
+            },
+            {
+              "compound": "M",
+              "startLap": 54,
+              "endLap": 70,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 17
+            }
+          ],
+          "raceLaps": 70,
+          "raceElapsedSeconds": 5030.388,
+          "gapToWinnerSeconds": 2.695,
+          "resultTimeSeconds": 2.695,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 5030.388,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        },
+        {
+          "code": "LEC",
+          "name": "Charles Leclerc",
+          "team": "Ferrari",
+          "finish": 3,
+          "stints": [
+            {
+              "compound": "M",
+              "startLap": 1,
+              "endLap": 25,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 25
+            },
+            {
+              "compound": "H",
+              "startLap": 26,
+              "endLap": 49,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 24
+            },
+            {
+              "compound": "M",
+              "startLap": 50,
+              "endLap": 70,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 21
+            }
+          ],
+          "raceLaps": 70,
+          "raceElapsedSeconds": 5047.513,
+          "gapToWinnerSeconds": 19.82,
+          "resultTimeSeconds": 19.82,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 5047.513,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        }
+      ],
+      "source": {
+        "timingUrl": "https://livetiming.formula1.com/static/2025/2025-06-29_Austrian_Grand_Prix/2025-06-29_Race/",
+        "resultsUrl": "https://www.formula1.com/en/results/2025/races",
+        "libraryVersion": "3.8.3",
+        "raceElapsedMeaning": "Official winner race duration plus podium driver's finish gap, as provided by FastF1 SessionResults.Time"
+      },
+      "weather": {
+        "meanTrackTemperatureC": 48.81,
+        "meanAirTemperatureC": 30.74,
+        "meanHumidityPercent": 31.19,
+        "rainfallLapNumbers": [],
+        "wetTyreLaps": 0,
+        "allDriverLaps": 1126,
+        "wetTyreLapFraction": 0.0,
+        "perLap": [
+          {
+            "lap": 1,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.8,
+            "humidityPercent": 33.0
+          },
+          {
+            "lap": 2,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.7,
+            "humidityPercent": 32.0
+          },
+          {
+            "lap": 3,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.2,
+            "humidityPercent": 32.0
+          },
+          {
+            "lap": 4,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.68,
+            "humidityPercent": 32.0
+          },
+          {
+            "lap": 5,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.8,
+            "humidityPercent": 32.0
+          },
+          {
+            "lap": 6,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.7,
+            "humidityPercent": 32.0
+          },
+          {
+            "lap": 7,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 50.3,
+            "humidityPercent": 32.0
+          },
+          {
+            "lap": 8,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 50.4,
+            "humidityPercent": 32.0
+          },
+          {
+            "lap": 9,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 50.3,
+            "humidityPercent": 31.82
+          },
+          {
+            "lap": 10,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.97,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 11,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.2,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 12,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.1,
+            "humidityPercent": 32.0
+          },
+          {
+            "lap": 13,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.24,
+            "humidityPercent": 31.06
+          },
+          {
+            "lap": 14,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.81,
+            "humidityPercent": 31.76
+          },
+          {
+            "lap": 15,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.5,
+            "humidityPercent": 31.76
+          },
+          {
+            "lap": 16,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.5,
+            "humidityPercent": 31.12
+          },
+          {
+            "lap": 17,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.6,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 18,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.66,
+            "humidityPercent": 30.12
+          },
+          {
+            "lap": 19,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.4,
+            "humidityPercent": 31.44
+          },
+          {
+            "lap": 20,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.1,
+            "humidityPercent": 31.25
+          },
+          {
+            "lap": 21,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.0,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 22,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.3,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 23,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.3,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 24,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.49,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 25,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.6,
+            "humidityPercent": 30.25
+          },
+          {
+            "lap": 26,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.16,
+            "humidityPercent": 30.88
+          },
+          {
+            "lap": 27,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.1,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 28,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.86,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 29,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.53,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 30,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.91,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 31,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.8,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 32,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.71,
+            "humidityPercent": 31.06
+          },
+          {
+            "lap": 33,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.73,
+            "humidityPercent": 32.0
+          },
+          {
+            "lap": 34,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.65,
+            "humidityPercent": 31.5
+          },
+          {
+            "lap": 35,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.5,
+            "humidityPercent": 31.75
+          },
+          {
+            "lap": 36,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.42,
+            "humidityPercent": 32.0
+          },
+          {
+            "lap": 37,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.38,
+            "humidityPercent": 31.12
+          },
+          {
+            "lap": 38,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.16,
+            "humidityPercent": 31.19
+          },
+          {
+            "lap": 39,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.5,
+            "humidityPercent": 31.5
+          },
+          {
+            "lap": 40,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.11,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 41,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.78,
+            "humidityPercent": 30.25
+          },
+          {
+            "lap": 42,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.45,
+            "humidityPercent": 30.81
+          },
+          {
+            "lap": 43,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.47,
+            "humidityPercent": 31.88
+          },
+          {
+            "lap": 44,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.92,
+            "humidityPercent": 31.56
+          },
+          {
+            "lap": 45,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.18,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 46,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.1,
+            "humidityPercent": 30.25
+          },
+          {
+            "lap": 47,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.95,
+            "humidityPercent": 30.0
+          },
+          {
+            "lap": 48,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.19,
+            "humidityPercent": 30.94
+          },
+          {
+            "lap": 49,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.44,
+            "humidityPercent": 31.5
+          },
+          {
+            "lap": 50,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.86,
+            "humidityPercent": 31.06
+          },
+          {
+            "lap": 51,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.75,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 52,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.7,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 53,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.7,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 54,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.44,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 55,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.5,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 56,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.53,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 57,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.28,
+            "humidityPercent": 30.25
+          },
+          {
+            "lap": 58,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.72,
+            "humidityPercent": 30.75
+          },
+          {
+            "lap": 59,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.14,
+            "humidityPercent": 31.0
+          },
+          {
+            "lap": 60,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.55,
+            "humidityPercent": 30.69
+          },
+          {
+            "lap": 61,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.6,
+            "humidityPercent": 30.12
+          },
+          {
+            "lap": 62,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.39,
+            "humidityPercent": 30.0
+          },
+          {
+            "lap": 63,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.21,
+            "humidityPercent": 30.0
+          },
+          {
+            "lap": 64,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.99,
+            "humidityPercent": 30.0
+          },
+          {
+            "lap": 65,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.62,
+            "humidityPercent": 30.5
+          },
+          {
+            "lap": 66,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.42,
+            "humidityPercent": 31.75
+          },
+          {
+            "lap": 67,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 46.62,
+            "humidityPercent": 31.56
+          },
+          {
+            "lap": 68,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 46.01,
+            "humidityPercent": 31.75
+          },
+          {
+            "lap": 69,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 46.19,
+            "humidityPercent": 32.0
+          },
+          {
+            "lap": 70,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 46.73,
+            "humidityPercent": 32.0
+          }
+        ]
+      },
+      "raceControl": {
+        "trackStatusLapCounts": {
+          "1": 1057,
+          "124": 19,
+          "4": 17,
+          "41": 17,
+          "12": 16
+        },
+        "scSignalStarts": 1,
+        "redFlagSignalStarts": 0,
+        "vscSignalStarts": 0,
+        "vscEndingSignals": 0,
+        "sessionStatusChanges": [
+          {
+            "timeSeconds": 4.376,
+            "status": "Inactive"
+          },
+          {
+            "timeSeconds": 4268.287,
+            "status": "Started"
+          },
+          {
+            "timeSeconds": 9296.194,
+            "status": "Finished"
+          },
+          {
+            "timeSeconds": 9679.74,
+            "status": "Finalised"
+          },
+          {
+            "timeSeconds": 9680.006,
+            "status": "Ends"
+          }
+        ],
+        "note": "Counts are observed timing status transitions, not a model of their duration or race-time effect."
+      }
+    },
+    {
+      "id": "hungary-2025",
+      "trackId": "hungaroring",
+      "eventName": "Hungarian Grand Prix",
+      "label": "2025 헝가리 GP",
+      "season": 2025,
+      "raceLaps": 70,
+      "drivers": [
+        {
+          "code": "NOR",
+          "name": "Lando Norris",
+          "team": "McLaren",
+          "finish": 1,
+          "stints": [
+            {
+              "compound": "M",
+              "startLap": 1,
+              "endLap": 31,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 31
+            },
+            {
+              "compound": "H",
+              "startLap": 32,
+              "endLap": 70,
+              "observedTyreLifeStart": 2,
+              "observedTyreLifeEnd": 40
+            }
+          ],
+          "raceLaps": 70,
+          "raceElapsedSeconds": 5721.231,
+          "gapToWinnerSeconds": 0.0,
+          "resultTimeSeconds": 5721.231,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 5721.231,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        },
+        {
+          "code": "PIA",
+          "name": "Oscar Piastri",
+          "team": "McLaren",
+          "finish": 2,
+          "stints": [
+            {
+              "compound": "M",
+              "startLap": 1,
+              "endLap": 18,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 18
+            },
+            {
+              "compound": "H",
+              "startLap": 19,
+              "endLap": 45,
+              "observedTyreLifeStart": 2,
+              "observedTyreLifeEnd": 28
+            },
+            {
+              "compound": "H",
+              "startLap": 46,
+              "endLap": 70,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 25
+            }
+          ],
+          "raceLaps": 70,
+          "raceElapsedSeconds": 5721.929,
+          "gapToWinnerSeconds": 0.698,
+          "resultTimeSeconds": 0.698,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 5721.929,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        },
+        {
+          "code": "RUS",
+          "name": "George Russell",
+          "team": "Mercedes",
+          "finish": 3,
+          "stints": [
+            {
+              "compound": "M",
+              "startLap": 1,
+              "endLap": 19,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 19
+            },
+            {
+              "compound": "H",
+              "startLap": 20,
+              "endLap": 43,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 24
+            },
+            {
+              "compound": "H",
+              "startLap": 44,
+              "endLap": 70,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 27
+            }
+          ],
+          "raceLaps": 70,
+          "raceElapsedSeconds": 5743.147,
+          "gapToWinnerSeconds": 21.916,
+          "resultTimeSeconds": 21.916,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 5743.147,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        }
+      ],
+      "source": {
+        "timingUrl": "https://livetiming.formula1.com/static/2025/2025-08-03_Hungarian_Grand_Prix/2025-08-03_Race/",
+        "resultsUrl": "https://www.formula1.com/en/results/2025/races",
+        "libraryVersion": "3.8.3",
+        "raceElapsedMeaning": "Official winner race duration plus podium driver's finish gap, as provided by FastF1 SessionResults.Time"
+      },
+      "weather": {
+        "meanTrackTemperatureC": 31.43,
+        "meanAirTemperatureC": 22.04,
+        "meanHumidityPercent": 56.99,
+        "rainfallLapNumbers": [],
+        "wetTyreLaps": 0,
+        "allDriverLaps": 1368,
+        "wetTyreLapFraction": 0.0,
+        "perLap": [
+          {
+            "lap": 1,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.9,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 2,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 32.3,
+            "humidityPercent": 57.0
+          },
+          {
+            "lap": 3,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.7,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 4,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.6,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 5,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.4,
+            "humidityPercent": 59.0
+          },
+          {
+            "lap": 6,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.4,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 7,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.4,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 8,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.7,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 9,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.72,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 10,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.43,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 11,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.2,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 12,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.17,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 13,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.8,
+            "humidityPercent": 59.0
+          },
+          {
+            "lap": 14,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.82,
+            "humidityPercent": 59.0
+          },
+          {
+            "lap": 15,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.28,
+            "humidityPercent": 58.2
+          },
+          {
+            "lap": 16,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.19,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 17,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.1,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 18,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.46,
+            "humidityPercent": 57.1
+          },
+          {
+            "lap": 19,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.52,
+            "humidityPercent": 57.25
+          },
+          {
+            "lap": 20,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.52,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 21,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.71,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 22,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.62,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 23,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.5,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 24,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.8,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 25,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.87,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 26,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.71,
+            "humidityPercent": 57.05
+          },
+          {
+            "lap": 27,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.85,
+            "humidityPercent": 57.0
+          },
+          {
+            "lap": 28,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.9,
+            "humidityPercent": 57.8
+          },
+          {
+            "lap": 29,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.8,
+            "humidityPercent": 57.95
+          },
+          {
+            "lap": 30,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.8,
+            "humidityPercent": 57.6
+          },
+          {
+            "lap": 31,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.8,
+            "humidityPercent": 57.15
+          },
+          {
+            "lap": 32,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.84,
+            "humidityPercent": 57.0
+          },
+          {
+            "lap": 33,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.65,
+            "humidityPercent": 56.25
+          },
+          {
+            "lap": 34,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.7,
+            "humidityPercent": 56.9
+          },
+          {
+            "lap": 35,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.92,
+            "humidityPercent": 57.0
+          },
+          {
+            "lap": 36,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 32.08,
+            "humidityPercent": 56.2
+          },
+          {
+            "lap": 37,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.84,
+            "humidityPercent": 57.0
+          },
+          {
+            "lap": 38,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.53,
+            "humidityPercent": 57.0
+          },
+          {
+            "lap": 39,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.51,
+            "humidityPercent": 57.1
+          },
+          {
+            "lap": 40,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.78,
+            "humidityPercent": 57.4
+          },
+          {
+            "lap": 41,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.88,
+            "humidityPercent": 56.2
+          },
+          {
+            "lap": 42,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.63,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 43,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.6,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 44,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.59,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 45,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.38,
+            "humidityPercent": 55.4
+          },
+          {
+            "lap": 46,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.22,
+            "humidityPercent": 55.0
+          },
+          {
+            "lap": 47,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.01,
+            "humidityPercent": 55.85
+          },
+          {
+            "lap": 48,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.1,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 49,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.12,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 50,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.27,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 51,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.08,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 52,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.97,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 53,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.79,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 54,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.96,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 55,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.89,
+            "humidityPercent": 55.53
+          },
+          {
+            "lap": 56,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.72,
+            "humidityPercent": 56.37
+          },
+          {
+            "lap": 57,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.7,
+            "humidityPercent": 56.79
+          },
+          {
+            "lap": 58,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.78,
+            "humidityPercent": 56.58
+          },
+          {
+            "lap": 59,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.69,
+            "humidityPercent": 56.37
+          },
+          {
+            "lap": 60,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.6,
+            "humidityPercent": 56.79
+          },
+          {
+            "lap": 61,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.78,
+            "humidityPercent": 56.63
+          },
+          {
+            "lap": 62,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.05,
+            "humidityPercent": 56.63
+          },
+          {
+            "lap": 63,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.96,
+            "humidityPercent": 57.0
+          },
+          {
+            "lap": 64,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.13,
+            "humidityPercent": 56.63
+          },
+          {
+            "lap": 65,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.65,
+            "humidityPercent": 56.11
+          },
+          {
+            "lap": 66,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.85,
+            "humidityPercent": 55.21
+          },
+          {
+            "lap": 67,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.66,
+            "humidityPercent": 55.0
+          },
+          {
+            "lap": 68,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.6,
+            "humidityPercent": 55.0
+          },
+          {
+            "lap": 69,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.76,
+            "humidityPercent": 55.79
+          },
+          {
+            "lap": 70,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.8,
+            "humidityPercent": 56.0
+          }
+        ]
+      },
+      "raceControl": {
+        "trackStatusLapCounts": {
+          "1": 1368
+        },
+        "scSignalStarts": 0,
+        "redFlagSignalStarts": 0,
+        "vscSignalStarts": 0,
+        "vscEndingSignals": 0,
+        "sessionStatusChanges": [
+          {
+            "timeSeconds": 7.359,
+            "status": "Inactive"
+          },
+          {
+            "timeSeconds": 3467.946,
+            "status": "Started"
+          },
+          {
+            "timeSeconds": 9189.385,
+            "status": "Finished"
+          },
+          {
+            "timeSeconds": 9412.94,
+            "status": "Finalised"
+          },
+          {
+            "timeSeconds": 9412.94,
+            "status": "Ends"
+          }
+        ],
+        "note": "Counts are observed timing status transitions, not a model of their duration or race-time effect."
+      }
+    },
+    {
+      "id": "italy-2025",
+      "trackId": "monza",
+      "eventName": "Italian Grand Prix",
+      "label": "2025 이탈리아 GP",
+      "season": 2025,
+      "raceLaps": 53,
+      "drivers": [
+        {
+          "code": "VER",
+          "name": "Max Verstappen",
+          "team": "Red Bull Racing",
+          "finish": 1,
+          "stints": [
+            {
+              "compound": "M",
+              "startLap": 1,
+              "endLap": 37,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 37
+            },
+            {
+              "compound": "H",
+              "startLap": 38,
+              "endLap": 53,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 16
+            }
+          ],
+          "raceLaps": 53,
+          "raceElapsedSeconds": 4404.325,
+          "gapToWinnerSeconds": 0.0,
+          "resultTimeSeconds": 4404.325,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 4404.325,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        },
+        {
+          "code": "NOR",
+          "name": "Lando Norris",
+          "team": "McLaren",
+          "finish": 2,
+          "stints": [
+            {
+              "compound": "M",
+              "startLap": 1,
+              "endLap": 46,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 46
+            },
+            {
+              "compound": "S",
+              "startLap": 47,
+              "endLap": 53,
+              "observedTyreLifeStart": 3,
+              "observedTyreLifeEnd": 9
+            }
+          ],
+          "raceLaps": 53,
+          "raceElapsedSeconds": 4423.532,
+          "gapToWinnerSeconds": 19.207,
+          "resultTimeSeconds": 19.207,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 4423.532,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        },
+        {
+          "code": "PIA",
+          "name": "Oscar Piastri",
+          "team": "McLaren",
+          "finish": 3,
+          "stints": [
+            {
+              "compound": "M",
+              "startLap": 1,
+              "endLap": 45,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 45
+            },
+            {
+              "compound": "S",
+              "startLap": 46,
+              "endLap": 53,
+              "observedTyreLifeStart": 4,
+              "observedTyreLifeEnd": 11
+            }
+          ],
+          "raceLaps": 53,
+          "raceElapsedSeconds": 4425.676,
+          "gapToWinnerSeconds": 21.351,
+          "resultTimeSeconds": 21.351,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 4425.676,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        }
+      ],
+      "source": {
+        "timingUrl": "https://livetiming.formula1.com/static/2025/2025-09-07_Italian_Grand_Prix/2025-09-07_Race/",
+        "resultsUrl": "https://www.formula1.com/en/results/2025/races",
+        "libraryVersion": "3.8.3",
+        "raceElapsedMeaning": "Official winner race duration plus podium driver's finish gap, as provided by FastF1 SessionResults.Time"
+      },
+      "weather": {
+        "meanTrackTemperatureC": 42.68,
+        "meanAirTemperatureC": 27.03,
+        "meanHumidityPercent": 41.76,
+        "rainfallLapNumbers": [],
+        "wetTyreLaps": 0,
+        "allDriverLaps": 974,
+        "wetTyreLapFraction": 0.0,
+        "perLap": [
+          {
+            "lap": 1,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 43.7,
+            "humidityPercent": 42.0
+          },
+          {
+            "lap": 2,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.36,
+            "humidityPercent": 42.21
+          },
+          {
+            "lap": 3,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.5,
+            "humidityPercent": 42.0
+          },
+          {
+            "lap": 4,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.5,
+            "humidityPercent": 43.0
+          },
+          {
+            "lap": 5,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.1,
+            "humidityPercent": 41.0
+          },
+          {
+            "lap": 6,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.2,
+            "humidityPercent": 43.0
+          },
+          {
+            "lap": 7,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.2,
+            "humidityPercent": 43.0
+          },
+          {
+            "lap": 8,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.4,
+            "humidityPercent": 41.0
+          },
+          {
+            "lap": 9,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.37,
+            "humidityPercent": 42.53
+          },
+          {
+            "lap": 10,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.3,
+            "humidityPercent": 42.0
+          },
+          {
+            "lap": 11,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.28,
+            "humidityPercent": 43.0
+          },
+          {
+            "lap": 12,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.17,
+            "humidityPercent": 41.21
+          },
+          {
+            "lap": 13,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.69,
+            "humidityPercent": 41.0
+          },
+          {
+            "lap": 14,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.23,
+            "humidityPercent": 41.0
+          },
+          {
+            "lap": 15,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.0,
+            "humidityPercent": 42.0
+          },
+          {
+            "lap": 16,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.19,
+            "humidityPercent": 41.0
+          },
+          {
+            "lap": 17,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 43.83,
+            "humidityPercent": 42.68
+          },
+          {
+            "lap": 18,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 44.1,
+            "humidityPercent": 42.05
+          },
+          {
+            "lap": 19,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 43.98,
+            "humidityPercent": 42.42
+          },
+          {
+            "lap": 20,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 43.43,
+            "humidityPercent": 42.0
+          },
+          {
+            "lap": 21,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 43.4,
+            "humidityPercent": 41.0
+          },
+          {
+            "lap": 22,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 43.32,
+            "humidityPercent": 41.0
+          },
+          {
+            "lap": 23,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 43.09,
+            "humidityPercent": 43.21
+          },
+          {
+            "lap": 24,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 42.29,
+            "humidityPercent": 41.68
+          },
+          {
+            "lap": 25,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 42.29,
+            "humidityPercent": 42.89
+          },
+          {
+            "lap": 26,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 42.83,
+            "humidityPercent": 43.0
+          },
+          {
+            "lap": 27,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 43.13,
+            "humidityPercent": 43.0
+          },
+          {
+            "lap": 28,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 43.2,
+            "humidityPercent": 40.0
+          },
+          {
+            "lap": 29,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 43.06,
+            "humidityPercent": 40.72
+          },
+          {
+            "lap": 30,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 43.0,
+            "humidityPercent": 40.17
+          },
+          {
+            "lap": 31,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 42.7,
+            "humidityPercent": 40.39
+          },
+          {
+            "lap": 32,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 42.7,
+            "humidityPercent": 41.0
+          },
+          {
+            "lap": 33,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 42.51,
+            "humidityPercent": 40.83
+          },
+          {
+            "lap": 34,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 41.8,
+            "humidityPercent": 40.0
+          },
+          {
+            "lap": 35,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 41.28,
+            "humidityPercent": 40.06
+          },
+          {
+            "lap": 36,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 41.2,
+            "humidityPercent": 41.5
+          },
+          {
+            "lap": 37,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 41.2,
+            "humidityPercent": 42.0
+          },
+          {
+            "lap": 38,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 41.23,
+            "humidityPercent": 42.17
+          },
+          {
+            "lap": 39,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 41.4,
+            "humidityPercent": 42.39
+          },
+          {
+            "lap": 40,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 41.32,
+            "humidityPercent": 42.0
+          },
+          {
+            "lap": 41,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 41.17,
+            "humidityPercent": 41.56
+          },
+          {
+            "lap": 42,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 40.84,
+            "humidityPercent": 42.56
+          },
+          {
+            "lap": 43,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 40.44,
+            "humidityPercent": 41.06
+          },
+          {
+            "lap": 44,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 40.46,
+            "humidityPercent": 40.56
+          },
+          {
+            "lap": 45,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 40.58,
+            "humidityPercent": 41.0
+          },
+          {
+            "lap": 46,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 40.77,
+            "humidityPercent": 40.72
+          },
+          {
+            "lap": 47,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 41.1,
+            "humidityPercent": 41.28
+          },
+          {
+            "lap": 48,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 40.82,
+            "humidityPercent": 42.0
+          },
+          {
+            "lap": 49,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 40.84,
+            "humidityPercent": 43.44
+          },
+          {
+            "lap": 50,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 40.82,
+            "humidityPercent": 43.22
+          },
+          {
+            "lap": 51,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 40.71,
+            "humidityPercent": 42.33
+          },
+          {
+            "lap": 52,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 40.43,
+            "humidityPercent": 42.33
+          },
+          {
+            "lap": 53,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 40.23,
+            "humidityPercent": 42.0
+          }
+        ]
+      },
+      "raceControl": {
+        "trackStatusLapCounts": {
+          "1": 955,
+          "12": 18,
+          "21": 1
+        },
+        "scSignalStarts": 0,
+        "redFlagSignalStarts": 0,
+        "vscSignalStarts": 0,
+        "vscEndingSignals": 0,
+        "sessionStatusChanges": [
+          {
+            "timeSeconds": 7.141,
+            "status": "Inactive"
+          },
+          {
+            "timeSeconds": 3469.893,
+            "status": "Started"
+          },
+          {
+            "timeSeconds": 7874.389,
+            "status": "Finished"
+          },
+          {
+            "timeSeconds": 8652.942,
+            "status": "Finalised"
+          },
+          {
+            "timeSeconds": 8652.942,
+            "status": "Ends"
+          }
+        ],
+        "note": "Counts are observed timing status transitions, not a model of their duration or race-time effect."
+      }
+    },
+    {
+      "id": "bahrain-2025",
+      "trackId": "bahrain",
+      "eventName": "Bahrain Grand Prix",
+      "label": "2025 바레인 GP",
+      "season": 2025,
+      "raceLaps": 57,
+      "drivers": [
+        {
+          "code": "PIA",
+          "name": "Oscar Piastri",
+          "team": "McLaren",
+          "finish": 1,
+          "stints": [
+            {
+              "compound": "S",
+              "startLap": 1,
+              "endLap": 14,
+              "observedTyreLifeStart": 4,
+              "observedTyreLifeEnd": 17
+            },
+            {
+              "compound": "M",
+              "startLap": 15,
+              "endLap": 32,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 18
+            },
+            {
+              "compound": "M",
+              "startLap": 33,
+              "endLap": 57,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 25
+            }
+          ],
+          "raceLaps": 57,
+          "raceElapsedSeconds": 5739.435,
+          "gapToWinnerSeconds": 0.0,
+          "resultTimeSeconds": 5739.435,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 5573.365,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        },
+        {
+          "code": "RUS",
+          "name": "George Russell",
+          "team": "Mercedes",
+          "finish": 2,
+          "stints": [
+            {
+              "compound": "S",
+              "startLap": 1,
+              "endLap": 13,
+              "observedTyreLifeStart": 4,
+              "observedTyreLifeEnd": 16
+            },
+            {
+              "compound": "M",
+              "startLap": 14,
+              "endLap": 32,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 19
+            },
+            {
+              "compound": "S",
+              "startLap": 33,
+              "endLap": 57,
+              "observedTyreLifeStart": 4,
+              "observedTyreLifeEnd": 28
+            }
+          ],
+          "raceLaps": 57,
+          "raceElapsedSeconds": 5754.934,
+          "gapToWinnerSeconds": 15.499,
+          "resultTimeSeconds": 15.499,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 5597.13,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        },
+        {
+          "code": "NOR",
+          "name": "Lando Norris",
+          "team": "McLaren",
+          "finish": 3,
+          "stints": [
+            {
+              "compound": "S",
+              "startLap": 1,
+              "endLap": 10,
+              "observedTyreLifeStart": 4,
+              "observedTyreLifeEnd": 13
+            },
+            {
+              "compound": "M",
+              "startLap": 11,
+              "endLap": 32,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 22
+            },
+            {
+              "compound": "M",
+              "startLap": 33,
+              "endLap": 57,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 25
+            }
+          ],
+          "raceLaps": 57,
+          "raceElapsedSeconds": 5755.708,
+          "gapToWinnerSeconds": 16.273,
+          "resultTimeSeconds": 16.273,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 5599.104,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        }
+      ],
+      "source": {
+        "timingUrl": "https://livetiming.formula1.com/static/2025/2025-04-13_Bahrain_Grand_Prix/2025-04-13_Race/",
+        "resultsUrl": "https://www.formula1.com/en/results/2025/races",
+        "libraryVersion": "3.8.3",
+        "raceElapsedMeaning": "Official winner race duration plus podium driver's finish gap, as provided by FastF1 SessionResults.Time"
+      },
+      "weather": {
+        "meanTrackTemperatureC": 31.07,
+        "meanAirTemperatureC": 26.84,
+        "meanHumidityPercent": 45.8,
+        "rainfallLapNumbers": [],
+        "wetTyreLaps": 0,
+        "allDriverLaps": 1128,
+        "wetTyreLapFraction": 0.0,
+        "perLap": [
+          {
+            "lap": 1,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.9,
+            "humidityPercent": 44.0
+          },
+          {
+            "lap": 2,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.9,
+            "humidityPercent": 44.9
+          },
+          {
+            "lap": 3,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.8,
+            "humidityPercent": 45.0
+          },
+          {
+            "lap": 4,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.9,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 5,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.72,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 6,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.9,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 7,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 32.0,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 8,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 32.0,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 9,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.99,
+            "humidityPercent": 45.0
+          },
+          {
+            "lap": 10,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.8,
+            "humidityPercent": 45.0
+          },
+          {
+            "lap": 11,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.59,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 12,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.54,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 13,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.9,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 14,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.74,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 15,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.7,
+            "humidityPercent": 47.0
+          },
+          {
+            "lap": 16,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.4,
+            "humidityPercent": 47.0
+          },
+          {
+            "lap": 17,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.12,
+            "humidityPercent": 48.0
+          },
+          {
+            "lap": 18,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.2,
+            "humidityPercent": 48.0
+          },
+          {
+            "lap": 19,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.1,
+            "humidityPercent": 48.0
+          },
+          {
+            "lap": 20,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.1,
+            "humidityPercent": 47.2
+          },
+          {
+            "lap": 21,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.02,
+            "humidityPercent": 47.75
+          },
+          {
+            "lap": 22,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.2,
+            "humidityPercent": 47.0
+          },
+          {
+            "lap": 23,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.2,
+            "humidityPercent": 47.0
+          },
+          {
+            "lap": 24,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.1,
+            "humidityPercent": 46.85
+          },
+          {
+            "lap": 25,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.1,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 26,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.1,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 27,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.81,
+            "humidityPercent": 47.0
+          },
+          {
+            "lap": 28,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.99,
+            "humidityPercent": 47.0
+          },
+          {
+            "lap": 29,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.03,
+            "humidityPercent": 46.7
+          },
+          {
+            "lap": 30,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.23,
+            "humidityPercent": 46.75
+          },
+          {
+            "lap": 31,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 31.38,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 32,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.92,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 33,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.82,
+            "humidityPercent": 45.75
+          },
+          {
+            "lap": 34,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.81,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 35,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.6,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 36,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.8,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 37,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.9,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 38,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.78,
+            "humidityPercent": 45.8
+          },
+          {
+            "lap": 39,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.7,
+            "humidityPercent": 45.0
+          },
+          {
+            "lap": 40,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.5,
+            "humidityPercent": 45.0
+          },
+          {
+            "lap": 41,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.6,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 42,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.6,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 43,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.6,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 44,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.63,
+            "humidityPercent": 45.75
+          },
+          {
+            "lap": 45,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.5,
+            "humidityPercent": 46.0
+          },
+          {
+            "lap": 46,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.6,
+            "humidityPercent": 45.0
+          },
+          {
+            "lap": 47,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.5,
+            "humidityPercent": 45.0
+          },
+          {
+            "lap": 48,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.69,
+            "humidityPercent": 45.0
+          },
+          {
+            "lap": 49,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.54,
+            "humidityPercent": 45.0
+          },
+          {
+            "lap": 50,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.5,
+            "humidityPercent": 45.0
+          },
+          {
+            "lap": 51,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.4,
+            "humidityPercent": 44.21
+          },
+          {
+            "lap": 52,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.35,
+            "humidityPercent": 44.0
+          },
+          {
+            "lap": 53,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.2,
+            "humidityPercent": 44.0
+          },
+          {
+            "lap": 54,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.47,
+            "humidityPercent": 44.0
+          },
+          {
+            "lap": 55,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.3,
+            "humidityPercent": 43.84
+          },
+          {
+            "lap": 56,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.3,
+            "humidityPercent": 43.0
+          },
+          {
+            "lap": 57,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 30.4,
+            "humidityPercent": 43.0
+          }
+        ]
+      },
+      "raceControl": {
+        "trackStatusLapCounts": {
+          "1": 1048,
+          "4": 40,
+          "14": 20,
+          "41": 20
+        },
+        "scSignalStarts": 1,
+        "redFlagSignalStarts": 0,
+        "vscSignalStarts": 0,
+        "vscEndingSignals": 0,
+        "sessionStatusChanges": [
+          {
+            "timeSeconds": 6.398,
+            "status": "Inactive"
+          },
+          {
+            "timeSeconds": 3334.907,
+            "status": "Started"
+          },
+          {
+            "timeSeconds": 9074.574,
+            "status": "Finished"
+          },
+          {
+            "timeSeconds": 9479.928,
+            "status": "Finalised"
+          },
+          {
+            "timeSeconds": 9913.997,
+            "status": "Ends"
+          }
+        ],
+        "note": "Counts are observed timing status transitions, not a model of their duration or race-time effect."
+      }
+    },
+    {
+      "id": "spain-2025",
+      "trackId": "barcelona",
+      "eventName": "Spanish Grand Prix",
+      "label": "2025 스페인 GP",
+      "season": 2025,
+      "raceLaps": 66,
+      "drivers": [
+        {
+          "code": "PIA",
+          "name": "Oscar Piastri",
+          "team": "McLaren",
+          "finish": 1,
+          "stints": [
+            {
+              "compound": "S",
+              "startLap": 1,
+              "endLap": 22,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 22
+            },
+            {
+              "compound": "M",
+              "startLap": 23,
+              "endLap": 49,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 27
+            },
+            {
+              "compound": "S",
+              "startLap": 50,
+              "endLap": 55,
+              "observedTyreLifeStart": 4,
+              "observedTyreLifeEnd": 9
+            },
+            {
+              "compound": "S",
+              "startLap": 56,
+              "endLap": 66,
+              "observedTyreLifeStart": 4,
+              "observedTyreLifeEnd": 14
+            }
+          ],
+          "raceLaps": 66,
+          "raceElapsedSeconds": 5577.375,
+          "gapToWinnerSeconds": 0.0,
+          "resultTimeSeconds": 5577.375,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 5577.375,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        },
+        {
+          "code": "NOR",
+          "name": "Lando Norris",
+          "team": "McLaren",
+          "finish": 2,
+          "stints": [
+            {
+              "compound": "S",
+              "startLap": 1,
+              "endLap": 21,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 21
+            },
+            {
+              "compound": "M",
+              "startLap": 22,
+              "endLap": 48,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 27
+            },
+            {
+              "compound": "S",
+              "startLap": 49,
+              "endLap": 55,
+              "observedTyreLifeStart": 4,
+              "observedTyreLifeEnd": 10
+            },
+            {
+              "compound": "S",
+              "startLap": 56,
+              "endLap": 66,
+              "observedTyreLifeStart": 4,
+              "observedTyreLifeEnd": 14
+            }
+          ],
+          "raceLaps": 66,
+          "raceElapsedSeconds": 5579.846,
+          "gapToWinnerSeconds": 2.471,
+          "resultTimeSeconds": 2.471,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 5579.846,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        },
+        {
+          "code": "LEC",
+          "name": "Charles Leclerc",
+          "team": "Ferrari",
+          "finish": 3,
+          "stints": [
+            {
+              "compound": "S",
+              "startLap": 1,
+              "endLap": 17,
+              "observedTyreLifeStart": 2,
+              "observedTyreLifeEnd": 18
+            },
+            {
+              "compound": "M",
+              "startLap": 18,
+              "endLap": 40,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 23
+            },
+            {
+              "compound": "M",
+              "startLap": 41,
+              "endLap": 55,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 15
+            },
+            {
+              "compound": "S",
+              "startLap": 56,
+              "endLap": 66,
+              "observedTyreLifeStart": 4,
+              "observedTyreLifeEnd": 14
+            }
+          ],
+          "raceLaps": 66,
+          "raceElapsedSeconds": 5587.83,
+          "gapToWinnerSeconds": 10.455,
+          "resultTimeSeconds": 10.455,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 5587.83,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        }
+      ],
+      "source": {
+        "timingUrl": "https://livetiming.formula1.com/static/2025/2025-06-01_Spanish_Grand_Prix/2025-06-01_Race/",
+        "resultsUrl": "https://www.formula1.com/en/results/2025/races",
+        "libraryVersion": "3.8.3",
+        "raceElapsedMeaning": "Official winner race duration plus podium driver's finish gap, as provided by FastF1 SessionResults.Time"
+      },
+      "weather": {
+        "meanTrackTemperatureC": 48.13,
+        "meanAirTemperatureC": 28.88,
+        "meanHumidityPercent": 57.52,
+        "rainfallLapNumbers": [],
+        "wetTyreLaps": 0,
+        "allDriverLaps": 1203,
+        "wetTyreLapFraction": 0.0,
+        "perLap": [
+          {
+            "lap": 1,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.5,
+            "humidityPercent": 51.0
+          },
+          {
+            "lap": 2,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.4,
+            "humidityPercent": 51.0
+          },
+          {
+            "lap": 3,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.0,
+            "humidityPercent": 52.0
+          },
+          {
+            "lap": 4,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.4,
+            "humidityPercent": 53.89
+          },
+          {
+            "lap": 5,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.9,
+            "humidityPercent": 53.0
+          },
+          {
+            "lap": 6,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.86,
+            "humidityPercent": 52.05
+          },
+          {
+            "lap": 7,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.05,
+            "humidityPercent": 53.95
+          },
+          {
+            "lap": 8,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.4,
+            "humidityPercent": 54.0
+          },
+          {
+            "lap": 9,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.26,
+            "humidityPercent": 54.95
+          },
+          {
+            "lap": 10,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.1,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 11,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.1,
+            "humidityPercent": 55.0
+          },
+          {
+            "lap": 12,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.44,
+            "humidityPercent": 55.0
+          },
+          {
+            "lap": 13,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.57,
+            "humidityPercent": 55.0
+          },
+          {
+            "lap": 14,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.0,
+            "humidityPercent": 55.47
+          },
+          {
+            "lap": 15,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.08,
+            "humidityPercent": 55.16
+          },
+          {
+            "lap": 16,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.12,
+            "humidityPercent": 55.16
+          },
+          {
+            "lap": 17,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.32,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 18,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.77,
+            "humidityPercent": 55.11
+          },
+          {
+            "lap": 19,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.02,
+            "humidityPercent": 55.32
+          },
+          {
+            "lap": 20,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.05,
+            "humidityPercent": 56.74
+          },
+          {
+            "lap": 21,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.04,
+            "humidityPercent": 57.0
+          },
+          {
+            "lap": 22,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.46,
+            "humidityPercent": 56.37
+          },
+          {
+            "lap": 23,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.86,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 24,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.08,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 25,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 49.01,
+            "humidityPercent": 56.0
+          },
+          {
+            "lap": 26,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.74,
+            "humidityPercent": 55.21
+          },
+          {
+            "lap": 27,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.59,
+            "humidityPercent": 57.0
+          },
+          {
+            "lap": 28,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.43,
+            "humidityPercent": 57.0
+          },
+          {
+            "lap": 29,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.94,
+            "humidityPercent": 57.11
+          },
+          {
+            "lap": 30,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.9,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 31,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.9,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 32,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.78,
+            "humidityPercent": 58.94
+          },
+          {
+            "lap": 33,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.33,
+            "humidityPercent": 59.0
+          },
+          {
+            "lap": 34,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.27,
+            "humidityPercent": 58.33
+          },
+          {
+            "lap": 35,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.23,
+            "humidityPercent": 58.56
+          },
+          {
+            "lap": 36,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.14,
+            "humidityPercent": 58.61
+          },
+          {
+            "lap": 37,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.21,
+            "humidityPercent": 59.0
+          },
+          {
+            "lap": 38,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.01,
+            "humidityPercent": 59.5
+          },
+          {
+            "lap": 39,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 46.86,
+            "humidityPercent": 60.0
+          },
+          {
+            "lap": 40,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.04,
+            "humidityPercent": 60.0
+          },
+          {
+            "lap": 41,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.19,
+            "humidityPercent": 60.0
+          },
+          {
+            "lap": 42,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 46.94,
+            "humidityPercent": 60.06
+          },
+          {
+            "lap": 43,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 46.87,
+            "humidityPercent": 60.83
+          },
+          {
+            "lap": 44,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 46.84,
+            "humidityPercent": 61.0
+          },
+          {
+            "lap": 45,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.24,
+            "humidityPercent": 61.11
+          },
+          {
+            "lap": 46,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.48,
+            "humidityPercent": 61.33
+          },
+          {
+            "lap": 47,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.79,
+            "humidityPercent": 61.06
+          },
+          {
+            "lap": 48,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.21,
+            "humidityPercent": 61.0
+          },
+          {
+            "lap": 49,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.19,
+            "humidityPercent": 60.44
+          },
+          {
+            "lap": 50,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.33,
+            "humidityPercent": 59.5
+          },
+          {
+            "lap": 51,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.22,
+            "humidityPercent": 59.72
+          },
+          {
+            "lap": 52,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.67,
+            "humidityPercent": 59.44
+          },
+          {
+            "lap": 53,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.21,
+            "humidityPercent": 59.67
+          },
+          {
+            "lap": 54,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.51,
+            "humidityPercent": 60.0
+          },
+          {
+            "lap": 55,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.83,
+            "humidityPercent": 60.0
+          },
+          {
+            "lap": 56,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.71,
+            "humidityPercent": 59.94
+          },
+          {
+            "lap": 57,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.52,
+            "humidityPercent": 59.71
+          },
+          {
+            "lap": 58,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.77,
+            "humidityPercent": 59.82
+          },
+          {
+            "lap": 59,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.32,
+            "humidityPercent": 59.47
+          },
+          {
+            "lap": 60,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 48.9,
+            "humidityPercent": 58.0
+          },
+          {
+            "lap": 61,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.5,
+            "humidityPercent": 59.0
+          },
+          {
+            "lap": 62,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 46.5,
+            "humidityPercent": 59.0
+          },
+          {
+            "lap": 63,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 46.74,
+            "humidityPercent": 60.0
+          },
+          {
+            "lap": 64,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 46.9,
+            "humidityPercent": 60.0
+          },
+          {
+            "lap": 65,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.4,
+            "humidityPercent": 60.0
+          },
+          {
+            "lap": 66,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 47.08,
+            "humidityPercent": 60.41
+          }
+        ]
+      },
+      "raceControl": {
+        "trackStatusLapCounts": {
+          "1": 1088,
+          "4": 79,
+          "124": 17,
+          "41": 17,
+          "12": 1,
+          "24": 1
+        },
+        "scSignalStarts": 1,
+        "redFlagSignalStarts": 0,
+        "vscSignalStarts": 0,
+        "vscEndingSignals": 0,
+        "sessionStatusChanges": [
+          {
+            "timeSeconds": 12.231,
+            "status": "Inactive"
+          },
+          {
+            "timeSeconds": 3553.393,
+            "status": "Started"
+          },
+          {
+            "timeSeconds": 9131.013,
+            "status": "Finished"
+          },
+          {
+            "timeSeconds": 9265.73,
+            "status": "Finalised"
+          },
+          {
+            "timeSeconds": 9494.399,
+            "status": "Ends"
+          }
+        ],
+        "note": "Counts are observed timing status transitions, not a model of their duration or race-time effect."
+      }
+    },
+    {
+      "id": "belgium-2025",
+      "trackId": "spa",
+      "eventName": "Belgian Grand Prix",
+      "label": "2025 벨기에 GP",
+      "season": 2025,
+      "raceLaps": 44,
+      "drivers": [
+        {
+          "code": "PIA",
+          "name": "Oscar Piastri",
+          "team": "McLaren",
+          "finish": 1,
+          "stints": [
+            {
+              "compound": "INTER",
+              "startLap": 1,
+              "endLap": 12,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 12
+            },
+            {
+              "compound": "M",
+              "startLap": 13,
+              "endLap": 44,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 32
+            }
+          ],
+          "raceLaps": 44,
+          "raceElapsedSeconds": 5122.601,
+          "gapToWinnerSeconds": 0.0,
+          "resultTimeSeconds": 5122.601,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 4594.564,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        },
+        {
+          "code": "NOR",
+          "name": "Lando Norris",
+          "team": "McLaren",
+          "finish": 2,
+          "stints": [
+            {
+              "compound": "INTER",
+              "startLap": 1,
+              "endLap": 13,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 13
+            },
+            {
+              "compound": "H",
+              "startLap": 14,
+              "endLap": 44,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 31
+            }
+          ],
+          "raceLaps": 44,
+          "raceElapsedSeconds": 5126.016,
+          "gapToWinnerSeconds": 3.415,
+          "resultTimeSeconds": 3.415,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 4597.39,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        },
+        {
+          "code": "LEC",
+          "name": "Charles Leclerc",
+          "team": "Ferrari",
+          "finish": 3,
+          "stints": [
+            {
+              "compound": "INTER",
+              "startLap": 1,
+              "endLap": 12,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 12
+            },
+            {
+              "compound": "M",
+              "startLap": 13,
+              "endLap": 44,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 32
+            }
+          ],
+          "raceLaps": 44,
+          "raceElapsedSeconds": 5142.786,
+          "gapToWinnerSeconds": 20.185,
+          "resultTimeSeconds": 20.185,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 4617.028,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        }
+      ],
+      "source": {
+        "timingUrl": "https://livetiming.formula1.com/static/2025/2025-07-27_Belgian_Grand_Prix/2025-07-27_Race/",
+        "resultsUrl": "https://www.formula1.com/en/results/2025/races",
+        "libraryVersion": "3.8.3",
+        "raceElapsedMeaning": "Official winner race duration plus podium driver's finish gap, as provided by FastF1 SessionResults.Time"
+      },
+      "weather": {
+        "meanTrackTemperatureC": 24.7,
+        "meanAirTemperatureC": 17.5,
+        "meanHumidityPercent": 80.74,
+        "rainfallLapNumbers": [],
+        "wetTyreLaps": 240,
+        "allDriverLaps": 879,
+        "wetTyreLapFraction": 0.27304,
+        "perLap": [
+          {
+            "lap": 1,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 26.1,
+            "humidityPercent": 84.0
+          },
+          {
+            "lap": 2,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.82,
+            "humidityPercent": 83.9
+          },
+          {
+            "lap": 3,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.98,
+            "humidityPercent": 84.0
+          },
+          {
+            "lap": 4,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.45,
+            "humidityPercent": 84.0
+          },
+          {
+            "lap": 5,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.9,
+            "humidityPercent": 85.0
+          },
+          {
+            "lap": 6,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 25.63,
+            "humidityPercent": 82.0
+          },
+          {
+            "lap": 7,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 25.84,
+            "humidityPercent": 83.0
+          },
+          {
+            "lap": 8,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 25.5,
+            "humidityPercent": 80.5
+          },
+          {
+            "lap": 9,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 25.76,
+            "humidityPercent": 82.3
+          },
+          {
+            "lap": 10,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 25.9,
+            "humidityPercent": 82.0
+          },
+          {
+            "lap": 11,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 25.9,
+            "humidityPercent": 82.0
+          },
+          {
+            "lap": 12,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 25.31,
+            "humidityPercent": 80.1
+          },
+          {
+            "lap": 13,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 25.1,
+            "humidityPercent": 79.2
+          },
+          {
+            "lap": 14,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 25.99,
+            "humidityPercent": 82.9
+          },
+          {
+            "lap": 15,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 25.81,
+            "humidityPercent": 80.1
+          },
+          {
+            "lap": 16,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 26.07,
+            "humidityPercent": 79.9
+          },
+          {
+            "lap": 17,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 26.17,
+            "humidityPercent": 79.35
+          },
+          {
+            "lap": 18,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 26.14,
+            "humidityPercent": 81.0
+          },
+          {
+            "lap": 19,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 26.2,
+            "humidityPercent": 79.0
+          },
+          {
+            "lap": 20,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 26.3,
+            "humidityPercent": 79.0
+          },
+          {
+            "lap": 21,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 26.32,
+            "humidityPercent": 78.85
+          },
+          {
+            "lap": 22,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 25.8,
+            "humidityPercent": 80.3
+          },
+          {
+            "lap": 23,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 25.9,
+            "humidityPercent": 79.5
+          },
+          {
+            "lap": 24,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.97,
+            "humidityPercent": 78.0
+          },
+          {
+            "lap": 25,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.52,
+            "humidityPercent": 78.05
+          },
+          {
+            "lap": 26,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.35,
+            "humidityPercent": 79.0
+          },
+          {
+            "lap": 27,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.2,
+            "humidityPercent": 80.0
+          },
+          {
+            "lap": 28,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.1,
+            "humidityPercent": 80.5
+          },
+          {
+            "lap": 29,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.29,
+            "humidityPercent": 81.0
+          },
+          {
+            "lap": 30,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.79,
+            "humidityPercent": 80.0
+          },
+          {
+            "lap": 31,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.7,
+            "humidityPercent": 78.4
+          },
+          {
+            "lap": 32,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.0,
+            "humidityPercent": 79.0
+          },
+          {
+            "lap": 33,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.8,
+            "humidityPercent": 78.55
+          },
+          {
+            "lap": 34,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.64,
+            "humidityPercent": 78.1
+          },
+          {
+            "lap": 35,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.52,
+            "humidityPercent": 79.6
+          },
+          {
+            "lap": 36,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.58,
+            "humidityPercent": 80.5
+          },
+          {
+            "lap": 37,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.1,
+            "humidityPercent": 79.1
+          },
+          {
+            "lap": 38,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.01,
+            "humidityPercent": 80.9
+          },
+          {
+            "lap": 39,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.02,
+            "humidityPercent": 80.45
+          },
+          {
+            "lap": 40,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.8,
+            "humidityPercent": 81.0
+          },
+          {
+            "lap": 41,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.4,
+            "humidityPercent": 81.65
+          },
+          {
+            "lap": 42,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.49,
+            "humidityPercent": 82.55
+          },
+          {
+            "lap": 43,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.32,
+            "humidityPercent": 82.1
+          },
+          {
+            "lap": 44,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.31,
+            "humidityPercent": 82.11
+          }
+        ]
+      },
+      "raceControl": {
+        "trackStatusLapCounts": {
+          "1": 799,
+          "4": 40,
+          "14": 20,
+          "41": 20
+        },
+        "scSignalStarts": 1,
+        "redFlagSignalStarts": 1,
+        "vscSignalStarts": 0,
+        "vscEndingSignals": 0,
+        "sessionStatusChanges": [
+          {
+            "timeSeconds": 2.547,
+            "status": "Inactive"
+          },
+          {
+            "timeSeconds": 8072.096,
+            "status": "Started"
+          },
+          {
+            "timeSeconds": 13194.858,
+            "status": "Finished"
+          },
+          {
+            "timeSeconds": 13406.302,
+            "status": "Finalised"
+          },
+          {
+            "timeSeconds": 13458.265,
+            "status": "Ends"
+          }
+        ],
+        "note": "Counts are observed timing status transitions, not a model of their duration or race-time effect."
+      }
+    },
+    {
+      "id": "britain-2025",
+      "trackId": "silverstone",
+      "eventName": "British Grand Prix",
+      "label": "2025 영국 GP",
+      "season": 2025,
+      "raceLaps": 52,
+      "drivers": [
+        {
+          "code": "NOR",
+          "name": "Lando Norris",
+          "team": "McLaren",
+          "finish": 1,
+          "stints": [
+            {
+              "compound": "INTER",
+              "startLap": 1,
+              "endLap": 11,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 11
+            },
+            {
+              "compound": "INTER",
+              "startLap": 12,
+              "endLap": 44,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 33
+            },
+            {
+              "compound": "M",
+              "startLap": 45,
+              "endLap": 52,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 8
+            }
+          ],
+          "raceLaps": 52,
+          "raceElapsedSeconds": 5835.735,
+          "gapToWinnerSeconds": 0.0,
+          "resultTimeSeconds": 5835.735,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 4855.264,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        },
+        {
+          "code": "PIA",
+          "name": "Oscar Piastri",
+          "team": "McLaren",
+          "finish": 2,
+          "stints": [
+            {
+              "compound": "INTER",
+              "startLap": 1,
+              "endLap": 11,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 11
+            },
+            {
+              "compound": "INTER",
+              "startLap": 12,
+              "endLap": 43,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 32
+            },
+            {
+              "compound": "M",
+              "startLap": 44,
+              "endLap": 52,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 9
+            }
+          ],
+          "raceLaps": 52,
+          "raceElapsedSeconds": 5842.547,
+          "gapToWinnerSeconds": 6.812,
+          "resultTimeSeconds": 6.812,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 4845.699,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        },
+        {
+          "code": "HUL",
+          "name": "Nico Hulkenberg",
+          "team": "Kick Sauber",
+          "finish": 3,
+          "stints": [
+            {
+              "compound": "INTER",
+              "startLap": 1,
+              "endLap": 9,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 9
+            },
+            {
+              "compound": "INTER",
+              "startLap": 10,
+              "endLap": 42,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 33
+            },
+            {
+              "compound": "M",
+              "startLap": 43,
+              "endLap": 52,
+              "observedTyreLifeStart": 1,
+              "observedTyreLifeEnd": 10
+            }
+          ],
+          "raceLaps": 52,
+          "raceElapsedSeconds": 5870.477,
+          "gapToWinnerSeconds": 34.742,
+          "resultTimeSeconds": 34.742,
+          "resultStatus": "Finished",
+          "lapTimeSumSeconds": 4902.186,
+          "elapsedMethod": "winner official race Time + classified driver's Time gap; not sum of lap times"
+        }
+      ],
+      "source": {
+        "timingUrl": "https://livetiming.formula1.com/static/2025/2025-07-06_British_Grand_Prix/2025-07-06_Race/",
+        "resultsUrl": "https://www.formula1.com/en/results/2025/races",
+        "libraryVersion": "3.8.3",
+        "raceElapsedMeaning": "Official winner race duration plus podium driver's finish gap, as provided by FastF1 SessionResults.Time"
+      },
+      "weather": {
+        "meanTrackTemperatureC": 23.3,
+        "meanAirTemperatureC": 18.12,
+        "meanHumidityPercent": 75.61,
+        "rainfallLapNumbers": [
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "wetTyreLaps": 608,
+        "allDriverLaps": 825,
+        "wetTyreLapFraction": 0.73697,
+        "perLap": [
+          {
+            "lap": 1,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.1,
+            "humidityPercent": 80.0
+          },
+          {
+            "lap": 2,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.5,
+            "humidityPercent": 81.11
+          },
+          {
+            "lap": 3,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.67,
+            "humidityPercent": 80.0
+          },
+          {
+            "lap": 4,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.8,
+            "humidityPercent": 75.0
+          },
+          {
+            "lap": 5,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.9,
+            "humidityPercent": 75.0
+          },
+          {
+            "lap": 6,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 25.14,
+            "humidityPercent": 76.12
+          },
+          {
+            "lap": 7,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.05,
+            "humidityPercent": 73.24
+          },
+          {
+            "lap": 8,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.2,
+            "humidityPercent": 75.0
+          },
+          {
+            "lap": 9,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.8,
+            "humidityPercent": 74.0
+          },
+          {
+            "lap": 10,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.25,
+            "humidityPercent": 72.47
+          },
+          {
+            "lap": 11,
+            "rainfallTrue": true,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.96,
+            "humidityPercent": 73.94
+          },
+          {
+            "lap": 12,
+            "rainfallTrue": true,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.5,
+            "humidityPercent": 72.0
+          },
+          {
+            "lap": 13,
+            "rainfallTrue": true,
+            "rainfallKnown": true,
+            "trackTemperatureC": 21.0,
+            "humidityPercent": 74.0
+          },
+          {
+            "lap": 14,
+            "rainfallTrue": true,
+            "rainfallKnown": true,
+            "trackTemperatureC": 20.12,
+            "humidityPercent": 77.94
+          },
+          {
+            "lap": 15,
+            "rainfallTrue": true,
+            "rainfallKnown": true,
+            "trackTemperatureC": 20.02,
+            "humidityPercent": 82.12
+          },
+          {
+            "lap": 16,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 20.5,
+            "humidityPercent": 85.0
+          },
+          {
+            "lap": 17,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 21.16,
+            "humidityPercent": 85.0
+          },
+          {
+            "lap": 18,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 21.7,
+            "humidityPercent": 84.0
+          },
+          {
+            "lap": 19,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.08,
+            "humidityPercent": 84.25
+          },
+          {
+            "lap": 20,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.3,
+            "humidityPercent": 83.0
+          },
+          {
+            "lap": 21,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.4,
+            "humidityPercent": 81.0
+          },
+          {
+            "lap": 22,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.1,
+            "humidityPercent": 82.0
+          },
+          {
+            "lap": 23,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.9,
+            "humidityPercent": 80.0
+          },
+          {
+            "lap": 24,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.9,
+            "humidityPercent": 82.0
+          },
+          {
+            "lap": 25,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.81,
+            "humidityPercent": 80.0
+          },
+          {
+            "lap": 26,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.65,
+            "humidityPercent": 80.73
+          },
+          {
+            "lap": 27,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.5,
+            "humidityPercent": 81.0
+          },
+          {
+            "lap": 28,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.6,
+            "humidityPercent": 81.07
+          },
+          {
+            "lap": 29,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.8,
+            "humidityPercent": 82.0
+          },
+          {
+            "lap": 30,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.4,
+            "humidityPercent": 80.8
+          },
+          {
+            "lap": 31,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.4,
+            "humidityPercent": 82.0
+          },
+          {
+            "lap": 32,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.26,
+            "humidityPercent": 80.0
+          },
+          {
+            "lap": 33,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.57,
+            "humidityPercent": 78.0
+          },
+          {
+            "lap": 34,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.47,
+            "humidityPercent": 75.6
+          },
+          {
+            "lap": 35,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.21,
+            "humidityPercent": 73.87
+          },
+          {
+            "lap": 36,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.21,
+            "humidityPercent": 73.13
+          },
+          {
+            "lap": 37,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.31,
+            "humidityPercent": 72.53
+          },
+          {
+            "lap": 38,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.71,
+            "humidityPercent": 72.13
+          },
+          {
+            "lap": 39,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.15,
+            "humidityPercent": 70.27
+          },
+          {
+            "lap": 40,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.63,
+            "humidityPercent": 70.0
+          },
+          {
+            "lap": 41,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.6,
+            "humidityPercent": 68.53
+          },
+          {
+            "lap": 42,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.45,
+            "humidityPercent": 68.8
+          },
+          {
+            "lap": 43,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 22.91,
+            "humidityPercent": 68.07
+          },
+          {
+            "lap": 44,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.53,
+            "humidityPercent": 68.07
+          },
+          {
+            "lap": 45,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.98,
+            "humidityPercent": 66.67
+          },
+          {
+            "lap": 46,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.83,
+            "humidityPercent": 66.07
+          },
+          {
+            "lap": 47,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.6,
+            "humidityPercent": 67.0
+          },
+          {
+            "lap": 48,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 23.61,
+            "humidityPercent": 67.0
+          },
+          {
+            "lap": 49,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.07,
+            "humidityPercent": 67.33
+          },
+          {
+            "lap": 50,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.4,
+            "humidityPercent": 65.33
+          },
+          {
+            "lap": 51,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.52,
+            "humidityPercent": 64.53
+          },
+          {
+            "lap": 52,
+            "rainfallTrue": false,
+            "rainfallKnown": true,
+            "trackTemperatureC": 24.6,
+            "humidityPercent": 64.14
+          }
+        ]
+      },
+      "raceControl": {
+        "trackStatusLapCounts": {
+          "1": 485,
+          "12": 83,
+          "4": 80,
+          "41": 33,
+          "124": 32,
+          "6": 30,
+          "126": 22,
+          "671": 22,
+          "26": 13,
+          "6712": 8,
+          "67": 5,
+          "21": 5,
+          "712": 5,
+          "14": 2
+        },
+        "scSignalStarts": 2,
+        "redFlagSignalStarts": 0,
+        "vscSignalStarts": 2,
+        "vscEndingSignals": 2,
+        "sessionStatusChanges": [
+          {
+            "timeSeconds": 8.247,
+            "status": "Inactive"
+          },
+          {
+            "timeSeconds": 3369.003,
+            "status": "Started"
+          },
+          {
+            "timeSeconds": 9204.958,
+            "status": "Finished"
+          },
+          {
+            "timeSeconds": 9313.442,
+            "status": "Finalised"
+          },
+          {
+            "timeSeconds": 9434.243,
+            "status": "Ends"
+          }
+        ],
+        "note": "Counts are observed timing status transitions, not a model of their duration or race-time effect."
+      }
+    }
+  ],
+  "limitations": [
+    "Observed used-tyre life is retained, but the existing strategy engine normalises every stint to a fresh set.",
+    "Observed in/out laps and race-control periods stay in official elapsed times. The clean-air model does not reproduce SC/VSC/red flags, restart gaps or driver pace.",
+    "Weather presets are project approximations of recorded rainfall/tyre use, not a reconstruction of measured track water.",
+    "No baseline lap time is back-solved from observed race duration."
+  ]
+}

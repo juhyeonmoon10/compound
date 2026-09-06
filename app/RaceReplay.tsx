@@ -61,7 +61,7 @@ import {
   type TrackPreset,
   type TrackPresetId,
 } from "./lib/strategy";
-import type { TyreCondition } from "./lib/tyre-state";
+import { formatTyreStateMetric, type TyreCondition } from "./lib/tyre-state";
 
 type CameraMode = "map" | RaceSceneCamera;
 type ReplayPhase =
@@ -135,6 +135,7 @@ const TYRE_CONDITION_LABELS: Readonly<Record<TyreCondition, string>> = {
   worn: "마모",
   graining: "그레이닝",
   overheated: "과열",
+  "wet-running": "과열 누적 없음",
   cliff: "성능 급락",
 };
 
@@ -144,6 +145,7 @@ const TYRE_CONDITION_LABELS_KO: Readonly<Record<TyreCondition, string>> = {
   worn: "마모 진행",
   graining: "그레이닝",
   overheated: "과열",
+  "wet-running": "과열 누적 없음",
   cliff: "성능 절벽",
 };
 
@@ -2139,7 +2141,7 @@ export default function RaceReplay({
                     className="race-replay__hud-tyre"
                     data-condition={currentTyreState.condition}
                     role="group"
-                    aria-label={`${COMPOUND_NAMES[playerFrame.compound]} 타이어, ${playerFrame.tyreAge + 1}랩째, ${Math.round(currentTyreState.temperatureC)}도, 그립 ${Math.round(currentTyreState.gripPercent)}퍼센트, 마모 ${Math.round(currentTyreState.wearPercent)}퍼센트, ${TYRE_CONDITION_LABELS_KO[currentTyreState.condition]}`}
+                    aria-label={`프로젝트 추정: ${COMPOUND_NAMES[playerFrame.compound]} 타이어, ${playerFrame.tyreAge + 1}랩째, 온도 ${formatTyreStateMetric(currentTyreState.temperatureC, "°C")}, 그립 ${formatTyreStateMetric(currentTyreState.gripPercent, "%")}, 마모 ${formatTyreStateMetric(currentTyreState.wearPercent, "%")}, ${TYRE_CONDITION_LABELS_KO[currentTyreState.condition]}${currentTyreState.modelKind === "wet-heat-only" ? `, 이전 건조 ${currentTyreState.wetDryLaps}랩에 따른 과열 비용 모델` : ""}`}
                   >
                     <i className={compoundClass(playerFrame.compound)}>
                       {playerFrame.compound}
@@ -2151,9 +2153,9 @@ export default function RaceReplay({
                         {TYRE_CONDITION_LABELS[currentTyreState.condition]}
                       </small>
                       <em>
-                        {Math.round(currentTyreState.temperatureC)}°C · G
-                        {Math.round(currentTyreState.gripPercent)} · W
-                        {Math.round(currentTyreState.wearPercent)}
+                        {currentTyreState.modelKind === "wet-heat-only"
+                          ? "온도·그립·마모 미모델링"
+                          : `${formatTyreStateMetric(currentTyreState.temperatureC, "°C")} · 그립 ${formatTyreStateMetric(currentTyreState.gripPercent, "%")} · 마모 ${formatTyreStateMetric(currentTyreState.wearPercent, "%")}`}
                       </em>
                     </span>
                   </div>
@@ -2464,21 +2466,21 @@ export default function RaceReplay({
               <strong>{playerFrame.tyreAge + 1}랩째</strong>
             </div>
             <div>
-              <span>타이어 온도</span>
+              <span>타이어 온도 · 추정</span>
               <strong>
-                {Math.round(currentTyreState.temperatureC)}°C
+                {formatTyreStateMetric(currentTyreState.temperatureC, "°C")}
               </strong>
             </div>
             <div>
               <span>추정 그립</span>
-              <strong>{Math.round(currentTyreState.gripPercent)}%</strong>
+              <strong>{formatTyreStateMetric(currentTyreState.gripPercent, "%")}</strong>
             </div>
             <div>
               <span>추정 마모</span>
-              <strong>{Math.round(currentTyreState.wearPercent)}%</strong>
+              <strong>{formatTyreStateMetric(currentTyreState.wearPercent, "%")}</strong>
             </div>
             <div>
-              <span>타이어 상태</span>
+              <span>타이어 상태 · 추정</span>
               <strong>
                 {TYRE_CONDITION_LABELS_KO[currentTyreState.condition]}
               </strong>
@@ -2490,9 +2492,13 @@ export default function RaceReplay({
               </strong>
             </div>
             <div>
-              <span>열화·상태 비용</span>
+              <span>{currentTyreState.modelKind === "wet-heat-only" ? "타이어 마모 비용" : "열화·상태 비용"}</span>
               <strong>+{degradationSeconds.toFixed(3)}초</strong>
             </div>
+            {currentTyreState.modelKind === "wet-heat-only" && <div>
+              <span>수막·과열 비용 · 추정</span>
+              <strong>+{currentLapCost.wetPenaltySeconds.toFixed(3)}초</strong>
+            </div>}
             <div>
               <span>모델 누적시간</span>
               <strong>{formatRaceTime(gridFrame.elapsedSeconds, 1)}</strong>
@@ -2506,6 +2512,11 @@ export default function RaceReplay({
               </strong>
             </div>
           </div>
+
+          {currentTyreState.modelKind === "wet-heat-only" && <div className="race-replay__event">
+            <span>우천 타이어 상태 · 프로젝트 추정</span>
+            <p>이 세트의 이전 건조 {currentTyreState.wetDryLaps}랩을 과열 비용에 반영합니다. 온도·그립·마모율은 미모델링이며 센서 측정값이 아닙니다. 수막·과열 비용은 랩타임에 한 번만 포함됩니다.</p>
+          </div>}
 
           <div
             className={`race-replay__event ${

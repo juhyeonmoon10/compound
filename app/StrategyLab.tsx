@@ -19,7 +19,7 @@ import { publicAsset } from "./lib/public-assets";
 import RaceBriefingOverview from "./RaceBriefingOverview";
 import type { StrategyWorkspace } from "./RaceBriefingOverview";
 import { calculatePitWindows } from "./lib/pit-windows";
-import StrategyBacktestPanel from "./StrategyBacktestPanel";
+const StrategyBacktestPanel = lazy(() => import("./StrategyBacktestPanel"));
 import ExperimentNotebook from "./ExperimentNotebook";
 import "./experience.css";
 import WeatherControls from "./WeatherControls";
@@ -28,6 +28,7 @@ import RaceExperimentPanel from "./RaceExperimentPanel";
 import { buildRepresentativeStrategies } from "./lib/representative-strategies";
 import type { RaceExperimentResult } from "./lib/race-experiments";
 import { buildSharedRaceGrid } from "./lib/shared-race-grid";
+import { getModelValidationChecks } from "./lib/model-validation";
 import PerformanceEvidencePanel from "./PerformanceEvidencePanel";
 import { applyEntryPerformance, resolveEntryPerformance } from "./lib/entry-performance";
 import { TYRE_COLORS, TYRE_LABELS, RAIN_LABELS, MODEL_PARAMS } from "./model/params";
@@ -70,7 +71,7 @@ import {
   type StrategyStintInput,
   type TrackPresetId,
 } from "./lib/strategy";
-import type { TyreCondition } from "./lib/tyre-state";
+import { formatTyreStateMetric, type TyreCondition } from "./lib/tyre-state";
 import { getHistoricalCalibration, HISTORICAL_EVIDENCE } from "./lib/historical-calibration";
 const FASTF1_ANALYSIS_SUMMARY = HISTORICAL_EVIDENCE.summary;
 // Preserve the stored v1 model-source identifier while expanding its evidence.
@@ -138,6 +139,7 @@ const TYRE_CONDITION_LABELS: Readonly<Record<TyreCondition, string>> = {
   graining: "그레이닝",
   overheated: "과열",
   cliff: "성능 절벽",
+  "wet-running": "과열 누적 없음",
 };
 
 const TRAFFIC_LEVELS: ReadonlyArray<{
@@ -606,11 +608,12 @@ function LapTimeChart({ strategy }: { strategy: StrategyEvaluation }) {
                   <td>L{lap.lap}</td>
                   <td>{COMPOUND_NAMES[lap.compound]}</td>
                   <td>{lap.tyreAge + 1}</td>
-                  <td>{Math.round(lap.tyreState.temperatureC)}°C</td>
-                  <td>{Math.round(lap.tyreState.gripPercent)}%</td>
-                  <td>{Math.round(lap.tyreState.wearPercent)}%</td>
+                  <td>{formatTyreStateMetric(lap.tyreState.temperatureC, "°C")}</td>
+                  <td>{formatTyreStateMetric(lap.tyreState.gripPercent, "%")}</td>
+                  <td>{formatTyreStateMetric(lap.tyreState.wearPercent, "%")}</td>
                   <td>
                     {TYRE_CONDITION_LABELS[lap.tyreState.condition]}
+                    {lap.tyreState.modelKind === "wet-heat-only" && <small> · 이전 건조 {lap.tyreState.wetDryLaps}랩 · 프로젝트 비용 모델</small>}
                   </td>
                   <td>{lap.lapTimeSeconds.toFixed(3)}초</td>
                   <td>
@@ -783,6 +786,7 @@ function ValidationPanel({
         detail: "초가 60으로 표시되지 않음",
         pass: !formatRaceTime(4_979.9996, 3).includes(":60."),
       },
+      ...getModelValidationChecks(input),
     ];
   }, [input, results]);
 
@@ -2624,7 +2628,7 @@ export default function StrategyLab({
               <span>한 랩의 예상시간 · 모델 추정</span>
               <code>
                 LapTime(l,c,a) = B + Δ<sub>c</sub> + α<sub>c</sub>a + β
-                <sub>c</sub>a² + Θ(c,a,T<sub>s</sub>,v) − γ(l−1)
+                <sub>c</sub>a² + Θ(c,a,T<sub>s</sub>,v) + W(c,w,d) − γ(l−1)
               </code>
             </div>
             <p>
@@ -2633,9 +2637,10 @@ export default function StrategyLab({
               워밍업·그레이닝·과열·성능 절벽 비용(Θ), 연료 감소
               효과(γ)를 합산합니다. 피트한 경우에는 서킷별 고정 손실을
               한 번 추가합니다. 직접 설계한 전략도 이 동일한 비용식으로
-              별도 평가합니다. Θ는 현재 컴파운드·사용 랩과 고정된 환경
-              조건만으로 계산되므로 숨은 난수나 운전 실력은 결과에
-              들어가지 않습니다.
+              별도 평가합니다. W는 랩별 수막(w)과 현재 세트의 이전 건조 랩 수(d)에
+              따른 우천 페널티입니다. INTER·WET에는 건식 상태 비용 Θ 대신 과열
+              누적 비용을 사용합니다. 날씨 일정이 같으면 비용도 같으며 SC·교통의
+              확률 실험은 이 결정론 DP와 별도로 실행합니다.
             </p>
           </div>
 
@@ -2650,20 +2655,20 @@ export default function StrategyLab({
               {
                 number: "02",
                 title: "상태 저장",
-                body: "같은 상태에 도착한 경로 중 빠른 후보 3개를 남깁니다.",
-                code: "DP[l][c][a][mask][s]",
+                body: "같은 상태에서 요청한 K개까지 빠른 경로를 보존합니다. 보드의 전역 1위는 K=1로 계산합니다.",
+                code: "DP[l][c][a][mask][s][wet]",
               },
               {
                 number: "03",
                 title: "두 가지 선택",
                 body: "현재 타이어로 계속 달리거나 새 타이어로 교체합니다.",
-                code: "유지 / 교체 → S·M·H → 타이어 상태",
+                code: "유지 / 교체 → S·M·H·INTER·WET",
               },
               {
                 number: "04",
                 title: "완주 후보 정렬",
-                body: "제약조건을 통과한 고유 경로를 시간순으로 정렬합니다.",
-                code: "제약 확인 → 중복 제거 → 상위 3개",
+                body: "전역 최적 1개를 유지하고 중복되지 않는 대표 대안 2개를 별도 탐색합니다. 대안은 전역 2·3위가 아닙니다.",
+                code: "제약 확인 → 최적 1개 + 대표 대안",
               },
             ].map((step) => (
               <article key={step.number}>
@@ -2686,7 +2691,7 @@ export default function StrategyLab({
                 </div>
                 <div>
                   <dt>c</dt>
-                  <dd>현재 컴파운드 S/M/H</dd>
+                  <dd>현재 컴파운드 S/M/H/INTER/WET</dd>
                 </div>
                 <div>
                   <dt>a</dt>
@@ -2694,12 +2699,13 @@ export default function StrategyLab({
                 </div>
                 <div>
                   <dt>mask</dt>
-                  <dd>지금까지 사용한 컴파운드 집합</dd>
+                  <dd>지금까지 사용한 건식 컴파운드 집합</dd>
                 </div>
                 <div>
                   <dt>s</dt>
                   <dd>누적 피트스톱 횟수</dd>
                 </div>
+                <div><dt>wet</dt><dd>INTER 또는 WET 실제 사용 여부 · 건식 2종 의무 면제 판정</dd></div>
               </dl>
             </article>
 
@@ -2707,16 +2713,15 @@ export default function StrategyLab({
               <span className="detail-label">의사코드</span>
               <h3>핵심 로직</h3>
               <pre>
-                <code>{`for lap in race:
-  for state in DP[lap]:
-    keep_current_tyre(state)
+                <code>{`각 랩의 모든 DP 상태에서:
+  현재 타이어 유지 비용 계산
+  스톱 여유가 있으면:
+    허용된 5종 타이어로 교체 비용 계산
+  동일 상태의 빠른 경로 K개 유지
 
-    if stops < maxStops:
-      for tyre in [S, M, H]:
-        pit_and_change(state, tyre)
-
-filter(two_dry_compounds)
-return unique_top_3()`}</code>
+실제 우천 타이어 사용 여부와 건식 2종 규칙 검사
+원본 K-best 최적해 유지
+순서 중복을 묶은 대표 대안 2개 탐색`}</code>
               </pre>
             </article>
 
@@ -2761,7 +2766,7 @@ return unique_top_3()`}</code>
           {pageView === "method" && sensitivity && (
             <>
               <ValidationPanel input={optimizerInput} results={results} />
-              {pageView === "method" && <StrategyBacktestPanel />}
+              {pageView === "method" && <Suspense fallback={<p role="status">실제 경기 비교 자료를 불러오는 중…</p>}><StrategyBacktestPanel /></Suspense>}
 
               <section
                 className={`sensitivity-card ${

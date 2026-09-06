@@ -1,8 +1,7 @@
 import type { Compound, DryCompound } from "./strategy.ts";
-import { MODEL_PARAMS } from "../model/params.ts";
 
 /**
- * Closed-form, deterministic tyre-state proxy used by the school project.
+ * Closed-form, deterministic tyre-state proxy used by this project.
  *
  * These values are transparent project calibration constants, not official
  * team telemetry. The calculation depends only on the current compound, tyre
@@ -11,23 +10,29 @@ import { MODEL_PARAMS } from "../model/params.ts";
  */
 export const TYRE_STATE_MODEL_VERSION = "APEX TYRE v1.0";
 
-export type TyreThermalState = "cold" | "optimal" | "hot";
+export type TyreThermalState = "cold" | "optimal" | "hot" | "not-modelled";
 export type TyreCondition =
   | "warming"
   | "optimal"
   | "worn"
   | "graining"
   | "overheated"
+  | "wet-running"
   | "cliff";
 
 export interface TyreStateSnapshot {
-  readonly temperatureC: number;
-  readonly optimalMinC: number;
-  readonly optimalMaxC: number;
+  /** All state values are project proxies, never measured tyre telemetry. */
+  readonly modelKind: "dry-state-proxy" | "wet-heat-only";
+  /** null explicitly means this model does not estimate the metric. */
+  readonly temperatureC: number | null;
+  readonly optimalMinC: number | null;
+  readonly optimalMaxC: number | null;
   readonly thermalState: TyreThermalState;
   readonly condition: TyreCondition;
-  readonly wearPercent: number;
-  readonly gripPercent: number;
+  readonly wearPercent: number | null;
+  readonly gripPercent: number | null;
+  /** Previous dry laps on this wet set, the exact history used by wetPenalty. */
+  readonly wetDryLaps: number | null;
   readonly warmupLossSeconds: number;
   readonly grainingLossSeconds: number;
   readonly overheatLossSeconds: number;
@@ -44,6 +49,13 @@ export interface TyreStateInput {
   readonly trackTemperatureC: number;
   /** Existing alpha/beta degradation, used only for the display grip score. */
   readonly degradationSeconds: number;
+  /** Previous laps below this wet compound's drying threshold; default 0. */
+  readonly previousDryLaps?: number;
+}
+
+/** A missing wet-state metric must never turn into a displayed zero via Math.round(null). */
+export function formatTyreStateMetric(value: number | null, unit: "°C" | "%"): string {
+  return value === null ? "미모델링" : `${Math.round(value)}${unit}`;
 }
 
 interface ThermalProfile {
@@ -104,11 +116,20 @@ export function calculateTyreState(
   input: TyreStateInput,
 ): TyreStateSnapshot {
   if (input.compound === "INTER" || input.compound === "WET") {
-    const p = MODEL_PARAMS.weather;
-    // Wet heat depends on the stint's dry-lap history and is accounted for in strategy.lapCost.
-    return { temperatureC: p.wetDisplayTemperatureC, optimalMinC: p.wetDisplayMinC, optimalMaxC: p.wetDisplayMaxC,
-      thermalState: "optimal", condition: "optimal", wearPercent: Math.min(p.maxPercent, p.maxPercent * (input.tyreAge + 1) / input.maxStintLaps),
-      gripPercent: p.maxPercent, warmupLossSeconds: 0, grainingLossSeconds: 0, overheatLossSeconds: 0, cliffLossSeconds: 0, totalStateLossSeconds: 0 };
+    const previousDryLaps = input.previousDryLaps ?? 0;
+    if (!Number.isInteger(previousDryLaps) || previousDryLaps < 0 || previousDryLaps > input.tyreAge) {
+      throw new RangeError("우천 타이어의 이전 건조 랩 수는 현재 타이어 나이 안의 음이 아닌 정수여야 합니다.");
+    }
+    // The heat cost is already included once in strategy.lapCost's wetPenalty.
+    // It does not identify a temperature, grip percentage or useful-life limit.
+    // Do not divide by the engine's effectively unlimited wet maxStintLaps.
+    return {
+      modelKind: "wet-heat-only", temperatureC: null, optimalMinC: null, optimalMaxC: null,
+      thermalState: "not-modelled", condition: previousDryLaps > 0 ? "overheated" : "wet-running",
+      wetDryLaps: previousDryLaps, wearPercent: null, gripPercent: null,
+      warmupLossSeconds: 0, grainingLossSeconds: 0, overheatLossSeconds: 0,
+      cliffLossSeconds: 0, totalStateLossSeconds: 0,
+    };
   }
   const profile = THERMAL_PROFILES[input.compound];
   const tyreAge = Math.max(0, input.tyreAge);
@@ -200,11 +221,13 @@ export function calculateTyreState(
   }
 
   return {
+    modelKind: "dry-state-proxy",
     temperatureC,
     optimalMinC: profile.optimalMinC,
     optimalMaxC: profile.optimalMaxC,
     thermalState: thermalState(temperatureC, profile),
     condition,
+    wetDryLaps: null,
     wearPercent,
     gripPercent,
     warmupLossSeconds,
