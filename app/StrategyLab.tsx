@@ -29,6 +29,7 @@ import { buildRepresentativeStrategies } from "./lib/representative-strategies";
 import type { RaceExperimentResult } from "./lib/race-experiments";
 import { buildSharedRaceGrid } from "./lib/shared-race-grid";
 import { getModelValidationChecks } from "./lib/model-validation";
+import { getNeutralisationPrior } from "./lib/neutralisation-prior";
 import PerformanceEvidencePanel from "./PerformanceEvidencePanel";
 import { applyEntryPerformance, resolveEntryPerformance } from "./lib/entry-performance";
 import { TYRE_COLORS, TYRE_LABELS, RAIN_LABELS, MODEL_PARAMS } from "./model/params";
@@ -921,6 +922,7 @@ export default function StrategyLab({
   );
   const appliedTrack = TRACK_PRESETS[applied.trackId];
   const entryProfile = useMemo(() => resolveEntryPerformance(applied.teamId, applied.driverId, applied.equalPerformance), [applied.teamId, applied.driverId, applied.equalPerformance]);
+  const neutralisationPrior = useMemo(() => getNeutralisationPrior(applied.trackId), [applied.trackId]);
   const sharedExperimentGrid = useMemo(() => results[0] ? buildSharedRaceGrid({ teamId: applied.teamId, driverId: applied.driverId, playerStrategy: results[0], strategyPool: results, startingGridPosition: applied.startingGridPosition, equalPerformance: applied.equalPerformance }) : null, [applied.teamId, applied.driverId, applied.startingGridPosition, applied.equalPerformance, results]);
   const equalResults = useMemo(() => calculateDisplayedStrategies(makeOptimizerInput({ ...applied, equalPerformance: true })), [applied]);
   const performanceSummary = applied.equalPerformance ? "동일 성능 모드 · 팀·선수 시간 보정 없음" : `능력치 반영 · 동일 성능 대비 Top 3 ${equalResults.every((value, index) => value.signature === results[index]?.signature) ? "구성 유지" : "구성 변경"} · 1번 총시간 차이 ${formatDelta((results[0]?.totalSeconds ?? 0) - (equalResults[0]?.totalSeconds ?? 0))} · 프로젝트 추정`;
@@ -1431,7 +1433,7 @@ export default function StrategyLab({
 
           <p className="weather-model-summary">강수: {RAIN_LABELS[applied.weather.preset]} · 수막·우천 페널티: 프로젝트 추정. 슬릭→인터 경계 {calculatedCrossovers().slickInter.toFixed(2)} 초과, 인터→웨트 약 {calculatedCrossovers().interWet.toFixed(2)}. {selectedTopThree.ruleExplanation} 3D 노면 광택·물보라는 계산과 분리된 연출입니다.</p>
           <p className="weather-model-summary" hidden={workspace !== "board"}>1번은 기존 K-best DP의 최단 해입니다. 2·3번은 순서만 다른 구성을 묶은 대표 대안이며 전역 2·3위가 아닙니다. 같은 스톱 수·컴파운드 집합은 {MODEL_PARAMS.race.minimumDistinctSeconds}초 이상 차이 나는 후보만 표시합니다.{results.length < 3 && ` 현재 조건에서 구별되는 후보는 ${results.length}개입니다.`}</p>
-          <RaceExperimentPanel hidden={pageView !== "strategy" || workspace !== "board"} candidates={results} seed={experimentSeed} onSeedChange={setExperimentSeed} result={raceExperiment} onResult={setRaceExperiment} racecraft={entryProfile.racecraft} startingGridPosition={applied.startingGridPosition} pitLossSeconds={applied.pitLossSeconds} trialIndex={experimentTrial} onTrialChange={setExperimentTrial} fixedRivals={sharedExperimentGrid?.fixedRivals} playerId={sharedExperimentGrid?.playerId} gridSlotOffsetSeconds={sharedExperimentGrid?.gridSlotOffsetSeconds} />
+          <RaceExperimentPanel hidden={pageView !== "strategy" || workspace !== "board"} candidates={results} seed={experimentSeed} onSeedChange={setExperimentSeed} result={raceExperiment} onResult={setRaceExperiment} racecraft={entryProfile.racecraft} startingGridPosition={applied.startingGridPosition} pitLossSeconds={applied.pitLossSeconds} trialIndex={experimentTrial} onTrialChange={setExperimentTrial} fixedRivals={sharedExperimentGrid?.fixedRivals} playerId={sharedExperimentGrid?.playerId} gridSlotOffsetSeconds={sharedExperimentGrid?.gridSlotOffsetSeconds} eventPrior={neutralisationPrior} />
           <div className="lab-grid">
             <p className="sr-only">{performanceSummary}</p>
             <aside className="setup-column" aria-label="레이스 시나리오 설정">

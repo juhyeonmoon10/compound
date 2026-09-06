@@ -8,6 +8,7 @@ import { MODEL_PARAMS } from "../app/model/params.ts";
 import { evaluateStrategy } from "../app/lib/strategy.ts";
 import { runRaceExperiments } from "../app/lib/race-experiments.ts";
 import { buildSharedRaceGrid } from "../app/lib/shared-race-grid.ts";
+import { getNeutralisationPrior } from "../app/lib/neutralisation-prior.ts";
 
 const workerUrl = new URL("../app/workers/race-experiment.worker.ts", import.meta.url);
 const require = createRequire(import.meta.url);
@@ -90,6 +91,20 @@ test("actual worker accepts the same entry-only roster as replay, preserving all
   } finally { await worker.terminate(); }
 });
 
+test("actual worker carries sourced observations and empirical durations without changing deterministic output", async () => {
+  const worker = await openWorker();
+  try {
+    const plans = candidates();
+    const options = { seed: 20260906, trials: MODEL_PARAMS.race.trials, trackLaps: 30, eventPrior: getNeutralisationPrior("bahrain") };
+    const response = await workerRequest(worker, { requestId: 31, candidates: plans, options });
+    assert.equal(response.error, undefined);
+    assert.deepEqual(response.result.prior, options.eventPrior);
+    assert.deepEqual(response.result, runRaceExperiments(plans, options));
+    assert.equal(response.result.prior.sourceType, "observed");
+    assert.ok(response.result.prior.scDurations.length >= MODEL_PARAMS.race.minDurationEpisodes);
+  } finally { await worker.terminate(); }
+});
+
 // Compile the real component with a deterministic hook harness. No browser,
 // copied lifecycle implementation, package installation, or network is needed.
 const harnessKey = "__compoundWorkerPanelTestHooks";
@@ -161,9 +176,9 @@ test("panel opens the real module worker URL and cancellation blocks a late resp
   } finally { harness.dispose(); }
 });
 
-test("seed, candidate, RAC, grid and pit changes terminate the active job before accepting results", () => {
+test("seed, candidate, RAC, grid, pit and observation-prior changes terminate the active job before accepting results", () => {
   for (const next of [{ seed: 43 }, { candidates: candidates().slice(0, 2) }, { racecraft: 80 }, { startingGridPosition: 3 }, { pitLossSeconds: 24 },
-    { playerId: "max-verstappen" }, { gridSlotOffsetSeconds: 0.12 }, { fixedRivals: [] }]) {
+    { playerId: "max-verstappen" }, { gridSlotOffsetSeconds: 0.12 }, { fixedRivals: [] }, { eventPrior: getNeutralisationPrior("spa") }]) {
     const harness = createHarness();
     try {
       harness.click("300회 확률 실험"); const old = harness.created[0];
@@ -193,6 +208,20 @@ test("successful current response is accepted once, mismatched response is not a
     harness.click("300회 확률 실험"); const next = harness.created[1];
     next.emit({ requestId: next.message.requestId, result: { ...result, seed: 999 } });
     assert.equal(harness.results.at(-1), null);
+    assert.match(harness.text(harness.render()), /응답이 일치하지 않아/);
+  } finally { harness.dispose(); }
+});
+
+test("panel posts the selected circuit prior and rejects a response carrying another prior", () => {
+  const prior = getNeutralisationPrior("bahrain");
+  const harness = createHarness({ eventPrior: prior });
+  try {
+    harness.click("300회 확률 실험");
+    const worker = harness.created[0];
+    assert.deepEqual(worker.message.options.eventPrior, prior);
+    const result = runRaceExperiments(worker.message.candidates, worker.message.options);
+    worker.emit({ requestId: worker.message.requestId, result: { ...result, prior: getNeutralisationPrior("madrid") } });
+    assert.ok(harness.results.every(value => value === null));
     assert.match(harness.text(harness.render()), /응답이 일치하지 않아/);
   } finally { harness.dispose(); }
 });

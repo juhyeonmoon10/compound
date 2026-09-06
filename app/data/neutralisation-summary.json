@@ -1,0 +1,1083 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-06T15:54:52.652862+00:00",
+  "classification": "official-timing-derived-project-observational-frequency",
+  "sourcePeriod": {
+    "fromYear": 2018,
+    "toYear": 2025,
+    "session": "Race; sprint/testing excluded"
+  },
+  "summary": {
+    "scheduledRaces": 173,
+    "eligibleRaces": 137,
+    "excludedRaces": 36,
+    "currentVenues": 24,
+    "venuesWithObservedFrequency": 15,
+    "unmappedEventIds": []
+  },
+  "rawEvidenceFile": "neutralisation-evidence.json",
+  "qualityRules": {
+    "minimumRacesForSuggestedAdoption": {
+      "value": 5,
+      "classification": "project sampling/statistical convention"
+    },
+    "minimumEpisodesForSuggestedDurationAdoption": {
+      "value": 3,
+      "classification": "project sampling/statistical convention"
+    },
+    "weatherMaximumCarrySeconds": {
+      "value": 180,
+      "classification": "project sampling/statistical convention"
+    },
+    "wilsonCriticalValue95": {
+      "value": 1.959963984540054,
+      "classification": "project sampling/statistical convention"
+    }
+  },
+  "source": {
+    "timingBaseUrl": "https://livetiming.formula1.com/static/",
+    "statusDocumentationUrl": "https://docs.fastf1.dev/api.html#fastf1.api.track_status_data"
+  },
+  "venues": [
+    {
+      "trackId": "melbourne",
+      "scheduledRaces": 6,
+      "eligibleRaces": 4,
+      "missingOrExcludedRaces": 2,
+      "rainfallRecordedRaces": 1,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 1,
+      "sourceUrl": "https://livetiming.formula1.com/static/2019/2019-03-17_Australian_Grand_Prix/2019-03-17_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 4,
+        "perRaceProbability": 0.5,
+        "binomialWilsonCI95": [
+          0.15003898915214947,
+          0.8499610108478506
+        ],
+        "mappedEpisodes": 6,
+        "durationLeaderLaps": [
+          3,
+          2,
+          2,
+          7,
+          8,
+          5
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 4,
+        "perRaceProbability": 0.5,
+        "binomialWilsonCI95": [
+          0.15003898915214947,
+          0.8499610108478506
+        ],
+        "mappedEpisodes": 3,
+        "durationLeaderLaps": [
+          2,
+          2,
+          1
+        ]
+      },
+      "exclusionReasons": {
+        "TrackStatus state unavailable at race start": 1,
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "shanghai",
+      "scheduledRaces": 4,
+      "eligibleRaces": 3,
+      "missingOrExcludedRaces": 1,
+      "rainfallRecordedRaces": 0,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 0,
+      "sourceUrl": "https://livetiming.formula1.com/static/2019/2019-04-14_Chinese_Grand_Prix/2019-04-14_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 1,
+        "eligibleRaces": 3,
+        "perRaceProbability": 0.3333333333333333,
+        "binomialWilsonCI95": [
+          0.06149194472039621,
+          0.7923403991979522
+        ],
+        "mappedEpisodes": 2,
+        "durationLeaderLaps": [
+          4,
+          5
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 3,
+        "perRaceProbability": 0.6666666666666666,
+        "binomialWilsonCI95": [
+          0.2076596008020477,
+          0.9385080552796037
+        ],
+        "mappedEpisodes": 2,
+        "durationLeaderLaps": [
+          2,
+          2
+        ]
+      },
+      "exclusionReasons": {
+        "TrackStatus state unavailable at race start": 1
+      }
+    },
+    {
+      "trackId": "suzuka",
+      "scheduledRaces": 6,
+      "eligibleRaces": 5,
+      "missingOrExcludedRaces": 1,
+      "rainfallRecordedRaces": 0,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 1,
+      "sourceUrl": "https://livetiming.formula1.com/static/2018/2018-10-07_Japanese_Grand_Prix/2018-10-07_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 5,
+        "perRaceProbability": 0.4,
+        "binomialWilsonCI95": [
+          0.11762077423264783,
+          0.769275718723987
+        ],
+        "mappedEpisodes": 2,
+        "durationLeaderLaps": [
+          4,
+          4
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 5,
+        "perRaceProbability": 0.4,
+        "binomialWilsonCI95": [
+          0.11762077423264783,
+          0.769275718723987
+        ],
+        "mappedEpisodes": 2,
+        "durationLeaderLaps": [
+          2,
+          1
+        ]
+      },
+      "exclusionReasons": {
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "bahrain",
+      "scheduledRaces": 8,
+      "eligibleRaces": 6,
+      "missingOrExcludedRaces": 2,
+      "rainfallRecordedRaces": 0,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 1,
+      "sourceUrl": "https://livetiming.formula1.com/static/2019/2019-03-31_Bahrain_Grand_Prix/2019-03-31_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 4,
+        "eligibleRaces": 6,
+        "perRaceProbability": 0.6666666666666666,
+        "binomialWilsonCI95": [
+          0.299993315138392,
+          0.9032285888942195
+        ],
+        "mappedEpisodes": 5,
+        "durationLeaderLaps": [
+          3,
+          6,
+          3,
+          3,
+          4
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 6,
+        "perRaceProbability": 0.3333333333333333,
+        "binomialWilsonCI95": [
+          0.09677141110578041,
+          0.700006684861608
+        ],
+        "mappedEpisodes": 2,
+        "durationLeaderLaps": [
+          2,
+          2
+        ]
+      },
+      "exclusionReasons": {
+        "TrackStatus state unavailable at race start": 1,
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "jeddah",
+      "scheduledRaces": 5,
+      "eligibleRaces": 4,
+      "missingOrExcludedRaces": 1,
+      "rainfallRecordedRaces": 0,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 1,
+      "sourceUrl": "https://livetiming.formula1.com/static/2021/2021-12-05_Saudi_Arabian_Grand_Prix/2021-12-05_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 4,
+        "eligibleRaces": 4,
+        "perRaceProbability": 1.0,
+        "binomialWilsonCI95": [
+          0.5101091635454027,
+          1
+        ],
+        "mappedEpisodes": 4,
+        "durationLeaderLaps": [
+          4,
+          3,
+          3,
+          3
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 1,
+        "eligibleRaces": 4,
+        "perRaceProbability": 0.25,
+        "binomialWilsonCI95": [
+          0.04558726080970055,
+          0.6993581574175981
+        ],
+        "mappedEpisodes": 4,
+        "durationLeaderLaps": [
+          2,
+          2,
+          5,
+          1
+        ]
+      },
+      "exclusionReasons": {
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "miami",
+      "scheduledRaces": 4,
+      "eligibleRaces": 3,
+      "missingOrExcludedRaces": 1,
+      "rainfallRecordedRaces": 1,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 0,
+      "sourceUrl": "https://livetiming.formula1.com/static/2023/2023-05-07_Miami_Grand_Prix/2023-05-07_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 1,
+        "eligibleRaces": 3,
+        "perRaceProbability": 0.3333333333333333,
+        "binomialWilsonCI95": [
+          0.06149194472039621,
+          0.7923403991979522
+        ],
+        "mappedEpisodes": 1,
+        "durationLeaderLaps": [
+          5
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 3,
+        "perRaceProbability": 0.6666666666666666,
+        "binomialWilsonCI95": [
+          0.2076596008020477,
+          0.9385080552796037
+        ],
+        "mappedEpisodes": 4,
+        "durationLeaderLaps": [
+          1,
+          2,
+          2,
+          2
+        ]
+      },
+      "exclusionReasons": {
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "montreal",
+      "scheduledRaces": 6,
+      "eligibleRaces": 4,
+      "missingOrExcludedRaces": 2,
+      "rainfallRecordedRaces": 1,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 0,
+      "sourceUrl": "https://livetiming.formula1.com/static/2019/2019-06-09_Canadian_Grand_Prix/2019-06-09_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 3,
+        "eligibleRaces": 4,
+        "perRaceProbability": 0.75,
+        "binomialWilsonCI95": [
+          0.30064184258240184,
+          0.9544127391902995
+        ],
+        "mappedEpisodes": 4,
+        "durationLeaderLaps": [
+          5,
+          5,
+          5,
+          4
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 1,
+        "eligibleRaces": 4,
+        "perRaceProbability": 0.25,
+        "binomialWilsonCI95": [
+          0.04558726080970055,
+          0.6993581574175981
+        ],
+        "mappedEpisodes": 1,
+        "durationLeaderLaps": [
+          1
+        ]
+      },
+      "exclusionReasons": {
+        "TrackStatus state unavailable at race start": 1,
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "monaco",
+      "scheduledRaces": 7,
+      "eligibleRaces": 5,
+      "missingOrExcludedRaces": 2,
+      "rainfallRecordedRaces": 2,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 1,
+      "sourceUrl": "https://livetiming.formula1.com/static/2019/2019-05-26_Monaco_Grand_Prix/2019-05-26_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 5,
+        "perRaceProbability": 0.4,
+        "binomialWilsonCI95": [
+          0.11762077423264783,
+          0.769275718723987
+        ],
+        "mappedEpisodes": 2,
+        "durationLeaderLaps": [
+          4,
+          2
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 1,
+        "eligibleRaces": 5,
+        "perRaceProbability": 0.2,
+        "binomialWilsonCI95": [
+          0.03622410863243014,
+          0.6244653702374747
+        ],
+        "mappedEpisodes": 1,
+        "durationLeaderLaps": [
+          3
+        ]
+      },
+      "exclusionReasons": {
+        "TrackStatus state unavailable at race start": 1,
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "barcelona",
+      "scheduledRaces": 8,
+      "eligibleRaces": 6,
+      "missingOrExcludedRaces": 2,
+      "rainfallRecordedRaces": 1,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 0,
+      "sourceUrl": "https://livetiming.formula1.com/static/2019/2019-05-12_Spanish_Grand_Prix/2019-05-12_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 3,
+        "eligibleRaces": 6,
+        "perRaceProbability": 0.5,
+        "binomialWilsonCI95": [
+          0.1876163064826506,
+          0.8123836935173494
+        ],
+        "mappedEpisodes": 3,
+        "durationLeaderLaps": [
+          7,
+          3,
+          6
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 0,
+        "eligibleRaces": 6,
+        "perRaceProbability": 0.0,
+        "binomialWilsonCI95": [
+          0,
+          0.3903342879021653
+        ],
+        "mappedEpisodes": 0,
+        "durationLeaderLaps": []
+      },
+      "exclusionReasons": {
+        "TrackStatus state unavailable at race start": 1,
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "spielberg",
+      "scheduledRaces": 10,
+      "eligibleRaces": 8,
+      "missingOrExcludedRaces": 2,
+      "rainfallRecordedRaces": 0,
+      "weatherUnknownRaces": 1,
+      "redFlagRaces": 0,
+      "sourceUrl": "https://livetiming.formula1.com/static/2019/2019-06-30_Austrian_Grand_Prix/2019-06-30_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 5,
+        "eligibleRaces": 8,
+        "perRaceProbability": 0.625,
+        "binomialWilsonCI95": [
+          0.30574239460262737,
+          0.8631557141764026
+        ],
+        "mappedEpisodes": 3,
+        "durationLeaderLaps": [
+          3,
+          3,
+          3
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 8,
+        "perRaceProbability": 0.25,
+        "binomialWilsonCI95": [
+          0.071479212752109,
+          0.5907245696898311
+        ],
+        "mappedEpisodes": 2,
+        "durationLeaderLaps": [
+          3,
+          1
+        ]
+      },
+      "exclusionReasons": {
+        "TrackStatus state unavailable at race start": 1,
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "silverstone",
+      "scheduledRaces": 9,
+      "eligibleRaces": 7,
+      "missingOrExcludedRaces": 2,
+      "rainfallRecordedRaces": 2,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 1,
+      "sourceUrl": "https://livetiming.formula1.com/static/2019/2019-07-14_British_Grand_Prix/2019-07-14_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 5,
+        "eligibleRaces": 7,
+        "perRaceProbability": 0.7142857142857143,
+        "binomialWilsonCI95": [
+          0.35893445183261935,
+          0.9177810759959433
+        ],
+        "mappedEpisodes": 7,
+        "durationLeaderLaps": [
+          4,
+          4,
+          6,
+          2,
+          6,
+          4,
+          4
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 7,
+        "perRaceProbability": 0.2857142857142857,
+        "binomialWilsonCI95": [
+          0.08221892400405678,
+          0.6410655481673808
+        ],
+        "mappedEpisodes": 3,
+        "durationLeaderLaps": [
+          1,
+          3,
+          3
+        ]
+      },
+      "exclusionReasons": {
+        "TrackStatus state unavailable at race start": 1,
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "spa",
+      "scheduledRaces": 8,
+      "eligibleRaces": 6,
+      "missingOrExcludedRaces": 2,
+      "rainfallRecordedRaces": 1,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 0,
+      "sourceUrl": "https://livetiming.formula1.com/static/2018/2018-08-26_Belgian_Grand_Prix/2018-08-26_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 4,
+        "eligibleRaces": 6,
+        "perRaceProbability": 0.6666666666666666,
+        "binomialWilsonCI95": [
+          0.299993315138392,
+          0.9032285888942195
+        ],
+        "mappedEpisodes": 4,
+        "durationLeaderLaps": [
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 0,
+        "eligibleRaces": 6,
+        "perRaceProbability": 0.0,
+        "binomialWilsonCI95": [
+          0,
+          0.3903342879021653
+        ],
+        "mappedEpisodes": 0,
+        "durationLeaderLaps": []
+      },
+      "exclusionReasons": {
+        "no Finished status; exceptional/aborted race excluded from normal-race frequency": 1,
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "hungaroring",
+      "scheduledRaces": 8,
+      "eligibleRaces": 6,
+      "missingOrExcludedRaces": 2,
+      "rainfallRecordedRaces": 1,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 1,
+      "sourceUrl": "https://livetiming.formula1.com/static/2019/2019-08-04_Hungarian_Grand_Prix/2019-08-04_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 1,
+        "eligibleRaces": 6,
+        "perRaceProbability": 0.16666666666666666,
+        "binomialWilsonCI95": [
+          0.030053369748306635,
+          0.5635028221864702
+        ],
+        "mappedEpisodes": 1,
+        "durationLeaderLaps": [
+          2
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 0,
+        "eligibleRaces": 6,
+        "perRaceProbability": 0.0,
+        "binomialWilsonCI95": [
+          0,
+          0.3903342879021653
+        ],
+        "mappedEpisodes": 0,
+        "durationLeaderLaps": []
+      },
+      "exclusionReasons": {
+        "TrackStatus state unavailable at race start": 1,
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "zandvoort",
+      "scheduledRaces": 5,
+      "eligibleRaces": 4,
+      "missingOrExcludedRaces": 1,
+      "rainfallRecordedRaces": 1,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 1,
+      "sourceUrl": "https://livetiming.formula1.com/static/2021/2021-09-05_Dutch_Grand_Prix/2021-09-05_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 4,
+        "perRaceProbability": 0.5,
+        "binomialWilsonCI95": [
+          0.15003898915214947,
+          0.8499610108478506
+        ],
+        "mappedEpisodes": 5,
+        "durationLeaderLaps": [
+          6,
+          2,
+          4,
+          5,
+          4
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 4,
+        "perRaceProbability": 0.5,
+        "binomialWilsonCI95": [
+          0.15003898915214947,
+          0.8499610108478506
+        ],
+        "mappedEpisodes": 2,
+        "durationLeaderLaps": [
+          1,
+          2
+        ]
+      },
+      "exclusionReasons": {
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "monza",
+      "scheduledRaces": 8,
+      "eligibleRaces": 7,
+      "missingOrExcludedRaces": 1,
+      "rainfallRecordedRaces": 1,
+      "weatherUnknownRaces": 1,
+      "redFlagRaces": 1,
+      "sourceUrl": "https://livetiming.formula1.com/static/2018/2018-09-02_Italian_Grand_Prix/2018-09-02_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 3,
+        "eligibleRaces": 7,
+        "perRaceProbability": 0.42857142857142855,
+        "binomialWilsonCI95": [
+          0.15821985525146975,
+          0.7495416354723428
+        ],
+        "mappedEpisodes": 4,
+        "durationLeaderLaps": [
+          1,
+          4,
+          2,
+          5
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 3,
+        "eligibleRaces": 7,
+        "perRaceProbability": 0.42857142857142855,
+        "binomialWilsonCI95": [
+          0.15821985525146975,
+          0.7495416354723428
+        ],
+        "mappedEpisodes": 5,
+        "durationLeaderLaps": [
+          3,
+          1,
+          1,
+          2,
+          1
+        ]
+      },
+      "exclusionReasons": {
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "madrid",
+      "scheduledRaces": 0,
+      "eligibleRaces": 0,
+      "missingOrExcludedRaces": 0,
+      "rainfallRecordedRaces": 0,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 0,
+      "sourceUrl": null,
+      "sc": {
+        "racesWithEvent": 0,
+        "eligibleRaces": 0,
+        "perRaceProbability": null,
+        "binomialWilsonCI95": null,
+        "mappedEpisodes": 0,
+        "durationLeaderLaps": []
+      },
+      "vsc": {
+        "racesWithEvent": 0,
+        "eligibleRaces": 0,
+        "perRaceProbability": null,
+        "binomialWilsonCI95": null,
+        "mappedEpisodes": 0,
+        "durationLeaderLaps": []
+      },
+      "exclusionReasons": {}
+    },
+    {
+      "trackId": "baku",
+      "scheduledRaces": 7,
+      "eligibleRaces": 5,
+      "missingOrExcludedRaces": 2,
+      "rainfallRecordedRaces": 0,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 1,
+      "sourceUrl": "https://livetiming.formula1.com/static/2019/2019-04-28_Azerbaijan_Grand_Prix/2019-04-28_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 3,
+        "eligibleRaces": 5,
+        "perRaceProbability": 0.6,
+        "binomialWilsonCI95": [
+          0.2307242812760128,
+          0.882379225767352
+        ],
+        "mappedEpisodes": 4,
+        "durationLeaderLaps": [
+          5,
+          2,
+          3,
+          4
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 5,
+        "perRaceProbability": 0.4,
+        "binomialWilsonCI95": [
+          0.11762077423264783,
+          0.769275718723987
+        ],
+        "mappedEpisodes": 2,
+        "durationLeaderLaps": [
+          2,
+          1
+        ]
+      },
+      "exclusionReasons": {
+        "TrackStatus state unavailable at race start": 1,
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "singapore",
+      "scheduledRaces": 6,
+      "eligibleRaces": 5,
+      "missingOrExcludedRaces": 1,
+      "rainfallRecordedRaces": 0,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 0,
+      "sourceUrl": "https://livetiming.formula1.com/static/2018/2018-09-16_Singapore_Grand_Prix/2018-09-16_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 3,
+        "eligibleRaces": 5,
+        "perRaceProbability": 0.6,
+        "binomialWilsonCI95": [
+          0.2307242812760128,
+          0.882379225767352
+        ],
+        "mappedEpisodes": 5,
+        "durationLeaderLaps": [
+          4,
+          5,
+          4,
+          2,
+          3
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 1,
+        "eligibleRaces": 5,
+        "perRaceProbability": 0.2,
+        "binomialWilsonCI95": [
+          0.03622410863243014,
+          0.6244653702374747
+        ],
+        "mappedEpisodes": 1,
+        "durationLeaderLaps": [
+          2
+        ]
+      },
+      "exclusionReasons": {
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "austin",
+      "scheduledRaces": 7,
+      "eligibleRaces": 6,
+      "missingOrExcludedRaces": 1,
+      "rainfallRecordedRaces": 0,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 0,
+      "sourceUrl": "https://livetiming.formula1.com/static/2018/2018-10-21_United_States_Grand_Prix/2018-10-21_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 1,
+        "eligibleRaces": 6,
+        "perRaceProbability": 0.16666666666666666,
+        "binomialWilsonCI95": [
+          0.030053369748306635,
+          0.5635028221864702
+        ],
+        "mappedEpisodes": 1,
+        "durationLeaderLaps": [
+          3
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 3,
+        "eligibleRaces": 6,
+        "perRaceProbability": 0.5,
+        "binomialWilsonCI95": [
+          0.1876163064826506,
+          0.8123836935173494
+        ],
+        "mappedEpisodes": 3,
+        "durationLeaderLaps": [
+          2,
+          1,
+          3
+        ]
+      },
+      "exclusionReasons": {
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "mexico-city",
+      "scheduledRaces": 7,
+      "eligibleRaces": 6,
+      "missingOrExcludedRaces": 1,
+      "rainfallRecordedRaces": 0,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 1,
+      "sourceUrl": "https://livetiming.formula1.com/static/2018/2018-10-28_Mexican_Grand_Prix/2018-10-28_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 3,
+        "eligibleRaces": 6,
+        "perRaceProbability": 0.5,
+        "binomialWilsonCI95": [
+          0.1876163064826506,
+          0.8123836935173494
+        ],
+        "mappedEpisodes": 3,
+        "durationLeaderLaps": [
+          2,
+          1,
+          6
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 4,
+        "eligibleRaces": 6,
+        "perRaceProbability": 0.6666666666666666,
+        "binomialWilsonCI95": [
+          0.299993315138392,
+          0.9032285888942195
+        ],
+        "mappedEpisodes": 6,
+        "durationLeaderLaps": [
+          2,
+          2,
+          3,
+          3,
+          1,
+          2
+        ]
+      },
+      "exclusionReasons": {
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "sao-paulo",
+      "scheduledRaces": 7,
+      "eligibleRaces": 6,
+      "missingOrExcludedRaces": 1,
+      "rainfallRecordedRaces": 1,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 2,
+      "sourceUrl": "https://livetiming.formula1.com/static/2018/2018-11-11_Brazilian_Grand_Prix/2018-11-11_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 5,
+        "eligibleRaces": 6,
+        "perRaceProbability": 0.8333333333333334,
+        "binomialWilsonCI95": [
+          0.43649717781352987,
+          0.9699466302516935
+        ],
+        "mappedEpisodes": 7,
+        "durationLeaderLaps": [
+          6,
+          4,
+          4,
+          2,
+          3,
+          4,
+          4
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 3,
+        "eligibleRaces": 6,
+        "perRaceProbability": 0.5,
+        "binomialWilsonCI95": [
+          0.1876163064826506,
+          0.8123836935173494
+        ],
+        "mappedEpisodes": 4,
+        "durationLeaderLaps": [
+          3,
+          2,
+          2,
+          2
+        ]
+      },
+      "exclusionReasons": {
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    },
+    {
+      "trackId": "las-vegas",
+      "scheduledRaces": 3,
+      "eligibleRaces": 3,
+      "missingOrExcludedRaces": 0,
+      "rainfallRecordedRaces": 0,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 0,
+      "sourceUrl": "https://livetiming.formula1.com/static/2023/2023-11-18_Las_Vegas_Grand_Prix/2023-11-18_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 1,
+        "eligibleRaces": 3,
+        "perRaceProbability": 0.3333333333333333,
+        "binomialWilsonCI95": [
+          0.06149194472039621,
+          0.7923403991979522
+        ],
+        "mappedEpisodes": 2,
+        "durationLeaderLaps": [
+          4,
+          3
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 3,
+        "perRaceProbability": 0.6666666666666666,
+        "binomialWilsonCI95": [
+          0.2076596008020477,
+          0.9385080552796037
+        ],
+        "mappedEpisodes": 3,
+        "durationLeaderLaps": [
+          2,
+          3,
+          1
+        ]
+      },
+      "exclusionReasons": {}
+    },
+    {
+      "trackId": "lusail",
+      "scheduledRaces": 4,
+      "eligibleRaces": 4,
+      "missingOrExcludedRaces": 0,
+      "rainfallRecordedRaces": 0,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 0,
+      "sourceUrl": "https://livetiming.formula1.com/static/2021/2021-11-21_Qatar_Grand_Prix/2021-11-21_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 3,
+        "eligibleRaces": 4,
+        "perRaceProbability": 0.75,
+        "binomialWilsonCI95": [
+          0.30064184258240184,
+          0.9544127391902995
+        ],
+        "mappedEpisodes": 5,
+        "durationLeaderLaps": [
+          4,
+          4,
+          5,
+          3,
+          4
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 2,
+        "eligibleRaces": 4,
+        "perRaceProbability": 0.5,
+        "binomialWilsonCI95": [
+          0.15003898915214947,
+          0.8499610108478506
+        ],
+        "mappedEpisodes": 2,
+        "durationLeaderLaps": [
+          3,
+          1
+        ]
+      },
+      "exclusionReasons": {}
+    },
+    {
+      "trackId": "yas-marina",
+      "scheduledRaces": 8,
+      "eligibleRaces": 7,
+      "missingOrExcludedRaces": 1,
+      "rainfallRecordedRaces": 1,
+      "weatherUnknownRaces": 0,
+      "redFlagRaces": 0,
+      "sourceUrl": "https://livetiming.formula1.com/static/2018/2018-11-25_Abu_Dhabi_Grand_Prix/2018-11-25_Race/TrackStatus.jsonStream",
+      "sc": {
+        "racesWithEvent": 3,
+        "eligibleRaces": 7,
+        "perRaceProbability": 0.42857142857142855,
+        "binomialWilsonCI95": [
+          0.15821985525146975,
+          0.7495416354723428
+        ],
+        "mappedEpisodes": 3,
+        "durationLeaderLaps": [
+          4,
+          3,
+          5
+        ]
+      },
+      "vsc": {
+        "racesWithEvent": 4,
+        "eligibleRaces": 7,
+        "perRaceProbability": 0.5714285714285714,
+        "binomialWilsonCI95": [
+          0.2504583645276572,
+          0.8417801447485302
+        ],
+        "mappedEpisodes": 4,
+        "durationLeaderLaps": [
+          2,
+          2,
+          3,
+          2
+        ]
+      },
+      "exclusionReasons": {
+        "no Started session status": 1,
+        "required stream unavailable/malformed: ['TrackStatus', 'SessionStatus']": 1
+      }
+    }
+  ]
+}

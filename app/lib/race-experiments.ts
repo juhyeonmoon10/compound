@@ -26,6 +26,28 @@ export interface RaceEventPrior {
   readonly sourceLabel: string;
   readonly sourceUrl?: string;
   readonly sampleRaces?: number;
+  /** Empirical touched-leader-lap samples, repeated values preserve their frequency. */
+  readonly scDurations?: readonly number[];
+  readonly vscDurations?: readonly number[];
+  readonly evidence?: {
+    readonly sourcePeriod: string;
+    readonly scheduledRaces: number;
+    readonly excludedRaces: number;
+    readonly sc: RaceEventKindEvidence;
+    readonly vsc: RaceEventKindEvidence;
+    readonly notes: readonly string[];
+    readonly rawDataAvailable: boolean;
+  };
+}
+
+export interface RaceEventKindEvidence {
+  readonly observedProbability: number | null;
+  readonly numerator: number;
+  readonly denominator: number;
+  readonly probabilityCI95: readonly [number, number] | null;
+  readonly frequencyApplied: boolean;
+  readonly durationEpisodes: number;
+  readonly durationSource: "observed" | "project-estimate";
 }
 
 export interface RaceExperimentOptions {
@@ -151,10 +173,14 @@ function makeTimeline(seed: number, trial: number, laps: number, prior: RaceEven
   for (const kind of ["SC", "VSC"] as const) {
     const probability = kind === "SC" ? prior.scProbability : prior.vscProbability;
     if (keyedRandom(seed, `event/${trial}/${kind}/occurs`) >= probability) continue;
-    const durations = kind === "SC" ? P.scDurations : P.vscDurations;
+    const observedDurations = kind === "SC" ? prior.scDurations : prior.vscDurations;
+    const durations = observedDurations ?? (kind === "SC" ? P.scDurations : P.vscDurations);
     const duration = durations[Math.floor(keyedRandom(seed, `event/${trial}/${kind}/duration`) * durations.length)];
-    const first = Math.max(1, Math.ceil(laps * P.eventStartFraction));
-    const last = Math.min(laps, Math.floor(laps * P.eventEndFraction));
+    // Preserve supplied empirical durations rather than clipping the selected
+    // sample at the finish. The legacy fallback branch keeps its exact draws.
+    const last = observedDurations ? Math.max(1, Math.min(laps - duration + 1, Math.floor(laps * P.eventEndFraction)))
+      : Math.min(laps, Math.floor(laps * P.eventEndFraction));
+    const first = Math.min(observedDurations ? last : laps, Math.max(1, Math.ceil(laps * P.eventStartFraction)));
     const available = Array.from({ length: Math.max(0, last - first + 1) }, (_, index) => first + index)
       .filter((start) => events.every((event) => start > event.endLap || Math.min(laps, start + duration - 1) < event.startLap));
     if (available.length === 0) continue;
@@ -301,12 +327,19 @@ export function runRaceExperiments(
   const prior: RaceEventPrior = options.eventPrior ?? {
     scProbability: P.fallbackScProbability, vscProbability: P.fallbackVscProbability,
     sourceType: "project-estimate",
-    sourceLabel: "2018–2025 전 서킷 공식 발생률 미확보 · 프로젝트 사전확률(경기당)",
+    sourceLabel: "서킷 관측 사전값 미연결 · 프로젝트 사전확률(경기당)",
   };
   validateNumber(prior.scProbability, "scProbability", 0, 1);
   validateNumber(prior.vscProbability, "vscProbability", 0, 1);
   if (prior.sourceType === "observed" && (!prior.sourceUrl || !prior.sampleRaces || prior.sampleRaces < 1)) {
     throw new RangeError("Observed priors require sourceUrl and a positive sampleRaces");
+  }
+  for (const [label, durations] of [["scDurations", prior.scDurations], ["vscDurations", prior.vscDurations]] as const) {
+    if (durations === undefined) continue;
+    if (!Array.isArray(durations) || durations.length === 0
+      || durations.some((duration) => !Number.isInteger(duration) || duration < 1 || duration > laps)) {
+      throw new RangeError(`${label} must be a nonempty array of integer laps from 1 to trackLaps`);
+    }
   }
   const fixedRivals = options.fixedRivals ? [...options.fixedRivals].sort((left, right) => left.gridPosition - right.gridPosition) : undefined;
   if (fixedRivals) {
@@ -378,7 +411,8 @@ export function runRaceExperiments(
     },
     limitations: [
       "결정론 DP가 이미 만든 후보의 확률 평가이며 교통·SC/VSC를 공동 상태로 최적화하지 않습니다.",
-      "기본 발생률, 피트 할인, 교통·추월 계수는 프로젝트 추정이며 실측 F1 확률 또는 EA 게임 물리식이 아닙니다.",
+      prior.sourceType === "observed" ? "발생률은 과거 공식 타이밍 상태를 집계한 관측 빈도이며 미래 경기의 실제 확률을 보장하지 않습니다. 피트 할인·교통·추월 계수는 프로젝트 추정입니다."
+        : "발생률은 관측 자료 미연결 또는 표본 미달로 프로젝트 사전값을 사용합니다. 피트 할인·교통·추월 계수도 프로젝트 추정입니다.",
       "한 시행에 SC/VSC 각각 최대 한 구간입니다. 피트 할인과 추월 제한만 반영하며 실제 SC 속도·대열 압축·랩다운 해제는 재현하지 않습니다.",
       "승률은 입력한 후보 중 최단시간일 비율(동률 분할)입니다. P10/P90은 실험 총시간 분포이며 실제 경기 예측의 신뢰구간이 아닙니다.",
       "모든 후보는 동일 이벤트 일정과 고정 19대 상대팩을 공유합니다. 교통 난수는 시행·랩·추격차·상대차 키로 고정됩니다.",
