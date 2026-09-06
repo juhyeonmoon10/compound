@@ -23,6 +23,10 @@ import ExperimentNotebook from "./ExperimentNotebook";
 import "./experience.css";
 import WeatherControls from "./WeatherControls";
 import WetEvidencePanel from "./WetEvidencePanel";
+import RaceExperimentPanel from "./RaceExperimentPanel";
+import { buildRepresentativeStrategies } from "./lib/representative-strategies";
+import type { RaceExperimentResult } from "./lib/race-experiments";
+import { buildSharedRaceGrid } from "./lib/shared-race-grid";
 import PerformanceEvidencePanel from "./PerformanceEvidencePanel";
 import { applyEntryPerformance, resolveEntryPerformance } from "./lib/entry-performance";
 import { TYRE_COLORS, TYRE_LABELS, RAIN_LABELS, MODEL_PARAMS } from "./model/params";
@@ -251,6 +255,11 @@ function sameConfig(left: RunConfig, right: RunConfig) {
     left.startingGridPosition === right.startingGridPosition &&
     left.trafficLevel === right.trafficLevel && JSON.stringify(left.weather) === JSON.stringify(right.weather) && left.equalPerformance === right.equalPerformance && left.teamId === right.teamId && left.driverId === right.driverId
   );
+}
+
+function calculateDisplayedStrategies(input: StrategyOptimizerInput): StrategyResult[] {
+  const globalBest = optimizeTyreStrategies({ ...input, topK: 1 })[0];
+  return [...buildRepresentativeStrategies(input, { globalBest }).strategies];
 }
 
 function compoundClass(compound: Compound) {
@@ -728,7 +737,7 @@ function ValidationPanel({
   results: StrategyResult[];
 }) {
   const checks = useMemo(() => {
-    const repeated = optimizeTyreStrategies(input);
+    const repeated = calculateDisplayedStrategies(input);
     const shortInput: StrategyOptimizerInput = {
       ...input,
       laps: 8,
@@ -757,7 +766,7 @@ function ValidationPanel({
       },
       {
         title: "모델 제약",
-        detail: "가정한 탐색 범위 1–2스톱 · 건식 2종",
+        detail: "설정한 스톱 범위 · 실제 우천 타이어 사용 시 건식 2종 면제",
         pass: results.every((result) => result.isLegal),
       },
       {
@@ -818,8 +827,11 @@ export default function StrategyLab({
   const [resultDetailTab, setResultDetailTab] =
     useState<ResultDetailTab>("chart");
   const [results, setResults] = useState<StrategyResult[]>(() =>
-    optimizeTyreStrategies(makeOptimizerInput(initialConfig)),
+    calculateDisplayedStrategies(makeOptimizerInput(initialConfig)),
   );
+  const [experimentSeed, setExperimentSeed] = useState<number>(MODEL_PARAMS.race.defaultSeed);
+  const [raceExperiment, setRaceExperiment] = useState<RaceExperimentResult | null>(null);
+  const [experimentTrial, setExperimentTrial] = useState(0);
   const [calculationRevision, setCalculationRevision] = useState(0);
   const [manualPlan, setManualPlan] = useState<ManualStrategyPlan>(() => {
     const initialTrack = TRACK_PRESETS[initialConfig.trackId];
@@ -903,8 +915,9 @@ export default function StrategyLab({
   );
   const appliedTrack = TRACK_PRESETS[applied.trackId];
   const entryProfile = useMemo(() => resolveEntryPerformance(applied.teamId, applied.driverId, applied.equalPerformance), [applied.teamId, applied.driverId, applied.equalPerformance]);
-  const equalReference = useMemo(() => optimizeTyreStrategies(makeOptimizerInput({ ...applied, equalPerformance: true }))[0], [applied]);
-  const performanceSummary = applied.equalPerformance ? "동일 성능 모드 · 팀·선수 시간 보정 없음" : `능력치 반영 · 동일 성능 대비 추천 1번 ${equalReference?.signature === results[0]?.signature ? "구성 유지" : "구성 변경"} · 총시간 차이 ${formatDelta((results[0]?.totalSeconds ?? 0) - (equalReference?.totalSeconds ?? 0))} · 프로젝트 추정`;
+  const sharedExperimentGrid = useMemo(() => results[0] ? buildSharedRaceGrid({ teamId: applied.teamId, driverId: applied.driverId, playerStrategy: results[0], strategyPool: results, startingGridPosition: applied.startingGridPosition, equalPerformance: applied.equalPerformance }) : null, [applied.teamId, applied.driverId, applied.startingGridPosition, applied.equalPerformance, results]);
+  const equalResults = useMemo(() => calculateDisplayedStrategies(makeOptimizerInput({ ...applied, equalPerformance: true })), [applied]);
+  const performanceSummary = applied.equalPerformance ? "동일 성능 모드 · 팀·선수 시간 보정 없음" : `능력치 반영 · 동일 성능 대비 Top 3 ${equalResults.every((value, index) => value.signature === results[index]?.signature) ? "구성 유지" : "구성 변경"} · 1번 총시간 차이 ${formatDelta((results[0]?.totalSeconds ?? 0) - (equalResults[0]?.totalSeconds ?? 0))} · 프로젝트 추정`;
   const strategyPitWindows = useMemo(
     () =>
       results
@@ -999,7 +1012,7 @@ export default function StrategyLab({
   ) => {
     nextConfig = { ...nextConfig, driverId: profileDriver.id, teamId: TEAM_PROFILES.find(team => team.drivers.some(driver => driver.id === profileDriver.id))?.id ?? nextConfig.teamId };
     const nextTrack = TRACK_PRESETS[nextConfig.trackId];
-    const nextResults = optimizeTyreStrategies(
+    const nextResults = calculateDisplayedStrategies(
       makeOptimizerInput(nextConfig),
     );
     const nextBest = nextResults[0];
@@ -1406,6 +1419,8 @@ export default function StrategyLab({
           />
 
           <p className="weather-model-summary">강수: {RAIN_LABELS[applied.weather.preset]} · 수막·우천 페널티: 프로젝트 추정. 슬릭→인터 경계 {calculatedCrossovers().slickInter.toFixed(2)} 초과, 인터→웨트 약 {calculatedCrossovers().interWet.toFixed(2)}. {selectedTopThree.ruleExplanation} 3D 노면 광택·물보라는 계산과 분리된 연출입니다.</p>
+          <p className="weather-model-summary" hidden={workspace !== "board"}>1번은 기존 K-best DP의 최단 해입니다. 2·3번은 순서만 다른 구성을 묶은 대표 대안이며 전역 2·3위가 아닙니다. 같은 스톱 수·컴파운드 집합은 {MODEL_PARAMS.race.minimumDistinctSeconds}초 이상 차이 나는 후보만 표시합니다.{results.length < 3 && ` 현재 조건에서 구별되는 후보는 ${results.length}개입니다.`}</p>
+          <RaceExperimentPanel hidden={pageView !== "strategy" || workspace !== "board"} candidates={results} seed={experimentSeed} onSeedChange={setExperimentSeed} result={raceExperiment} onResult={setRaceExperiment} racecraft={entryProfile.racecraft} startingGridPosition={applied.startingGridPosition} pitLossSeconds={applied.pitLossSeconds} trialIndex={experimentTrial} onTrialChange={setExperimentTrial} fixedRivals={sharedExperimentGrid?.fixedRivals} playerId={sharedExperimentGrid?.playerId} gridSlotOffsetSeconds={sharedExperimentGrid?.gridSlotOffsetSeconds} />
           <div className="lab-grid">
             <p className="sr-only">{performanceSummary}</p>
             <aside className="setup-column" aria-label="레이스 시나리오 설정">
@@ -1572,7 +1587,7 @@ export default function StrategyLab({
                       <span>환경 조건 · 설정</span>
                       <h4 id="weather-conditions-title">환경 조건</h4>
                     </div>
-                    <b>건식 모델</b>
+                    <b>랩별 노면 모델</b>
                   </div>
 
                   <div className="apex-weather-grid">
@@ -2973,7 +2988,7 @@ return unique_top_3()`}</code>
               <h2 id="limits-title">이 모델이 말하는 것, 말하지 않는 것</h2>
             </div>
             <p>
-              결과는 교통이 없는 건식 조건에서 같은 단순화 모델로 전략을
+              기본 결과는 지정한 강수 조건에서 교통을 제외한 비용식으로 전략을
               비교한 값입니다.
             </p>
           </div>
@@ -2983,15 +2998,16 @@ return unique_top_3()`}</code>
               <span>반영 항목</span>
               <h3>계산에 반영</h3>
               <ul>
-                <li>S/M/H의 초기 성능 차이</li>
+                <li>S/M/H/인터/웨트의 초기 성능·수막 불일치 비용</li>
                 <li>타이어 나이에 따른 1차·2차 열화</li>
                 <li>워밍업·온도·그립·그레이닝·과열·성능 급락 추정</li>
                 <li>랩이 지날수록 감소하는 연료 효과</li>
                 <li>서킷별 고정 피트 손실</li>
-                <li>모델 탐색 범위: 1–2스톱</li>
-                <li>서로 다른 건식 타이어 2종 사용 조건</li>
+                <li>모델 탐색 범위: 건식 최대 2스톱·우천 최대 3스톱</li>
+                <li>건식 2종 조건 · 인터/웨트 실제 사용 시 면제</li>
                 <li>실제 서킷 윤곽 위 선택 전략 랩·피트 이벤트 재생</li>
                 <li>20대 성능 추정치와 결정론적 교통·더블스택 보정</li>
+                <li>고정 시드 300회 SC/VSC·교통 후보 비교 실험</li>
               </ul>
             </article>
 
@@ -2999,8 +3015,8 @@ return unique_top_3()`}</code>
               <span>미반영 항목</span>
               <h3>이번 버전에서 제외</h3>
               <ul>
-                <li>비, 노면 수분, 실제 타이어 센서 온도·압력</li>
-                <li>SC/VSC, 적기, 사고와 차량 고장</li>
+                <li>실측 강수량·수막 깊이, 실제 타이어 센서 온도·압력</li>
+                <li>SC/VSC 실제 대열 압축·주행 지연, 적기, 사고와 차량 고장</li>
                 <li>실제 추월·충돌·더티에어 물리</li>
                 <li>팀 내부의 실제 차량 셋업과 드라이버 주행 입력</li>
                 <li>상대 팀의 실시간 대응 전략</li>
@@ -3429,7 +3445,7 @@ return unique_top_3()`}</code>
             </div>
             <div>
               <dt>모델 범위</dt>
-              <dd>건식 · S/M/H · 1–2회 교체</dd>
+              <dd>S/M/H/인터/웨트 · 건식 최대 2회·우천 최대 3회 · 프로젝트 범위</dd>
             </div>
           </dl>
           <p className="footer__disclaimer">

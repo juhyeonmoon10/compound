@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-06T15:27:00.666428+00:00",
+  "generatedAt": "2026-09-06T15:31:39.970002+00:00",
   "generatedBy": "tools/collect_pit_loss_evidence.py",
   "preferredSeason": 2025,
   "fallbackSeasons": [

@@ -17,13 +17,13 @@ import RaceScene3D, {
   type RaceSceneTelemetry,
 } from "./RaceScene3D";
 import { resolveEntryPerformance } from "./lib/entry-performance";
+import { buildSharedRaceGrid, sharedRaceParticipants } from "./lib/shared-race-grid";
 import { RACE_CAR_ASSET } from "./lib/visual-assets";
 import type {
   DriverProfile,
   TeamId,
   TeamProfile,
 } from "./lib/participants";
-import { TEAM_PROFILES } from "./lib/participants";
 import {
   PERFORMANCE_DATA_SOURCES,
   PERFORMANCE_MODEL_VERSION,
@@ -38,7 +38,6 @@ import {
   createRaceGrid,
   raceGridCar,
   raceGridFrameAt,
-  relativeEntryModelAdjustment,
   type RaceGrid,
   type RaceGridCarFrame,
   type RaceGridEntry,
@@ -194,27 +193,6 @@ const TRAFFIC_PARAMETERS: Readonly<
   },
 };
 
-interface GridParticipant {
-  readonly team: TeamProfile;
-  readonly driver: DriverProfile;
-}
-
-function raceParticipants(
-  selectedTeam: TeamProfile,
-  selectedDriver: DriverProfile,
-): readonly GridParticipant[] {
-  const all = TEAM_PROFILES.flatMap((team) =>
-    team.drivers.map((driver) => ({ team, driver })),
-  );
-  const selected = { team: selectedTeam, driver: selectedDriver };
-  return [
-    selected,
-    ...all.filter(
-      (participant) => participant.driver.id !== selectedDriver.id,
-    ),
-  ].slice(0, 20);
-}
-
 function makeRaceGrid(
   selectedTeam: TeamProfile,
   selectedDriver: DriverProfile,
@@ -228,12 +206,12 @@ function makeRaceGrid(
   readonly grid: RaceGrid;
   readonly visuals: readonly RaceSceneGridVisual[];
 } {
-  const participants = raceParticipants(selectedTeam, selectedDriver);
   if (entryContext && (entryContext.teamId !== selectedTeam.id || entryContext.driverId !== selectedDriver.id)) {
     throw new RangeError("Replay entry context must match the primary DP team and driver.");
   }
-  const primaryEntry = entryContext
-    ? resolveEntryPerformance(entryContext.teamId, entryContext.driverId, entryContext.equalPerformance) : null;
+  const shared = entryContext ? buildSharedRaceGrid({ ...entryContext, playerStrategy,
+    strategyPool: strategies, startingGridPosition }) : null;
+  const participants = shared?.participants ?? sharedRaceParticipants(selectedTeam.id, selectedDriver.id);
   const opponentStrategies =
     strategies.length > 0 ? strategies : [playerStrategy];
   const playerGridPosition = Math.min(
@@ -246,21 +224,16 @@ function makeRaceGrid(
       (position) => position !== playerGridPosition,
     ),
   ];
-  const entries: RaceGridEntry[] = participants.map(
+  const entries: readonly RaceGridEntry[] = shared?.entries ?? participants.map(
     (participant, index) => ({
       id: participant.driver.id,
       label: participant.driver.code,
       gridPosition: gridSlots[index],
       pitGroup: participant.team.id,
-      ...(!entryContext ? { performance: racePerformanceProfile(
+      performance: racePerformanceProfile(
         participant.team,
         participant.driver,
-      ).ratings } : {}),
-      ...(entryContext && primaryEntry ? { entryModelAdjustment: relativeEntryModelAdjustment(
-        entryContext.driverId, primaryEntry,
-        participant.driver.id === entryContext.driverId ? primaryEntry : resolveEntryPerformance(
-          participant.team.id, participant.driver.id, entryContext.equalPerformance),
-      ) } : {}),
+      ).ratings,
       strategy:
         index === 0
           ? playerStrategy
