@@ -281,20 +281,145 @@ def pit_losses(laps):
     return {"status": "observational-estimate" if len(values) >= 3 else "insufficient-samples", "formula": "(in-lap + next out-lap) − 2 × median of same-driver normal laps within ±4 laps", "rawSamples": len(samples), "retainedSamples": len(values), "medianSeconds": number(np.median(values),3) if values else None, "iqrSeconds": [number(x,3) for x in np.quantile(values,[.25,.75])] if values else None, "samples": retained, "caveat": "Includes tyre pace change, fuel progression and traffic; excludes non-green in/out pairs. Not stationary pit-stop duration. Positive samples use 1.5-IQR rejection only when at least four exist."}
 
 
-def wet_evidence(laps, track_id, year):
+WET_METHOD = {
+    "classification": "official-timing-derived-descriptive-observations; not a calibrated water-depth model",
+    "filter": ["complete LapTime; IsAccurate=True; Deleted!=True; FastF1Generated=False", "TrackStatus exactly 1; exclude pit in/out and race lap 1", "group SOFT/MEDIUM/HARD as DRY, INTERMEDIATE separately, WET separately", "no five-lap stint filter, residual IQR rejection, driver regression or holdout validation is applied to these wet summaries"],
+    "weatherJoin": "FastF1 Laps.get_weather_data: first weather sample within each driver's lap; if none, last sample before that lap ends. One sample per lap, not interpolation or an exact common-clock match between cars.",
+    "weatherJoinDocumentationUrl": "https://docs.fastf1.dev/core.html#fastf1.core.Laps.get_weather_data",
+    "rainfall": "boolean station observation, not intensity or track water; true if any explicit true, false only when every paired row is explicitly false, otherwise unknown",
+    "distribution": "linear-interpolated sample quantiles [min,Q1,median,Q3,max]; individual same-lap median differences retained. Never pool races. Descriptive spread, not a confidence interval.",
+    "signChange": "adjacent available same-pair observations with opposite signs bracket an interval; missing intervening laps prevent identifying an exact crossover lap",
+    "actualTyreChanges": "adjacent official driver laps with a changed DRY/INTERMEDIATE/WET group and stint. Pit markers distinguish pit-related changes from unmarked/possible red-flag changes. No optimality claim.",
+    "units": {"lapTime": "seconds", "difference": "seconds; first minus second", "trackTemperature": "C", "humidity": "%", "weatherAgeAtLapEnd": "seconds"},
+    "calibrationGate": "collection success does not imply calibration: no measured water depth/intensity and no simultaneous INTERMEDIATE/WET comparison; retain project coefficients",
+}
+
+
+def wet_distribution(values):
+    finite = [float(value) for value in values if pd.notna(value) and np.isfinite(value)]
+    if not finite:
+        return {"count": 0, "min": None, "q1": None, "median": None, "q3": None, "max": None}
+    points = np.quantile(finite, [0, .25, .5, .75, 1], method="linear")
+    return {"count": len(finite), **dict(zip(("min", "q1", "median", "q3", "max"), [number(value, 3) for value in points]))}
+
+
+def wet_rainfall(values):
+    values = pd.Series(values)
+    if values.eq(True).any():
+        return True
+    if len(values) and values.notna().all() and values.eq(False).all():
+        return False
+    return None
+
+
+def wet_group(compound):
+    return "DRY" if compound in COMPOUNDS else compound if compound in ("INTERMEDIATE", "WET") else "OTHER"
+
+
+def enrich_wet_comparisons(event):
+    """Also works on the saved five comparisons if a raw cache is unavailable."""
+    pairs = sorted({(row["firstCompound"], row["secondCompound"]) for row in event["sameLapComparisons"]})
+    distributions, changes = [], []
+    for first, second in pairs:
+        points = sorted([row for row in event["sameLapComparisons"] if row["firstCompound"] == first and row["secondCompound"] == second], key=lambda row: row["lap"])
+        distributions.append({"firstCompound": first, "secondCompound": second, "statistics": wet_distribution([row["firstMinusSecondSeconds"] for row in points]), "points": points})
+        for before, after in zip(points, points[1:]):
+            if before["firstMinusSecondSeconds"] * after["firstMinusSecondSeconds"] < 0:
+                changes.append({"firstCompound": first, "secondCompound": second, "fromLap": before["lap"], "toLap": after["lap"], "unobservedLapsBetween": after["lap"] - before["lap"] - 1,
+                                "before": before, "after": after, "exactCrossoverLap": None, "classification": "bracketed-sign-change-not-an-identified-crossover"})
+    return {**event, "sameLapDifferenceDistributions": distributions, "observedSignChangeIntervals": changes,
+            "calibrationStatus": "project-estimates-retained", "supportsWetCrossoverCalibration": False}
+
+
+def wet_tyre_changes(laps):
+    changes, gaps = [], []
+    for driver, group in laps.sort_values("LapNumber").groupby("Driver"):
+        ordered = group[group.Compound.notna() & group.Stint.notna() & ~group.FastF1Generated.fillna(False)]
+        records = list(ordered.itertuples())
+        for before, after in zip(records, records[1:]):
+            first, second = wet_group(before.Compound), wet_group(after.Compound)
+            if first == second or "OTHER" in (first, second):
+                continue
+            if after.LapNumber != before.LapNumber + 1 or after.Stint == before.Stint:
+                gaps.append({"driver": str(driver), "fromLap": int(before.LapNumber), "toLap": int(after.LapNumber), "reason": "nonadjacent laps or unchanged stint; exact switch not asserted"})
+                continue
+            pit_marked = pd.notna(before.PitInTime) or pd.notna(after.PitOutTime)
+            changes.append({"driver": str(driver), "fromCompound": first, "toCompound": second,
+                            "afterLap": int(before.LapNumber), "firstLapOnNewTyre": int(after.LapNumber),
+                            "pitTimingRecorded": bool(pit_marked), "context": "pit-timing-recorded" if pit_marked else "tyre-change-without-pit-marker",
+                            "trackStatus": str(after.TrackStatus), "rainfall": wet_rainfall([after.Rainfall]),
+                            "trackTempC": number(after.TrackTemp, 2), "humidityPercent": number(after.Humidity, 2)})
+    return changes, gaps
+
+
+def wet_evidence(laps, track_id, year, timing_source_url=None):
     valid = laps[laps.LapTimeSeconds.notna() & laps.IsAccurate.fillna(False) & laps.Deleted.ne(True) & ~laps.FastF1Generated.fillna(False) & laps.TrackStatus.eq("1") & laps.PitInTime.isna() & laps.PitOutTime.isna() & laps.LapNumber.gt(1)].copy()
-    valid["TyreGroup"] = valid.Compound.map(lambda x: "DRY" if x in COMPOUNDS else "INTERMEDIATE" if x=="INTERMEDIATE" else "WET" if x=="WET" else "OTHER")
+    valid["TyreGroup"] = valid.Compound.map(wet_group)
+    valid = valid[valid.TyreGroup.ne("OTHER")].copy()
     summaries=[]
     for compound, group in valid[valid.TyreGroup.ne("OTHER")].groupby("TyreGroup"):
-        summaries.append({"compound": compound,"laps":len(group),"drivers":int(group.Driver.nunique()),"rainfallTrueLaps":int(group.Rainfall.eq(True).sum()),"rainfallKnownLaps":int(group.Rainfall.notna().sum()),"meanTrackTempC":number(group.TrackTemp.mean(),2),"meanHumidityPercent":number(group.Humidity.mean(),2),"medianLapSeconds":number(group.LapTimeSeconds.median(),3)})
+        summaries.append({"compound": compound,"laps":len(group),"drivers":int(group.Driver.nunique()),"rainfallTrueLaps":int(group.Rainfall.eq(True).sum()),"rainfallKnownLaps":int(group.Rainfall.notna().sum()),"meanTrackTempC":number(group.TrackTemp.mean(),2),"meanHumidityPercent":number(group.Humidity.mean(),2),"medianLapSeconds":number(group.LapTimeSeconds.median(),3), "lapTimeDistribution": wet_distribution(group.LapTimeSeconds)})
     comparisons=[]
     for lap_number, group in valid.groupby("LapNumber"):
         for first,second in (("INTERMEDIATE","WET"),("DRY","INTERMEDIATE"),("DRY","WET")):
             left=group[group.TyreGroup==first]; right=group[group.TyreGroup==second]
             if left.empty or right.empty:
                 continue
-            comparisons.append({"lap":int(lap_number),"firstCompound":first,"secondCompound":second,"firstSamples":len(left),"secondSamples":len(right),"firstMinusSecondSeconds":number(left.LapTimeSeconds.median()-right.LapTimeSeconds.median(),3),"rainfallTrue":bool(group.Rainfall.eq(True).any()),"trackTempC":number(group.TrackTemp.mean(),2),"humidityPercent":number(group.Humidity.mean(),2)})
-    return {"trackId":track_id,"season":year,"rawCompoundCounts":{str(k):int(v) for k,v in laps.Compound.value_counts().items()},"retainedCompoundSummary":summaries,"sameLapComparisons":comparisons,"intermediateWetMatchedLaps":sum(x["firstCompound"]=="INTERMEDIATE" and x["secondCompound"]=="WET" for x in comparisons),"status":"matched-observations" if comparisons else "no-same-lap-comparison", "caveat":"Different drivers/teams on the same race lap are observational comparisons, not controlled tyre tests. Rainfall is a weather-station boolean; it does not measure road water or grip. Wet crossover is not estimated without adequate simultaneous samples."}
+            paired = pd.concat([left, right])
+            comparisons.append({"lap":int(lap_number),"firstCompound":first,"secondCompound":second,"firstSamples":len(left),"secondSamples":len(right),"firstMinusSecondSeconds":number(left.LapTimeSeconds.median()-right.LapTimeSeconds.median(),3),"rainfallTrue":wet_rainfall(paired.Rainfall),"rainfallKnownSamples":int(paired.Rainfall.notna().sum()),"trackTempC":number(paired.TrackTemp.mean(),2),"humidityPercent":number(paired.Humidity.mean(),2), "firstLapTimeDistribution": wet_distribution(left.LapTimeSeconds), "secondLapTimeDistribution": wet_distribution(right.LapTimeSeconds)})
+    changes, gaps = wet_tyre_changes(laps)
+    weather_ages = valid["WeatherAgeAtLapEndSeconds"] if "WeatherAgeAtLapEndSeconds" in valid else []
+    return enrich_wet_comparisons({"trackId":track_id,"season":year,"timingSourceUrl":timing_source_url,
+        "rawCompoundCounts":{str(k):int(v) for k,v in laps.Compound.value_counts().items()},"retainedCompoundSummary":summaries,"sameLapComparisons":comparisons,
+        "intermediateWetMatchedLaps":sum(x["firstCompound"]=="INTERMEDIATE" and x["secondCompound"]=="WET" for x in comparisons),
+        "status":"matched-observations" if comparisons else "no-same-lap-comparison", "actualTyreChanges": changes, "unresolvedTyreChangeGaps": gaps,
+        "weatherJoinCoverage": {"retainedLaps": len(valid), "rainfallKnownLaps": int(valid.Rainfall.notna().sum()), "trackTempKnownLaps": int(valid.TrackTemp.notna().sum()), "humidityKnownLaps": int(valid.Humidity.notna().sum()), "weatherAgeAtLapEndSeconds": wet_distribution(weather_ages)},
+        "caveat":"Different drivers/teams on the same race lap are observational comparisons, not controlled tyre tests. Rainfall is a weather-station boolean; it does not measure road water or grip. Wet crossover is not estimated without adequate simultaneous samples."})
+
+
+def refresh_wet_cache_only(cache_dir, output_dir):
+    """Only this JSON is written. Raw timing cache misses cannot go online."""
+    import requests
+    path = output_dir / "wet-weather-2025.json"
+    previous = json.loads(path.read_text(encoding="utf-8"))
+    original_send = requests.Session.send
+    def deny_network(*args, **kwargs):
+        raise RuntimeError("Network disabled for cache-only wet evidence refresh")
+    fastf1.Cache.enable_cache(str(cache_dir))
+    fastf1.Cache.offline_mode(True)
+    requests.Session.send = deny_network
+    events = []
+    try:
+        for track, name in (("melbourne", "Australian Grand Prix"), ("silverstone", "British Grand Prix"), ("spa", "Belgian Grand Prix")):
+            old = next(event for event in previous["events"] if event["trackId"] == track)
+            try:
+                session = fastf1.get_session(2025, name, "R")
+                if session.event.EventName != name:
+                    raise ValueError("Wrong event resolved")
+                session.load(laps=True, telemetry=False, weather=True, messages=True)
+                laps = weather_laps(session)
+                weather = session.laps.get_weather_data()
+                laps["WeatherAgeAtLapEndSeconds"] = (laps.Time.reset_index(drop=True) - weather.Time.reset_index(drop=True)).dt.total_seconds()
+                value = wet_evidence(laps, track, 2025, "https://livetiming.formula1.com" + session.api_path)
+                # Do not silently replace the established observations with a
+                # different cache/parser snapshot during a display-only follow-up.
+                old_pairs = [(row["lap"], row["firstMinusSecondSeconds"], row["firstSamples"], row["secondSamples"]) for row in old["sameLapComparisons"]]
+                new_pairs = [(row["lap"], row["firstMinusSecondSeconds"], row["firstSamples"], row["secondSamples"]) for row in value["sameLapComparisons"]]
+                if new_pairs != old_pairs:
+                    raise ValueError("Cached same-lap observations differ from saved snapshot")
+                value["collectionStatus"] = "cache-refreshed-no-network"
+            except Exception as error:
+                value = enrich_wet_comparisons(old)
+                value.update({"collectionStatus": "saved-summary-only-cache-unavailable", "actualTyreChanges": None,
+                              "cacheFailure": {"type": type(error).__name__, "message": str(error)[:200]}})
+            events.append(value)
+            print(f"Wet {track}: {value['collectionStatus']}; pairs={len(value['sameLapComparisons'])}; switches={len(value.get('actualTyreChanges') or [])}", flush=True)
+    finally:
+        requests.Session.send = original_send
+        fastf1.Cache.offline_mode(False)
+    save_json(path, {**previous, "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(), "previousObservationSnapshotAt": previous.get("previousObservationSnapshotAt", previous["generatedAt"]),
+                    "methodology": WET_METHOD, "events": events, "collectionMode": "offline-cache-only; no other dataset regenerated",
+                    "supportsWetCrossoverCalibration": False, "calibrationStatus": "project-estimates-retained"})
 
 
 def collect_one(year, track_id, event_name, cache_dir, checkpoint_dir):
@@ -336,7 +461,7 @@ def collect_one(year, track_id, event_name, cache_dir, checkpoint_dir):
             result.update({"analysisStatus":"estimated","modelLaps":len(robust),"stints":int(robust.groupby(["Driver","Stint"]).ngroups),"drivers":int(robust.Driver.nunique()),"matrixRank":full["rank"],"matrixColumns":len(full["names"]),"coefficients":coefficients(full),"teamEstimates":team_estimates(full),"validation":{"trainLaps":len(train["frame"]),"testLaps":len(validation),"maeSeconds":number(np.abs(errors).mean(),6),"rmseSeconds":number(np.sqrt((errors**2).mean()),6),"absoluteErrorSumSeconds":number(np.abs(errors).sum(),6),"squaredErrorSum":number((errors**2).sum(),6)}})
             result["modelSelection"]=select_nested_model(cleaned.loc[train_ids],validation)
         if year==2025 and track_id in WET_EVENTS:
-            result["wetEvidence"]=wet_evidence(laps,track_id,year)
+            result["wetEvidence"]=wet_evidence(laps,track_id,year,result["timingSourceUrl"])
         save_json(checkpoint,result)
         print(f"COLLECTED {key}: raw={len(laps)} model={result['modelLaps']} stints={result['stints']}",flush=True)
         return result
@@ -354,7 +479,11 @@ def main():
     parser.add_argument("--checkpoint-dir",type=Path,default=ROOT/"work"/"evidence-checkpoints")
     parser.add_argument("--years",nargs="+",type=int,default=[2023,2024,2025])
     parser.add_argument("--tracks",nargs="+",default=[item[0] for item in EVENTS])
+    parser.add_argument("--wet-only-from-cache",action="store_true",help="refresh only wet-weather-2025.json from existing cache; block network")
     args=parser.parse_args()
+    if args.wet_only_from_cache:
+        refresh_wet_cache_only(args.cache_dir,args.output_dir)
+        return
     args.cache_dir.mkdir(parents=True,exist_ok=True)
     args.checkpoint_dir.mkdir(parents=True,exist_ok=True)
     fastf1.Cache.enable_cache(str(args.cache_dir))
@@ -375,7 +504,7 @@ def main():
     metadata={"schemaVersion":1,"generatedAt":dt.datetime.now(dt.timezone.utc).isoformat(),"libraryVersion":fastf1.__version__,"generatedBy":"tools/collect_historical_evidence.py","source":"FastF1 public timing data","isLive":False,"methodology":METHOD}
     save_json(args.output_dir/"historical-dry-2023-2025.json",{**metadata,"summary":summary,"events":[{k:v for k,v in x.items() if k!="wetEvidence"} for x in dry]})
     wet=[x["wetEvidence"] for x in collected if "wetEvidence" in x]
-    save_json(args.output_dir/"wet-weather-2025.json",{**metadata,"events":wet,"requestedEvents":["2025-melbourne","2025-silverstone","2025-spa"],"missingEvents":[tid for tid in WET_EVENTS if not any(x["trackId"]==tid for x in wet)],"supportsWetCrossoverCalibration":False,"reason":"Same-lap comparisons are descriptive; no water-depth/intensity sensor and sparse/no full-wet overlaps."})
+    save_json(args.output_dir/"wet-weather-2025.json",{**metadata,"methodology":WET_METHOD,"events":[enrich_wet_comparisons(event) for event in wet],"requestedEvents":["2025-melbourne","2025-silverstone","2025-spa"],"missingEvents":[tid for tid in WET_EVENTS if not any(x["trackId"]==tid for x in wet)],"supportsWetCrossoverCalibration":False,"reason":"Same-lap comparisons are descriptive; no water-depth/intensity sensor and sparse/no full-wet overlaps."})
     pit_coverage=[]
     for tid in TRACK_IDS:
         event_estimates=[x for x in collected if x["trackId"]==tid and x["pitLoss"]["status"]=="observational-estimate"]

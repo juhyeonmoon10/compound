@@ -1,114 +1,38 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-06T14:28:12.502960+00:00",
+  "generatedAt": "2026-09-06T16:11:05.610676+00:00",
   "libraryVersion": "3.8.3",
   "generatedBy": "tools/collect_historical_evidence.py",
   "source": "FastF1 public timing data",
   "isLive": false,
   "methodology": {
-    "formula": "LapTime ~ Driver + RaceLap + RaceLap² + TrackTemp + Compound + Compound×TyreLife + Compound×TyreLife²",
+    "classification": "official-timing-derived-descriptive-observations; not a calibrated water-depth model",
+    "filter": [
+      "complete LapTime; IsAccurate=True; Deleted!=True; FastF1Generated=False",
+      "TrackStatus exactly 1; exclude pit in/out and race lap 1",
+      "group SOFT/MEDIUM/HARD as DRY, INTERMEDIATE separately, WET separately",
+      "no five-lap stint filter, residual IQR rejection, driver regression or holdout validation is applied to these wet summaries"
+    ],
+    "weatherJoin": "FastF1 Laps.get_weather_data: first weather sample within each driver's lap; if none, last sample before that lap ends. One sample per lap, not interpolation or an exact common-clock match between cars.",
+    "weatherJoinDocumentationUrl": "https://docs.fastf1.dev/core.html#fastf1.core.Laps.get_weather_data",
+    "rainfall": "boolean station observation, not intensity or track water; true if any explicit true, false only when every paired row is explicitly false, otherwise unknown",
+    "distribution": "linear-interpolated sample quantiles [min,Q1,median,Q3,max]; individual same-lap median differences retained. Never pool races. Descriptive spread, not a confidence interval.",
+    "signChange": "adjacent available same-pair observations with opposite signs bracket an interval; missing intervening laps prevent identifying an exact crossover lap",
+    "actualTyreChanges": "adjacent official driver laps with a changed DRY/INTERMEDIATE/WET group and stint. Pit markers distinguish pit-related changes from unmarked/possible red-flag changes. No optimality claim.",
     "units": {
       "lapTime": "seconds",
-      "alpha": "seconds / tyre-life lap",
-      "beta": "seconds / tyre-life lap²",
-      "pitLoss": "seconds",
-      "temperature": "°C",
+      "difference": "seconds; first minus second",
+      "trackTemperature": "C",
       "humidity": "%",
-      "rainfall": "boolean weather-station flag, NOT intensity"
+      "weatherAgeAtLapEnd": "seconds"
     },
-    "filter": [
-      "S/M/H; complete LapTime, TyreLife, Stint",
-      "IsAccurate=True; Deleted!=True; FastF1Generated=False",
-      "TrackStatus exactly 1",
-      "exclude pit in/out and race lap 1",
-      "at least 5 normal laps per single-compound monotonic-life stint",
-      "up to 3 residual IQR passes, fences Q1−3IQR / Q3+3IQR"
-    ],
-    "validation": "First 75% of each qualifying stint trains; final 25% tests. IQR trimming is fitted on training only for holdout; test rows are not trimmed.",
-    "intervals": "Asymptotic 95% intervals from driver-stint cluster-robust covariance; exploratory, not a causal tyre-wear measurement.",
-    "thresholds": {
-      "minimumStintLaps": {
-        "value": 5,
-        "unit": "laps",
-        "source": "project quality filter, unchanged from analysis/fastf1_austria_2025.py"
-      },
-      "iqrMultiplier": {
-        "value": 3,
-        "unit": "IQR",
-        "source": "project robust filter"
-      },
-      "minimumReliableLaps": {
-        "value": 40,
-        "unit": "laps",
-        "source": "project confidence gate"
-      },
-      "minimumReliableStints": {
-        "value": 4,
-        "unit": "stints",
-        "source": "project confidence gate"
-      },
-      "holdoutFraction": {
-        "value": 0.25,
-        "unit": "fraction of each stint",
-        "source": "project temporal validation design"
-      },
-      "minimumDistinctTyreLives": {
-        "value": 4,
-        "unit": "distinct age values",
-        "source": "project quadratic identifiability gate"
-      },
-      "minimumTeamLaps": {
-        "value": 20,
-        "unit": "laps per team and compound",
-        "source": "project exploratory team proxy gate"
-      },
-      "minimumTeamStints": {
-        "value": 2,
-        "unit": "driver-stint groups",
-        "source": "project exploratory team proxy gate; not a reliability guarantee"
-      },
-      "pitLocalWindow": {
-        "value": 4,
-        "unit": "race laps before in-lap / after out-lap",
-        "source": "project local baseline estimator"
-      },
-      "minimumPitBaselineLaps": {
-        "value": 4,
-        "unit": "normal same-driver laps",
-        "source": "project pit-loss quality gate"
-      },
-      "minimumPitSamples": {
-        "value": 3,
-        "unit": "retained pit pairs per event",
-        "source": "project pit-loss reporting gate"
-      },
-      "pitIqrMultiplier": {
-        "value": 1.5,
-        "unit": "IQR",
-        "source": "project outlier filter, applied with at least four pairs"
-      },
-      "minimumIqr": {
-        "value": 0.05,
-        "unit": "seconds",
-        "source": "project numerical floor for residual and pit IQR filters"
-      },
-      "confidenceCriticalValue": {
-        "value": 1.96,
-        "unit": "standard errors",
-        "source": "asymptotic two-sided 95% normal approximation"
-      }
-    },
-    "limitations": [
-      "Relative SOFT/MEDIUM/HARD labels are event-specific; absolute C1–C5 allocations are not inferred or pooled.",
-      "Driver effects, race progress and temperature do not fully identify fuel, traffic, tyre management or team ability.",
-      "No 2026 calibration claim: 2023–2025 tyre regulations and cars differ.",
-      "Pit-loss and wet same-lap differences are observational proxies, not pit-lane telemetry or wetness sensors."
-    ]
+    "calibrationGate": "collection success does not imply calibration: no measured water depth/intensity and no simultaneous INTERMEDIATE/WET comparison; retain project coefficients"
   },
   "events": [
     {
       "trackId": "melbourne",
       "season": 2025,
+      "timingSourceUrl": "https://livetiming.formula1.com/static/2025/2025-03-16_Australian_Grand_Prix/2025-03-16_Race/",
       "rawCompoundCounts": {
         "INTERMEDIATE": 750,
         "HARD": 92,
@@ -123,7 +47,15 @@
           "rainfallKnownLaps": 36,
           "meanTrackTempC": 19.3,
           "meanHumidityPercent": 69.92,
-          "medianLapSeconds": 85.427
+          "medianLapSeconds": 85.427,
+          "lapTimeDistribution": {
+            "count": 36,
+            "min": 82.167,
+            "q1": 84.492,
+            "median": 85.427,
+            "q3": 87.506,
+            "max": 100.978
+          }
         },
         {
           "compound": "INTERMEDIATE",
@@ -133,7 +65,15 @@
           "rainfallKnownLaps": 511,
           "meanTrackTempC": 19.14,
           "meanHumidityPercent": 75.24,
-          "medianLapSeconds": 92.035
+          "medianLapSeconds": 92.035,
+          "lapTimeDistribution": {
+            "count": 511,
+            "min": 87.126,
+            "q1": 90.619,
+            "median": 92.035,
+            "q3": 93.563,
+            "max": 102.054
+          }
         }
       ],
       "sameLapComparisons": [
@@ -145,17 +85,503 @@
           "secondSamples": 6,
           "firstMinusSecondSeconds": 6.367,
           "rainfallTrue": true,
+          "rainfallKnownSamples": 10,
           "trackTempC": 19.3,
-          "humidityPercent": 80.0
+          "humidityPercent": 80.0,
+          "firstLapTimeDistribution": {
+            "count": 4,
+            "min": 96.429,
+            "q1": 96.643,
+            "median": 98.085,
+            "q3": 99.837,
+            "max": 100.978
+          },
+          "secondLapTimeDistribution": {
+            "count": 6,
+            "min": 90.78,
+            "q1": 91.299,
+            "median": 91.719,
+            "q3": 92.238,
+            "max": 92.795
+          }
         }
       ],
       "intermediateWetMatchedLaps": 0,
       "status": "matched-observations",
-      "caveat": "Different drivers/teams on the same race lap are observational comparisons, not controlled tyre tests. Rainfall is a weather-station boolean; it does not measure road water or grip. Wet crossover is not estimated without adequate simultaneous samples."
+      "actualTyreChanges": [
+        {
+          "driver": "ALB",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 33,
+          "firstLapOnNewTyre": 34,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.0,
+          "humidityPercent": 71.0
+        },
+        {
+          "driver": "ALB",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 44,
+          "firstLapOnNewTyre": 45,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "21",
+          "rainfall": true,
+          "trackTempC": 19.3,
+          "humidityPercent": 76.0
+        },
+        {
+          "driver": "ANT",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 33,
+          "firstLapOnNewTyre": 34,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.0,
+          "humidityPercent": 71.0
+        },
+        {
+          "driver": "ANT",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 44,
+          "firstLapOnNewTyre": 45,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "21",
+          "rainfall": true,
+          "trackTempC": 19.3,
+          "humidityPercent": 76.0
+        },
+        {
+          "driver": "BEA",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 39,
+          "firstLapOnNewTyre": 40,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.2,
+          "humidityPercent": 68.0
+        },
+        {
+          "driver": "BEA",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 44,
+          "firstLapOnNewTyre": 45,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": true,
+          "trackTempC": 19.3,
+          "humidityPercent": 80.0
+        },
+        {
+          "driver": "BOR",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 33,
+          "firstLapOnNewTyre": 34,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.0,
+          "humidityPercent": 71.0
+        },
+        {
+          "driver": "BOR",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 44,
+          "firstLapOnNewTyre": 45,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "21",
+          "rainfall": true,
+          "trackTempC": 19.3,
+          "humidityPercent": 77.0
+        },
+        {
+          "driver": "GAS",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 33,
+          "firstLapOnNewTyre": 34,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.0,
+          "humidityPercent": 71.0
+        },
+        {
+          "driver": "GAS",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 46,
+          "firstLapOnNewTyre": 47,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "124",
+          "rainfall": true,
+          "trackTempC": 19.3,
+          "humidityPercent": 80.0
+        },
+        {
+          "driver": "HAM",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 33,
+          "firstLapOnNewTyre": 34,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.0,
+          "humidityPercent": 71.0
+        },
+        {
+          "driver": "HAM",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 47,
+          "firstLapOnNewTyre": 48,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": true,
+          "trackTempC": 18.8,
+          "humidityPercent": 81.0
+        },
+        {
+          "driver": "HUL",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 33,
+          "firstLapOnNewTyre": 34,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.0,
+          "humidityPercent": 71.0
+        },
+        {
+          "driver": "HUL",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 44,
+          "firstLapOnNewTyre": 45,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "21",
+          "rainfall": true,
+          "trackTempC": 19.3,
+          "humidityPercent": 76.0
+        },
+        {
+          "driver": "LAW",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 33,
+          "firstLapOnNewTyre": 34,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.0,
+          "humidityPercent": 71.0
+        },
+        {
+          "driver": "LEC",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 34,
+          "firstLapOnNewTyre": 35,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.0,
+          "humidityPercent": 70.0
+        },
+        {
+          "driver": "LEC",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 47,
+          "firstLapOnNewTyre": 48,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": true,
+          "trackTempC": 18.8,
+          "humidityPercent": 81.0
+        },
+        {
+          "driver": "NOR",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 34,
+          "firstLapOnNewTyre": 35,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.0,
+          "humidityPercent": 71.0
+        },
+        {
+          "driver": "NOR",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 44,
+          "firstLapOnNewTyre": 45,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "21",
+          "rainfall": true,
+          "trackTempC": 19.3,
+          "humidityPercent": 76.0
+        },
+        {
+          "driver": "OCO",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 39,
+          "firstLapOnNewTyre": 40,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.2,
+          "humidityPercent": 68.0
+        },
+        {
+          "driver": "OCO",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 46,
+          "firstLapOnNewTyre": 47,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": true,
+          "trackTempC": 19.3,
+          "humidityPercent": 80.0
+        },
+        {
+          "driver": "PIA",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 34,
+          "firstLapOnNewTyre": 35,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.0,
+          "humidityPercent": 71.0
+        },
+        {
+          "driver": "PIA",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 44,
+          "firstLapOnNewTyre": 45,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": true,
+          "trackTempC": 19.3,
+          "humidityPercent": 80.0
+        },
+        {
+          "driver": "RUS",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 34,
+          "firstLapOnNewTyre": 35,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.0,
+          "humidityPercent": 71.0
+        },
+        {
+          "driver": "RUS",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 44,
+          "firstLapOnNewTyre": 45,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "21",
+          "rainfall": true,
+          "trackTempC": 19.3,
+          "humidityPercent": 76.0
+        },
+        {
+          "driver": "STR",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 33,
+          "firstLapOnNewTyre": 34,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.0,
+          "humidityPercent": 71.0
+        },
+        {
+          "driver": "STR",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 44,
+          "firstLapOnNewTyre": 45,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "21",
+          "rainfall": true,
+          "trackTempC": 19.3,
+          "humidityPercent": 76.0
+        },
+        {
+          "driver": "TSU",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 33,
+          "firstLapOnNewTyre": 34,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.0,
+          "humidityPercent": 71.0
+        },
+        {
+          "driver": "TSU",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 47,
+          "firstLapOnNewTyre": 48,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": true,
+          "trackTempC": 18.8,
+          "humidityPercent": 81.0
+        },
+        {
+          "driver": "VER",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 34,
+          "firstLapOnNewTyre": 35,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "4",
+          "rainfall": false,
+          "trackTempC": 19.0,
+          "humidityPercent": 71.0
+        },
+        {
+          "driver": "VER",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 46,
+          "firstLapOnNewTyre": 47,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "124",
+          "rainfall": true,
+          "trackTempC": 19.3,
+          "humidityPercent": 80.0
+        }
+      ],
+      "unresolvedTyreChangeGaps": [],
+      "weatherJoinCoverage": {
+        "retainedLaps": 547,
+        "rainfallKnownLaps": 547,
+        "trackTempKnownLaps": 547,
+        "humidityKnownLaps": 547,
+        "weatherAgeAtLapEndSeconds": {
+          "count": 547,
+          "min": 30.391,
+          "q1": 45.478,
+          "median": 61.147,
+          "q3": 75.857,
+          "max": 97.689
+        }
+      },
+      "caveat": "Different drivers/teams on the same race lap are observational comparisons, not controlled tyre tests. Rainfall is a weather-station boolean; it does not measure road water or grip. Wet crossover is not estimated without adequate simultaneous samples.",
+      "sameLapDifferenceDistributions": [
+        {
+          "firstCompound": "DRY",
+          "secondCompound": "INTERMEDIATE",
+          "statistics": {
+            "count": 1,
+            "min": 6.367,
+            "q1": 6.367,
+            "median": 6.367,
+            "q3": 6.367,
+            "max": 6.367
+          },
+          "points": [
+            {
+              "lap": 46,
+              "firstCompound": "DRY",
+              "secondCompound": "INTERMEDIATE",
+              "firstSamples": 4,
+              "secondSamples": 6,
+              "firstMinusSecondSeconds": 6.367,
+              "rainfallTrue": true,
+              "rainfallKnownSamples": 10,
+              "trackTempC": 19.3,
+              "humidityPercent": 80.0,
+              "firstLapTimeDistribution": {
+                "count": 4,
+                "min": 96.429,
+                "q1": 96.643,
+                "median": 98.085,
+                "q3": 99.837,
+                "max": 100.978
+              },
+              "secondLapTimeDistribution": {
+                "count": 6,
+                "min": 90.78,
+                "q1": 91.299,
+                "median": 91.719,
+                "q3": 92.238,
+                "max": 92.795
+              }
+            }
+          ]
+        }
+      ],
+      "observedSignChangeIntervals": [],
+      "calibrationStatus": "project-estimates-retained",
+      "supportsWetCrossoverCalibration": false,
+      "collectionStatus": "cache-refreshed-no-network"
     },
     {
       "trackId": "silverstone",
       "season": 2025,
+      "timingSourceUrl": "https://livetiming.formula1.com/static/2025/2025-07-06_British_Grand_Prix/2025-07-06_Race/",
       "rawCompoundCounts": {
         "INTERMEDIATE": 608,
         "MEDIUM": 140,
@@ -171,7 +597,15 @@
           "rainfallKnownLaps": 138,
           "meanTrackTempC": 24.07,
           "meanHumidityPercent": 66.9,
-          "medianLapSeconds": 91.669
+          "medianLapSeconds": 91.669,
+          "lapTimeDistribution": {
+            "count": 138,
+            "min": 89.337,
+            "q1": 90.924,
+            "median": 91.669,
+            "q3": 93.506,
+            "max": 105.74
+          }
         },
         {
           "compound": "INTERMEDIATE",
@@ -181,7 +615,15 @@
           "rainfallKnownLaps": 297,
           "meanTrackTempC": 23.16,
           "meanHumidityPercent": 77.19,
-          "medianLapSeconds": 104.096
+          "medianLapSeconds": 104.096,
+          "lapTimeDistribution": {
+            "count": 297,
+            "min": 98.778,
+            "q1": 102.74,
+            "median": 104.096,
+            "q3": 104.926,
+            "max": 111.991
+          }
         }
       ],
       "sameLapComparisons": [
@@ -193,8 +635,25 @@
           "secondSamples": 11,
           "firstMinusSecondSeconds": -2.342,
           "rainfallTrue": false,
+          "rainfallKnownSamples": 17,
           "trackTempC": 24.2,
-          "humidityPercent": 75.0
+          "humidityPercent": 75.0,
+          "firstLapTimeDistribution": {
+            "count": 6,
+            "min": 101.287,
+            "q1": 103.454,
+            "median": 103.885,
+            "q3": 104.55,
+            "max": 105.576
+          },
+          "secondLapTimeDistribution": {
+            "count": 11,
+            "min": 104.171,
+            "q1": 105.959,
+            "median": 106.227,
+            "q3": 106.506,
+            "max": 107.293
+          }
         },
         {
           "lap": 9,
@@ -204,8 +663,25 @@
           "secondSamples": 10,
           "firstMinusSecondSeconds": -6.186,
           "rainfallTrue": false,
+          "rainfallKnownSamples": 15,
           "trackTempC": 24.8,
-          "humidityPercent": 74.0
+          "humidityPercent": 74.0,
+          "firstLapTimeDistribution": {
+            "count": 5,
+            "min": 100.941,
+            "q1": 101.503,
+            "median": 101.705,
+            "q3": 102.431,
+            "max": 104.912
+          },
+          "secondLapTimeDistribution": {
+            "count": 10,
+            "min": 104.393,
+            "q1": 106.637,
+            "median": 107.891,
+            "q3": 108.678,
+            "max": 109.361
+          }
         },
         {
           "lap": 40,
@@ -215,8 +691,25 @@
           "secondSamples": 7,
           "firstMinusSecondSeconds": 2.056,
           "rainfallTrue": false,
+          "rainfallKnownSamples": 9,
           "trackTempC": 23.6,
-          "humidityPercent": 70.0
+          "humidityPercent": 70.0,
+          "firstLapTimeDistribution": {
+            "count": 2,
+            "min": 102.659,
+            "q1": 103.429,
+            "median": 104.2,
+            "q3": 104.97,
+            "max": 105.74
+          },
+          "secondLapTimeDistribution": {
+            "count": 7,
+            "min": 99.633,
+            "q1": 101.725,
+            "median": 102.143,
+            "q3": 102.251,
+            "max": 104.432
+          }
         },
         {
           "lap": 41,
@@ -226,17 +719,549 @@
           "secondSamples": 6,
           "firstMinusSecondSeconds": 0.714,
           "rainfallTrue": false,
+          "rainfallKnownSamples": 8,
           "trackTempC": 23.6,
-          "humidityPercent": 68.88
+          "humidityPercent": 68.88,
+          "firstLapTimeDistribution": {
+            "count": 2,
+            "min": 100.67,
+            "q1": 100.775,
+            "median": 100.88,
+            "q3": 100.984,
+            "max": 101.089
+          },
+          "secondLapTimeDistribution": {
+            "count": 6,
+            "min": 99.273,
+            "q1": 99.377,
+            "median": 100.166,
+            "q3": 101.304,
+            "max": 102.031
+          }
         }
       ],
       "intermediateWetMatchedLaps": 0,
       "status": "matched-observations",
-      "caveat": "Different drivers/teams on the same race lap are observational comparisons, not controlled tyre tests. Rainfall is a weather-station boolean; it does not measure road water or grip. Wet crossover is not estimated without adequate simultaneous samples."
+      "actualTyreChanges": [
+        {
+          "driver": "ALB",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 42,
+          "firstLapOnNewTyre": 43,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "12",
+          "rainfall": false,
+          "trackTempC": 22.8,
+          "humidityPercent": 68.0
+        },
+        {
+          "driver": "ALO",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 37,
+          "firstLapOnNewTyre": 38,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 23.7,
+          "humidityPercent": 72.0
+        },
+        {
+          "driver": "ANT",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 2,
+          "firstLapOnNewTyre": 3,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "67",
+          "rainfall": false,
+          "trackTempC": 24.5,
+          "humidityPercent": 80.0
+        },
+        {
+          "driver": "ANT",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 9,
+          "firstLapOnNewTyre": 10,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 24.1,
+          "humidityPercent": 74.0
+        },
+        {
+          "driver": "BEA",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 10,
+          "firstLapOnNewTyre": 11,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": true,
+          "trackTempC": 24.0,
+          "humidityPercent": 74.0
+        },
+        {
+          "driver": "BEA",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 41,
+          "firstLapOnNewTyre": 42,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "12",
+          "rainfall": false,
+          "trackTempC": 23.5,
+          "humidityPercent": 69.0
+        },
+        {
+          "driver": "GAS",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 41,
+          "firstLapOnNewTyre": 42,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "12",
+          "rainfall": false,
+          "trackTempC": 23.5,
+          "humidityPercent": 69.0
+        },
+        {
+          "driver": "HAD",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 10,
+          "firstLapOnNewTyre": 11,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": true,
+          "trackTempC": 24.0,
+          "humidityPercent": 74.0
+        },
+        {
+          "driver": "HAM",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 41,
+          "firstLapOnNewTyre": 42,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "12",
+          "rainfall": false,
+          "trackTempC": 23.5,
+          "humidityPercent": 69.0
+        },
+        {
+          "driver": "HUL",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 42,
+          "firstLapOnNewTyre": 43,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "12",
+          "rainfall": false,
+          "trackTempC": 23.2,
+          "humidityPercent": 68.0
+        },
+        {
+          "driver": "LEC",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 10,
+          "firstLapOnNewTyre": 11,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": true,
+          "trackTempC": 24.0,
+          "humidityPercent": 74.0
+        },
+        {
+          "driver": "LEC",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 42,
+          "firstLapOnNewTyre": 43,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "12",
+          "rainfall": false,
+          "trackTempC": 22.8,
+          "humidityPercent": 68.0
+        },
+        {
+          "driver": "NOR",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 44,
+          "firstLapOnNewTyre": 45,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 23.7,
+          "humidityPercent": 68.0
+        },
+        {
+          "driver": "OCO",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 42,
+          "firstLapOnNewTyre": 43,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "12",
+          "rainfall": false,
+          "trackTempC": 22.8,
+          "humidityPercent": 68.0
+        },
+        {
+          "driver": "PIA",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 43,
+          "firstLapOnNewTyre": 44,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "12",
+          "rainfall": false,
+          "trackTempC": 22.8,
+          "humidityPercent": 68.0
+        },
+        {
+          "driver": "RUS",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 10,
+          "firstLapOnNewTyre": 11,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": true,
+          "trackTempC": 24.0,
+          "humidityPercent": 74.0
+        },
+        {
+          "driver": "RUS",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 38,
+          "firstLapOnNewTyre": 39,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "12",
+          "rainfall": false,
+          "trackTempC": 24.1,
+          "humidityPercent": 70.0
+        },
+        {
+          "driver": "SAI",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 41,
+          "firstLapOnNewTyre": 42,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "12",
+          "rainfall": false,
+          "trackTempC": 23.5,
+          "humidityPercent": 69.0
+        },
+        {
+          "driver": "STR",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 6,
+          "firstLapOnNewTyre": 7,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "671",
+          "rainfall": false,
+          "trackTempC": 24.0,
+          "humidityPercent": 73.0
+        },
+        {
+          "driver": "STR",
+          "fromCompound": "DRY",
+          "toCompound": "INTERMEDIATE",
+          "afterLap": 10,
+          "firstLapOnNewTyre": 11,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": true,
+          "trackTempC": 24.0,
+          "humidityPercent": 74.0
+        },
+        {
+          "driver": "STR",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 41,
+          "firstLapOnNewTyre": 42,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "12",
+          "rainfall": false,
+          "trackTempC": 23.5,
+          "humidityPercent": 69.0
+        },
+        {
+          "driver": "TSU",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 41,
+          "firstLapOnNewTyre": 42,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "12",
+          "rainfall": false,
+          "trackTempC": 23.2,
+          "humidityPercent": 68.0
+        },
+        {
+          "driver": "VER",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 41,
+          "firstLapOnNewTyre": 42,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "12",
+          "rainfall": false,
+          "trackTempC": 23.5,
+          "humidityPercent": 69.0
+        }
+      ],
+      "unresolvedTyreChangeGaps": [],
+      "weatherJoinCoverage": {
+        "retainedLaps": 435,
+        "rainfallKnownLaps": 435,
+        "trackTempKnownLaps": 435,
+        "humidityKnownLaps": 435,
+        "weatherAgeAtLapEndSeconds": {
+          "count": 435,
+          "min": 32.705,
+          "q1": 57.049,
+          "median": 70.577,
+          "q3": 87.255,
+          "max": 108.632
+        }
+      },
+      "caveat": "Different drivers/teams on the same race lap are observational comparisons, not controlled tyre tests. Rainfall is a weather-station boolean; it does not measure road water or grip. Wet crossover is not estimated without adequate simultaneous samples.",
+      "sameLapDifferenceDistributions": [
+        {
+          "firstCompound": "DRY",
+          "secondCompound": "INTERMEDIATE",
+          "statistics": {
+            "count": 4,
+            "min": -6.186,
+            "q1": -3.303,
+            "median": -0.814,
+            "q3": 1.05,
+            "max": 2.056
+          },
+          "points": [
+            {
+              "lap": 8,
+              "firstCompound": "DRY",
+              "secondCompound": "INTERMEDIATE",
+              "firstSamples": 6,
+              "secondSamples": 11,
+              "firstMinusSecondSeconds": -2.342,
+              "rainfallTrue": false,
+              "rainfallKnownSamples": 17,
+              "trackTempC": 24.2,
+              "humidityPercent": 75.0,
+              "firstLapTimeDistribution": {
+                "count": 6,
+                "min": 101.287,
+                "q1": 103.454,
+                "median": 103.885,
+                "q3": 104.55,
+                "max": 105.576
+              },
+              "secondLapTimeDistribution": {
+                "count": 11,
+                "min": 104.171,
+                "q1": 105.959,
+                "median": 106.227,
+                "q3": 106.506,
+                "max": 107.293
+              }
+            },
+            {
+              "lap": 9,
+              "firstCompound": "DRY",
+              "secondCompound": "INTERMEDIATE",
+              "firstSamples": 5,
+              "secondSamples": 10,
+              "firstMinusSecondSeconds": -6.186,
+              "rainfallTrue": false,
+              "rainfallKnownSamples": 15,
+              "trackTempC": 24.8,
+              "humidityPercent": 74.0,
+              "firstLapTimeDistribution": {
+                "count": 5,
+                "min": 100.941,
+                "q1": 101.503,
+                "median": 101.705,
+                "q3": 102.431,
+                "max": 104.912
+              },
+              "secondLapTimeDistribution": {
+                "count": 10,
+                "min": 104.393,
+                "q1": 106.637,
+                "median": 107.891,
+                "q3": 108.678,
+                "max": 109.361
+              }
+            },
+            {
+              "lap": 40,
+              "firstCompound": "DRY",
+              "secondCompound": "INTERMEDIATE",
+              "firstSamples": 2,
+              "secondSamples": 7,
+              "firstMinusSecondSeconds": 2.056,
+              "rainfallTrue": false,
+              "rainfallKnownSamples": 9,
+              "trackTempC": 23.6,
+              "humidityPercent": 70.0,
+              "firstLapTimeDistribution": {
+                "count": 2,
+                "min": 102.659,
+                "q1": 103.429,
+                "median": 104.2,
+                "q3": 104.97,
+                "max": 105.74
+              },
+              "secondLapTimeDistribution": {
+                "count": 7,
+                "min": 99.633,
+                "q1": 101.725,
+                "median": 102.143,
+                "q3": 102.251,
+                "max": 104.432
+              }
+            },
+            {
+              "lap": 41,
+              "firstCompound": "DRY",
+              "secondCompound": "INTERMEDIATE",
+              "firstSamples": 2,
+              "secondSamples": 6,
+              "firstMinusSecondSeconds": 0.714,
+              "rainfallTrue": false,
+              "rainfallKnownSamples": 8,
+              "trackTempC": 23.6,
+              "humidityPercent": 68.88,
+              "firstLapTimeDistribution": {
+                "count": 2,
+                "min": 100.67,
+                "q1": 100.775,
+                "median": 100.88,
+                "q3": 100.984,
+                "max": 101.089
+              },
+              "secondLapTimeDistribution": {
+                "count": 6,
+                "min": 99.273,
+                "q1": 99.377,
+                "median": 100.166,
+                "q3": 101.304,
+                "max": 102.031
+              }
+            }
+          ]
+        }
+      ],
+      "observedSignChangeIntervals": [
+        {
+          "firstCompound": "DRY",
+          "secondCompound": "INTERMEDIATE",
+          "fromLap": 9,
+          "toLap": 40,
+          "unobservedLapsBetween": 30,
+          "before": {
+            "lap": 9,
+            "firstCompound": "DRY",
+            "secondCompound": "INTERMEDIATE",
+            "firstSamples": 5,
+            "secondSamples": 10,
+            "firstMinusSecondSeconds": -6.186,
+            "rainfallTrue": false,
+            "rainfallKnownSamples": 15,
+            "trackTempC": 24.8,
+            "humidityPercent": 74.0,
+            "firstLapTimeDistribution": {
+              "count": 5,
+              "min": 100.941,
+              "q1": 101.503,
+              "median": 101.705,
+              "q3": 102.431,
+              "max": 104.912
+            },
+            "secondLapTimeDistribution": {
+              "count": 10,
+              "min": 104.393,
+              "q1": 106.637,
+              "median": 107.891,
+              "q3": 108.678,
+              "max": 109.361
+            }
+          },
+          "after": {
+            "lap": 40,
+            "firstCompound": "DRY",
+            "secondCompound": "INTERMEDIATE",
+            "firstSamples": 2,
+            "secondSamples": 7,
+            "firstMinusSecondSeconds": 2.056,
+            "rainfallTrue": false,
+            "rainfallKnownSamples": 9,
+            "trackTempC": 23.6,
+            "humidityPercent": 70.0,
+            "firstLapTimeDistribution": {
+              "count": 2,
+              "min": 102.659,
+              "q1": 103.429,
+              "median": 104.2,
+              "q3": 104.97,
+              "max": 105.74
+            },
+            "secondLapTimeDistribution": {
+              "count": 7,
+              "min": 99.633,
+              "q1": 101.725,
+              "median": 102.143,
+              "q3": 102.251,
+              "max": 104.432
+            }
+          },
+          "exactCrossoverLap": null,
+          "classification": "bracketed-sign-change-not-an-identified-crossover"
+        }
+      ],
+      "calibrationStatus": "project-estimates-retained",
+      "supportsWetCrossoverCalibration": false,
+      "collectionStatus": "cache-refreshed-no-network"
     },
     {
       "trackId": "spa",
       "season": 2025,
+      "timingSourceUrl": "https://livetiming.formula1.com/static/2025/2025-07-27_Belgian_Grand_Prix/2025-07-27_Race/",
       "rawCompoundCounts": {
         "MEDIUM": 510,
         "INTERMEDIATE": 240,
@@ -252,7 +1277,15 @@
           "rainfallKnownLaps": 549,
           "meanTrackTempC": 24.53,
           "meanHumidityPercent": 79.93,
-          "medianLapSeconds": 107.517
+          "medianLapSeconds": 107.517,
+          "lapTimeDistribution": {
+            "count": 549,
+            "min": 105.257,
+            "q1": 106.965,
+            "median": 107.517,
+            "q3": 108.188,
+            "max": 115.086
+          }
         },
         {
           "compound": "INTERMEDIATE",
@@ -262,13 +1295,303 @@
           "rainfallKnownLaps": 132,
           "meanTrackTempC": 25.62,
           "meanHumidityPercent": 82.36,
-          "medianLapSeconds": 123.203
+          "medianLapSeconds": 123.203,
+          "lapTimeDistribution": {
+            "count": 132,
+            "min": 119.092,
+            "q1": 121.741,
+            "median": 123.203,
+            "q3": 124.233,
+            "max": 126.857
+          }
         }
       ],
       "sameLapComparisons": [],
       "intermediateWetMatchedLaps": 0,
       "status": "no-same-lap-comparison",
-      "caveat": "Different drivers/teams on the same race lap are observational comparisons, not controlled tyre tests. Rainfall is a weather-station boolean; it does not measure road water or grip. Wet crossover is not estimated without adequate simultaneous samples."
+      "actualTyreChanges": [
+        {
+          "driver": "ALB",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 12,
+          "firstLapOnNewTyre": 13,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.1,
+          "humidityPercent": 79.0
+        },
+        {
+          "driver": "ALO",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 11,
+          "firstLapOnNewTyre": 12,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.3,
+          "humidityPercent": 80.0
+        },
+        {
+          "driver": "ANT",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 12,
+          "firstLapOnNewTyre": 13,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.1,
+          "humidityPercent": 79.0
+        },
+        {
+          "driver": "BEA",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 12,
+          "firstLapOnNewTyre": 13,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.1,
+          "humidityPercent": 79.0
+        },
+        {
+          "driver": "BOR",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 12,
+          "firstLapOnNewTyre": 13,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.1,
+          "humidityPercent": 79.0
+        },
+        {
+          "driver": "COL",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 12,
+          "firstLapOnNewTyre": 13,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.1,
+          "humidityPercent": 79.0
+        },
+        {
+          "driver": "GAS",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 11,
+          "firstLapOnNewTyre": 12,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.3,
+          "humidityPercent": 80.0
+        },
+        {
+          "driver": "HAD",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 13,
+          "firstLapOnNewTyre": 14,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 26.0,
+          "humidityPercent": 83.0
+        },
+        {
+          "driver": "HAM",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 11,
+          "firstLapOnNewTyre": 12,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.3,
+          "humidityPercent": 80.0
+        },
+        {
+          "driver": "HUL",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 11,
+          "firstLapOnNewTyre": 12,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.3,
+          "humidityPercent": 80.0
+        },
+        {
+          "driver": "LAW",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 12,
+          "firstLapOnNewTyre": 13,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.1,
+          "humidityPercent": 79.0
+        },
+        {
+          "driver": "LEC",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 12,
+          "firstLapOnNewTyre": 13,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.1,
+          "humidityPercent": 79.0
+        },
+        {
+          "driver": "NOR",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 13,
+          "firstLapOnNewTyre": 14,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.8,
+          "humidityPercent": 81.0
+        },
+        {
+          "driver": "OCO",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 13,
+          "firstLapOnNewTyre": 14,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 26.0,
+          "humidityPercent": 83.0
+        },
+        {
+          "driver": "PIA",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 12,
+          "firstLapOnNewTyre": 13,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.1,
+          "humidityPercent": 81.0
+        },
+        {
+          "driver": "RUS",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 12,
+          "firstLapOnNewTyre": 13,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.1,
+          "humidityPercent": 79.0
+        },
+        {
+          "driver": "SAI",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 12,
+          "firstLapOnNewTyre": 13,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.1,
+          "humidityPercent": 79.0
+        },
+        {
+          "driver": "STR",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 12,
+          "firstLapOnNewTyre": 13,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.1,
+          "humidityPercent": 79.0
+        },
+        {
+          "driver": "TSU",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 13,
+          "firstLapOnNewTyre": 14,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 26.0,
+          "humidityPercent": 83.0
+        },
+        {
+          "driver": "VER",
+          "fromCompound": "INTERMEDIATE",
+          "toCompound": "DRY",
+          "afterLap": 12,
+          "firstLapOnNewTyre": 13,
+          "pitTimingRecorded": true,
+          "context": "pit-timing-recorded",
+          "trackStatus": "1",
+          "rainfall": false,
+          "trackTempC": 25.1,
+          "humidityPercent": 79.0
+        }
+      ],
+      "unresolvedTyreChangeGaps": [],
+      "weatherJoinCoverage": {
+        "retainedLaps": 681,
+        "rainfallKnownLaps": 681,
+        "trackTempKnownLaps": 681,
+        "humidityKnownLaps": 681,
+        "weatherAgeAtLapEndSeconds": {
+          "count": 681,
+          "min": 46.313,
+          "q1": 64.851,
+          "median": 78.633,
+          "q3": 96.544,
+          "max": 123.041
+        }
+      },
+      "caveat": "Different drivers/teams on the same race lap are observational comparisons, not controlled tyre tests. Rainfall is a weather-station boolean; it does not measure road water or grip. Wet crossover is not estimated without adequate simultaneous samples.",
+      "sameLapDifferenceDistributions": [],
+      "observedSignChangeIntervals": [],
+      "calibrationStatus": "project-estimates-retained",
+      "supportsWetCrossoverCalibration": false,
+      "collectionStatus": "cache-refreshed-no-network"
     }
   ],
   "requestedEvents": [
@@ -278,5 +1601,8 @@
   ],
   "missingEvents": [],
   "supportsWetCrossoverCalibration": false,
-  "reason": "Same-lap comparisons are descriptive; no water-depth/intensity sensor and sparse/no full-wet overlaps."
+  "reason": "Same-lap comparisons are descriptive; no water-depth/intensity sensor and sparse/no full-wet overlaps.",
+  "previousObservationSnapshotAt": "2026-09-06T14:28:12.502960+00:00",
+  "collectionMode": "offline-cache-only; no other dataset regenerated",
+  "calibrationStatus": "project-estimates-retained"
 }
