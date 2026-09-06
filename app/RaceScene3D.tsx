@@ -182,6 +182,7 @@ interface RaceSceneRuntime {
   readonly sunOffset: THREE.Vector3;
   readonly resizeObserver: ResizeObserver;
   readonly cameraLookAt: THREE.Vector3;
+  readonly cameraAnchorPosition: THREE.Vector3;
   readonly cameraUp: THREE.Vector3;
   hasRendered: boolean;
   lastCameraMode: RaceSceneCamera | null;
@@ -2991,6 +2992,14 @@ function renderFrame(
   const modeChanged =
     !runtime.hasRendered ||
     runtime.lastCameraMode !== cameraMode;
+  if (!modeChanged && cameraMode !== "broadcast") {
+    // Carry the camera rig with the car before damping its relative offset.
+    // World-space damping alone trails tens of metres behind at 60x playback.
+    const anchorDelta = primaryPose.position.clone().sub(runtime.cameraAnchorPosition);
+    runtime.camera.position.add(anchorDelta);
+    runtime.cameraLookAt.add(anchorDelta);
+  }
+  runtime.cameraAnchorPosition.copy(primaryPose.position);
   runtime.camera.fov = modeChanged
     ? targetFov
     : THREE.MathUtils.damp(
@@ -3882,6 +3891,7 @@ const RaceScene3D = forwardRef<RaceSceneHandle, RaceScene3DProps>(
           sunOffset,
           resizeObserver,
           cameraLookAt: new THREE.Vector3(),
+          cameraAnchorPosition: new THREE.Vector3(),
           cameraUp: new THREE.Vector3(0, 1, 0),
           hasRendered: false,
           lastCameraMode: null,
