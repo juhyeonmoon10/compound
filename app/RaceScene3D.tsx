@@ -54,7 +54,8 @@ export const PLAYER_FORMULA_CAR_MODEL_ASSET = {
   url: publicAsset("/models/meshy-player-car.glb"),
   targetLengthMeters: F1_CAR_LENGTH_METERS,
   targetWidthMeters: F1_CAR_WIDTH_METERS,
-  defaultForwardAxis: "+x" as FormulaCarForwardAxis,
+  // This Meshy asset's nose points along -X; normalize it to the +Z driving axis.
+  defaultForwardAxis: "-x" as FormulaCarForwardAxis,
 } as const satisfies FormulaCarAsset;
 
 export interface RaceScenePoint {
