@@ -842,7 +842,7 @@ export default function RaceReplay({
   const [countdown, setCountdown] = useState<
     5 | 4 | 3 | 2 | 1 | "GO" | null
   >(null);
-  const [playbackRate, setPlaybackRate] = useState(60);
+  const [playbackRate, setPlaybackRate] = useState(1);
   const [cameraMode, setCameraMode] = useState<CameraMode>("chase");
   const [reducedMotion, setReducedMotion] = useState(false);
   const [renderingEnabled, setRenderingEnabled] = useState(true);
