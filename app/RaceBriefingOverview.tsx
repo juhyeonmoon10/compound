@@ -251,7 +251,7 @@ export default function RaceBriefingOverview({
   if (!best) return null;
 
   return (
-    <section className="race-briefing" aria-labelledby="briefing-title">
+    <section className={`race-briefing${workspace === "replay" ? " is-replay-workspace" : ""}`} aria-labelledby="briefing-title">
       <div className="race-briefing__stage">
         <div className="race-briefing__track">
           <span>레이스 전략 / 2026</span>

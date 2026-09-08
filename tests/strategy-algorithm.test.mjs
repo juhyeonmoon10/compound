@@ -1486,7 +1486,7 @@ test("Option 3 workspace connects the race briefing to five research views and e
   // Board geometry, incoming order, five semantic tyre colours, accessible
   // row selection, and below-chart totals are exercised by the real React
   // render tests in strategy-board.test.mjs. Do not freeze badges or old DOM.
-  assert.ok(briefing.includes('className="race-briefing"'));
+  assert.ok(briefing.includes('className={`race-briefing${workspace === "replay" ? " is-replay-workspace" : ""}`}'));
   assert.ok(briefing.includes('aria-labelledby="briefing-title"'));
   assert.ok(briefing.includes('aria-labelledby="briefing-board-title"'));
   assert.ok(component.includes("calculatePitWindows("));

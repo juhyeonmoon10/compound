@@ -21,6 +21,7 @@ export interface ReplayTelemetryProps {
   readonly comparisonDriverId?: string;
   /** A real returned MC trial, displayed unchanged and separately from replay. */
   readonly experimentTimeline?: RaceExperimentTimeline | null;
+  readonly onSeek?: (seconds: number) => void;
 }
 
 const TABS = [{ id: "timing", label: "전체 순위" },
@@ -52,7 +53,7 @@ function eventDescription(event: ReplayTelemetryEvent): string {
   }
 }
 
-export default function ReplayTelemetry({ grid, frame, playerId, hasStarted, comparisonDriverId, experimentTimeline }: ReplayTelemetryProps) {
+export default function ReplayTelemetry({ grid, frame, playerId, hasStarted, comparisonDriverId, experimentTimeline, onSeek }: ReplayTelemetryProps) {
   const id = useId();
   const [tab, setTab] = useState<Tab>("timing");
   const [onlyPlayerEvents, setOnlyPlayerEvents] = useState(true);
@@ -149,7 +150,7 @@ export default function ReplayTelemetry({ grid, frame, playerId, hasStarted, com
       {!started && <p className="replay-telemetry-help">레이스가 시작되면 이벤트를 기록합니다.</p>}
       <ol className="replay-telemetry-events">{[...events].reverse().map((event) => <li key={event.id} className={event.driverId === playerId ? "is-player" : undefined}>
         <time>{modelClock(event.atSeconds)}</time><span className={`replay-telemetry-event-icon event-${event.kind}`} aria-hidden="true">{event.kind === "pit-entry" || event.kind === "pit-exit" ? "피" : event.kind === "cliff" ? "!" : event.kind === "finish" ? "완" : "출"}</span>
-        <div><strong>{event.driverName}{event.driverId === playerId && <small className="replay-telemetry-player-tag">내 차</small>}</strong><p>{eventDescription(event)}</p></div><span className="replay-telemetry-event-lap">{event.lap}랩</span>
+        <div><strong>{event.driverName}{event.driverId === playerId && <small className="replay-telemetry-player-tag">내 차</small>}</strong><p>{eventDescription(event)}</p>{onSeek && <button type="button" className="replay-event-seek" aria-label={`${event.driverName} ${eventDescription(event)} 시점으로 이동`} onClick={() => onSeek(event.atSeconds)}>이 시점 보기 →</button>}</div><span className="replay-telemetry-event-lap">{event.lap}랩</span>
       </li>)}</ol>
       <div className="replay-telemetry-undercut"><h4>언더컷 정산</h4>
         <p>같은 완료 스톱 수로 상대 피트 후 {MODEL_PARAMS.race.undercutSettlingLaps}랩을 두 차량 모두 마친 뒤 판정합니다. 기본 상대는 출발 당시 바로 앞 차량입니다.</p>

@@ -1,0 +1,198 @@
+/* Replay-only working surface. Strategy boards and the race model are unchanged. */
+.race-briefing.is-replay-workspace .race-briefing__stage,
+.race-briefing.is-replay-workspace .race-briefing__conditions { display: none; }
+.race-replay.race-replay--workbench {
+  padding: 16px;
+  margin-top: 12px;
+  border-radius: 12px;
+  scroll-margin-top: 78px;
+  background: #0c1117;
+}
+.replay-workbench-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.replay-workbench-heading h3 { margin: 3px 0; color: #f5f7fa; font-size: 1.25rem; line-height: 1.3; }
+.replay-workbench-heading p { margin: 0; font-size: .875rem; color: #b2bdc8; }
+.replay-workbench-heading > div > span { color: #9caab9; font-size: .75rem; }
+.replay-workbench-heading__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.replay-workbench-heading button, .replay-drawer header button, .replay-reset-dialog button {
+  min-height: 40px; padding: 8px 12px; border: 1px solid #34404e; border-radius: 6px;
+  background: #121a23; color: #edf2f7; font: inherit; font-size: .875rem; cursor: pointer;
+}
+.replay-workbench-heading button[aria-expanded="true"] { border-color: var(--replay-team); background: color-mix(in srgb, var(--replay-team) 18%, #121a23); }
+.race-replay--workbench .race-replay__grid { display: block; margin: 0; }
+.race-replay--workbench .race-replay__stage { position: relative; padding: 0; border: 0; border-radius: 0; background: transparent; min-width: 0; }
+.race-replay--workbench .race-replay__viewport { height: auto; min-height: 0; max-height: none; aspect-ratio: auto; margin: 0; overflow: hidden; border-radius: 8px; }
+.race-replay__screen { position: relative; height: clamp(300px, calc(100dvh - 320px), 740px); min-height: 0; overflow: hidden; isolation: isolate; background: #101b25; container: replay-screen / size; }
+.race-replay--workbench .race-replay__viewport::after { display: none; }
+.race-replay--workbench .race-replay__model-view-label, .race-replay--workbench .race-replay__duel-strip { display: none; }
+.race-replay--workbench .race-replay__timing-tower { top: 76px; left: 12px; width: 214px; z-index: 7; }
+.race-replay--workbench .race-replay__timing-heading { display: flex; align-items: center; gap: 6px; padding: 5px 8px; }
+.race-replay--workbench .race-replay__timing-heading > span { display: none; }
+.race-replay--workbench .race-replay__timing-heading > strong { font-size: .75rem; flex: 1; }
+.race-replay--workbench .race-replay__timing-heading button { min-height: 30px; padding: 3px 7px; border: 1px solid #46515b; background: #14202a; color: #e5eaf0; border-radius: 4px; font: inherit; font-size: .75rem; cursor: pointer; pointer-events: auto; }
+.race-replay--workbench .race-replay__timing-tower ol[hidden] { display: none; }
+.race-replay--workbench .race-replay__timing-tower li { grid-template-columns: 22px 3px 35px 28px minmax(0, 1fr); gap: 5px; min-height: 29px; }
+.race-replay--workbench .race-replay__timing-tower li > b,
+.race-replay--workbench .race-replay__timing-tower li > strong,
+.race-replay--workbench .race-replay__timing-tower li > span { font-size: .75rem; }
+.race-replay--workbench .race-replay__timing-tower li > span { display: block; }
+.race-replay--workbench .race-replay__timing-tower li > em { font-size: .7rem; }
+.race-replay--workbench .race-replay__timing-tower > p { font-size: .75rem; padding: 6px 8px; line-height: 1.3; }
+.race-replay--workbench .race-replay__game-hud > div { padding: 8px 10px; min-width: 100px; }
+.race-replay--workbench .race-replay__game-hud span { font-size: .75rem; letter-spacing: .02em; }
+.race-replay--workbench .race-replay__game-hud strong { font-size: 1rem; }
+.race-replay--workbench .race-replay__game-hud strong small,
+.race-replay--workbench .race-replay__hud-tyre span small { font-size: .75rem; }
+.race-replay--workbench .race-replay__hud-tyre { left: 12px; bottom: 12px; }
+.race-replay--workbench .race-replay__hud-tyre span > em { display: none; }
+.race-replay--workbench .race-replay__hud-pace { left: 205px; right: auto; bottom: 12px; text-align: left; }
+.race-replay--workbench .race-replay__game-hud > .race-replay__hud-speed { left: auto; right: 12px; bottom: 12px; transform: none; min-width: 126px; }
+.race-replay--workbench .race-replay__hud-speed > strong { font-size: 1.5rem; }
+.race-replay--workbench .race-replay__hud-speed > div { display: none; }
+.race-replay--workbench .race-replay__viewport:not(.is-map) .race-replay__map { top: 82px; right: 12px; width: 106px; height: 106px; }
+.replay-pause-notice { position: absolute; z-index: 8; top: 12px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 260px); display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #46566a; border-radius: 6px; background: #0b141ee8; color: #f3f7fb; font-size: .875rem; pointer-events: none; }
+.race-replay--workbench .race-replay__race-overlay.is-ready { padding: 16px; width: min(340px, 75%); min-height: 0; }
+.race-replay--workbench .race-replay__brief-facts, .race-replay--workbench .race-replay__race-overlay.is-ready > small { display: none; }
+.race-replay--workbench .race-replay__race-overlay.is-ready > strong { font-size: 1.35rem; }
+.race-replay--workbench .race-replay__race-overlay.is-ready p { font-size: .875rem; margin: 10px 0; }
+.race-replay--workbench .race-replay__start-button { min-height: 42px; font-size: .875rem; }
+.race-replay--workbench .race-replay__race-overlay.is-countdown { width: min(340px, 75%); min-height: 0; padding: 12px; }
+.race-replay--workbench .race-replay__race-overlay.is-pit { top: 78px; left: 50%; width: 210px; min-height: 0; padding: 10px; transform: translateX(-50%); }
+.race-replay--workbench .race-replay__race-overlay.is-pit > strong { font-size: 1.4rem; }
+.race-replay--workbench .race-replay__race-overlay.is-results { top: 12px; transform: translateX(-50%); width: min(650px, calc(100% - 24px)); min-height: 0; max-height: calc(100% - 24px); overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 14px; gap: 10px; place-items: stretch; }
+.race-replay--workbench .race-replay__result-heading,
+.race-replay--workbench .race-replay__result-score,
+.race-replay--workbench .race-replay__result-plan { padding: 10px; }
+.race-replay--workbench .race-replay__result-heading > span,
+.race-replay--workbench .race-replay__result-score > span,
+.race-replay--workbench .race-replay__result-plan > span { font-size: .75rem; letter-spacing: .02em; }
+.race-replay--workbench .race-replay__result-actions button,
+.race-replay--workbench .race-replay__result-score p,
+.race-replay--workbench .race-replay__result-plan small,
+.race-replay--workbench .race-replay__race-overlay.is-results > p { font-size: .8125rem; line-height: 1.5; }
+.replay-control-dock { position: relative; z-index: 12; background: #0c131b; }
+.replay-controls { padding: 10px 12px 8px; color: #e8eef5; }
+.replay-controls__bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.replay-controls button, .replay-controls select { min-height: 40px; padding: 7px 10px; color: #e8eef5; background: #151e29; border: 1px solid #34404e; border-radius: 5px; font: inherit; font-size: .875rem; white-space: nowrap; cursor: pointer; }
+.replay-controls button:disabled, .replay-controls select:disabled { opacity: .4; cursor: not-allowed; }
+.replay-controls button:hover:not(:disabled), .replay-workbench-heading button:hover { background: #253445; border-color: #65798e; }
+.replay-controls button:focus-visible, .replay-controls select:focus-visible, .race-replay--workbench button:focus-visible, .race-replay--workbench summary:focus-visible, .race-replay--workbench .race-replay__viewport:focus-visible { outline: 2px solid #e6f2ff; outline-offset: 3px; }
+.replay-controls__transport, .replay-controls__rates { display: flex; align-items: center; gap: 4px; }
+.replay-controls__rates { padding-left: 8px; border-left: 1px solid #34404e; }
+.replay-controls__rates button { min-width: 43px; font-variant-numeric: tabular-nums; }
+.replay-controls .replay-controls__play, .replay-controls button[aria-pressed="true"] { border-color: var(--replay-team); background: var(--replay-team); color: var(--replay-on-team); font-weight: 750; }
+.replay-controls .replay-controls__play { min-width: 110px; display: flex; gap: 8px; align-items: center; justify-content: center; }
+.replay-controls .replay-controls__reset { margin-left: auto; background: transparent; color: #b5c0cd; }
+.replay-controls__fullscreen { display: flex; gap: 6px; align-items: center; }
+.replay-controls__seek { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 14px; align-items: center; margin-top: 10px; }
+.replay-controls__time { display: grid; gap: 2px; font-size: .75rem; color: #aebccc; font-variant-numeric: tabular-nums; }
+.replay-controls__time strong { font-size: 1rem; color: #f5f7fb; }
+.replay-controls__time strong span { font-size: .75rem; font-weight: 400; }
+.replay-controls__track { position: relative; min-width: 0; padding-bottom: 24px; }
+.replay-controls__stints { display: flex; height: 24px; overflow: hidden; border-radius: 4px; }
+.replay-controls__stints span { display: flex; align-items: center; justify-content: center; min-width: 0; border-right: 2px solid #101820; font-size: .75rem; font-weight: 850; }
+.replay-controls__track input[type="range"] { appearance: none; position: absolute; top: -4px; left: 0; width: 100%; height: 32px; margin: 0; padding: 0; background: transparent; border: 0; cursor: ew-resize; }
+.replay-controls__track input::-webkit-slider-runnable-track { height: 24px; background: transparent; }
+.replay-controls__track input::-webkit-slider-thumb { appearance: none; margin-top: -3px; height: 30px; width: 6px; border: 1px solid #10151b; border-radius: 2px; background: white; box-shadow: 0 0 0 2px #10151b; }
+.replay-controls__track input::-moz-range-track { height: 24px; background: transparent; }
+.replay-controls__track input::-moz-range-thumb { height: 30px; width: 6px; border: 1px solid #10151b; border-radius: 2px; background: white; box-shadow: 0 0 0 2px #10151b; }
+.replay-controls__track input:focus-visible { outline: 2px solid white; outline-offset: 4px; border-radius: 4px; }
+.replay-controls__pits button { position: absolute; left: clamp(30px, var(--pit-position), calc(100% - 30px)); bottom: -3px; transform: translateX(-50%); min-height: 26px; padding: 3px 6px; border: 0; background: transparent; color: #dce6f2; font-size: .75rem; }
+.replay-controls__help { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; margin: 5px 0 0; color: #9daaba; font-size: .75rem; }
+.replay-controls__help kbd { padding: 1px 4px; border: 1px solid #455263; border-radius: 3px; margin-right: 3px; font: inherit; color: #d6e1ed; }
+.replay-drawer { position: absolute; z-index: 20; top: 0; right: 0; bottom: 0; width: min(610px, 62%); display: flex; flex-direction: column; border: 1px solid #3e526a; border-radius: 8px; background: #0d151ff7; box-shadow: -16px 0 42px #0009; }
+.replay-drawer[hidden], .replay-drawer [hidden] { display: none !important; }
+.replay-drawer > header { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex: 0 0 auto; padding: 12px 16px; border-bottom: 1px solid #34404e; }
+.replay-drawer > header h3 { margin: 0; font-size: 1rem; }
+.replay-drawer__body { padding: 16px; overflow: auto; overscroll-behavior: contain; min-height: 0; scrollbar-gutter: stable; }
+.replay-drawer__body p { font-size: .875rem; line-height: 1.7; color: #c3ceda; }
+.race-replay--workbench .replay-drawer .race-replay__performance-panel,
+.race-replay--workbench .replay-drawer .race-replay__telemetry { display: block; padding: 0; margin: 0; border: 0; background: none; }
+.replay-drawer .race-replay__performance-source, .replay-drawer .race-replay__track-meta, .replay-drawer .race-replay__source-links { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 16px; }
+.replay-drawer small, .replay-drawer .race-replay__performance-source span, .replay-drawer .race-replay__performance-copy small,
+.replay-drawer .race-replay__metric-grid span, .replay-drawer .race-replay__metric-grid strong { font-size: .875rem; line-height: 1.6; }
+.replay-drawer .race-replay__metric-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; }
+.replay-drawer .replay-telemetry { margin: 0; padding: 0; border: 0; background: transparent; }
+.replay-drawer .replay-telemetry-header { gap: 10px; }
+.replay-drawer .replay-telemetry-header h3 { font-size: 1rem; }
+.replay-drawer .replay-telemetry-table-scroll, .replay-drawer .replay-telemetry-gantt-scroll { max-height: none; }
+.replay-drawer .replay-telemetry-tabs { position: sticky; top: -16px; background: #0d151f; z-index: 2; }
+.replay-strategy-comparison { margin-top: 16px; padding-top: 12px; border-top: 1px solid #34404e; }
+.replay-strategy-comparison summary { font-size: .875rem; cursor: pointer; margin-bottom: 12px; }
+.replay-workbench-note { margin: 8px 0 0; color: #99a8b9; font-size: .75rem; line-height: 1.5; }
+.replay-reset-dialog { width: min(420px, calc(100% - 32px)); padding: 24px; color: #f3f7fb; border: 1px solid #52677e; border-radius: 10px; background: #101b28; }
+.replay-reset-dialog::backdrop { background: #02080dbb; }
+.replay-reset-dialog h3 { margin-top: 0; }
+.replay-reset-dialog p { font-size: .875rem; color: #b4c3d3; line-height: 1.65; }
+.replay-reset-dialog > div { display: flex; justify-content: flex-end; gap: 8px; }
+.replay-reset-dialog button:last-child { background: var(--replay-team); color: var(--replay-on-team); }
+.race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view) { width: 100%; height: 100dvh; max-height: none; margin: 0; border: 0; border-radius: 0; }
+.race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view) .race-replay__screen { height: 100%; }
+.race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view) .replay-control-dock { position: absolute; bottom: max(12px, env(safe-area-inset-bottom)); left: 50%; width: min(1000px, calc(100% - 32px)); transform: translateX(-50%); border: 1px solid #47586b; border-radius: 10px; background: #09121bef; transition: opacity 160ms ease, visibility 160ms ease; }
+.race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view)[data-controls-visible="false"] .replay-control-dock { opacity: 0; visibility: hidden; pointer-events: none; }
+.race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view)[data-controls-visible="true"] .race-replay__hud-tyre,
+.race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view)[data-controls-visible="true"] .race-replay__hud-pace,
+.race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view)[data-controls-visible="true"] .race-replay__hud-speed { bottom: calc(var(--replay-controls-height, 180px) + 28px); }
+.race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view)[data-controls-visible="true"] .race-replay__race-overlay.is-results { max-height: calc(100% - var(--replay-controls-height, 180px) - 40px); }
+@container replay-screen (max-height: 480px) {
+  .race-replay--workbench .race-replay__timing-tower li:not(.is-nearby) { display: none; }
+  .race-replay--workbench .race-replay__timing-tower li.is-nearby { display: grid; }
+  .race-replay--workbench .race-replay__timing-tower > p { display: none; }
+}
+@media (max-width: 900px) {
+  .replay-workbench-heading { align-items: flex-start; }
+  .replay-controls__help > span:last-child { display: none; }
+  .race-replay--workbench .race-replay__timing-tower { width: 192px; }
+  .race-replay--workbench .race-replay__timing-tower li:not(.is-nearby) { display: none; }
+  .race-replay--workbench .race-replay__timing-tower li.is-nearby { display: grid; }
+  .replay-drawer { width: min(560px, 85%); }
+  .replay-controls .replay-controls__reset { margin-left: 0; }
+}
+@media (max-width: 600px) {
+  .race-replay.race-replay--workbench { padding: 8px; scroll-margin-top: 68px; }
+  .replay-workbench-heading { flex-direction: column; gap: 8px; }
+  .replay-workbench-heading h3 { font-size: 1.125rem; }
+  .replay-workbench-heading__actions { width: 100%; }
+  .replay-workbench-heading__actions button { flex: 1; min-height: 38px; padding: 6px; font-size: .8125rem; }
+  .race-replay__screen { height: clamp(310px, 51dvh, 480px); }
+  .replay-controls { padding: 8px; }
+  .replay-controls__bar { gap: 6px; }
+  .replay-controls button, .replay-controls select { min-height: 38px; padding: 6px 8px; font-size: .8125rem; }
+  .replay-controls__transport { flex: 1; }
+  .replay-controls .replay-controls__play { min-width: 76px; }
+  .replay-controls__rates { gap: 2px; border: 0; padding: 0; }
+  .replay-controls__rates button { min-width: 34px; padding: 5px; }
+  .replay-controls__seek { grid-template-columns: 76px minmax(0, 1fr); gap: 10px; }
+  .replay-controls__help { font-size: .75rem; }
+  .replay-drawer { width: calc(100% - 16px); }
+  .replay-drawer__body { padding: 12px; }
+  .race-replay--workbench .race-replay__timing-tower { top: 70px; left: 8px; width: 173px; }
+  .race-replay--workbench .race-replay__timing-tower li { grid-template-columns: 18px 3px 29px 24px minmax(0, 1fr); gap: 3px; min-height: 25px; }
+  .race-replay--workbench .race-replay__timing-tower > p { display: none; }
+  .race-replay--workbench .race-replay__game-hud > div { min-width: 82px; padding: 6px 8px; }
+  .race-replay--workbench .race-replay__hud-lap { top: 8px; left: 8px; }
+  .race-replay--workbench .race-replay__hud-delta { top: 8px; right: 8px; }
+  .race-replay--workbench .race-replay__hud-tyre { bottom: 8px; left: 8px; }
+  .race-replay--workbench .race-replay__hud-pace { bottom: 75px; left: 8px; }
+  .race-replay--workbench .race-replay__game-hud > .race-replay__hud-speed { min-width: 92px; right: 8px; bottom: 8px; }
+  .race-replay--workbench .race-replay__viewport:not(.is-map) .race-replay__map { width: 76px; height: 76px; top: 70px; right: 8px; }
+  .replay-pause-notice { top: auto; bottom: 140px; left: 8px; transform: none; max-width: calc(100% - 16px); font-size: .75rem; padding: 5px 8px; }
+  .race-replay--workbench .race-replay__race-overlay.is-pit { top: 150px; width: 165px; }
+  .race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view) .replay-control-dock { width: calc(100% - 16px); bottom: max(8px, env(safe-area-inset-bottom)); }
+  .race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view)[data-controls-visible="true"] .race-replay__hud-tyre,
+  .race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view)[data-controls-visible="true"] .race-replay__hud-speed { bottom: calc(var(--replay-controls-height, 200px) + 24px); }
+  .race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view)[data-controls-visible="true"] .race-replay__hud-pace { bottom: calc(var(--replay-controls-height, 200px) + 90px); }
+  .race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view)[data-controls-visible="true"] .replay-pause-notice { bottom: calc(var(--replay-controls-height, 200px) + 150px); }
+}
+.replay-event-seek { padding: 5px 0; border: 0; background: none; color: #a7cfff; font: inherit; font-size: .8125rem; text-decoration: underline; cursor: pointer; }
+@media (max-height: 500px) {
+  .race-replay--workbench .race-replay__viewport.is-fullscreen-view .replay-controls__help { display: none; }
+  .race-replay--workbench .race-replay__viewport.is-fullscreen-view .race-replay__timing-tower li:not(.is-nearby) { display: none; }
+  .race-replay--workbench .race-replay__viewport.is-fullscreen-view[data-controls-visible="true"] .race-replay__hud-pace { display: none; }
+  .race-replay--workbench .race-replay__viewport.is-fullscreen-view[data-controls-visible="true"] .race-replay__timing-tower,
+  .race-replay--workbench .race-replay__viewport.is-fullscreen-view[data-controls-visible="true"]:not(.is-map) .race-replay__map,
+  .race-replay--workbench .race-replay__viewport.is-fullscreen-view[data-controls-visible="true"] .race-replay__hud-tyre { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .race-replay--workbench * { scroll-behavior: auto; }
+  .race-replay--workbench .replay-control-dock { transition: none !important; }
+}

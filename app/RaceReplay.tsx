@@ -19,6 +19,9 @@ import RaceScene3D, {
 import { resolveEntryPerformance } from "./lib/entry-performance";
 import { buildSharedRaceGrid, sharedRaceParticipants } from "./lib/shared-race-grid";
 import ReplayTelemetry from "./ReplayTelemetry";
+import RaceReplayControls from "./RaceReplayControls";
+import { CAMERA_MODES, canHideReplayControls, clampReplaySeconds, nearbyReplayCars, nextReplayCamera, phaseAfterResetCancel, replayLapSeconds, replayShortcut, type ReplayPhase } from "./lib/replay-controls";
+import "./race-replay-workbench.css";
 import type { RaceExperimentTimeline } from "./lib/race-experiments";
 import { RACE_CAR_ASSET } from "./lib/visual-assets";
 import type {
@@ -45,7 +48,6 @@ import {
   type RaceGridEntry,
   type RaceGridFrame,
 } from "./lib/race-grid";
-import { lapStartSeconds } from "./lib/race-replay";
 import {
   evaluateStrategyComparison,
   finalStrategyDeltaSeconds,
@@ -64,13 +66,6 @@ import {
 import { formatTyreStateMetric, type TyreCondition } from "./lib/tyre-state";
 
 type CameraMode = "map" | RaceSceneCamera;
-type ReplayPhase =
-  | "ready"
-  | "countdown"
-  | "running"
-  | "paused"
-  | "finished"
-  | "results";
 type WebGLStatus = "loading" | "ready" | "failed";
 
 type FullscreenDocument = Document & {
@@ -122,6 +117,7 @@ interface RaceReplayProps {
   readonly trafficLevel: RaceTrafficLevel;
   readonly entryContext?: { readonly teamId: TeamId; readonly driverId: string; readonly equalPerformance: boolean };
   readonly experimentTimeline?: RaceExperimentTimeline | null;
+  readonly scenarioSummary?: string;
   readonly onOpenSetup?: () => void;
   readonly onEditStrategy?: () => void;
   readonly onOpenAnalysis?: () => void;
@@ -148,26 +144,6 @@ const TYRE_CONDITION_LABELS_KO: Readonly<Record<TyreCondition, string>> = {
   "wet-running": "과열 누적 없음",
   cliff: "성능 절벽",
 };
-
-const PLAYBACK_RATES = [1, 10, 30, 60] as const;
-const CAMERA_MODES: ReadonlyArray<{
-  readonly id: CameraMode;
-  readonly label: string;
-  readonly description: string;
-}> = [
-  { id: "map", label: "지도", description: "서킷 전체 지도" },
-  { id: "chase", label: "추적", description: "차량 뒤 3인칭 모델 시점" },
-  {
-    id: "cockpit",
-    label: "운전석",
-    description: "운전석 1인칭 모델 시점",
-  },
-  {
-    id: "broadcast",
-    label: "중계",
-    description: "서킷 옆 중계 카메라",
-  },
-];
 
 const PATH_SAMPLE_COUNT = 720;
 const PERSPECTIVE_SECTION_COUNT = 46;
@@ -764,6 +740,7 @@ export default function RaceReplay({
   trafficLevel,
   entryContext,
   experimentTimeline,
+  scenarioSummary,
   onOpenSetup,
   onEditStrategy,
   onOpenAnalysis,
@@ -847,6 +824,12 @@ export default function RaceReplay({
   const [reducedMotion, setReducedMotion] = useState(false);
   const [renderingEnabled, setRenderingEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [controlsHeight, setControlsHeight] = useState(180);
+  const [panel, setPanel] = useState<"method" | "metrics" | "data" | null>(null);
+  const [towerExpanded, setTowerExpanded] = useState(true);
+  const [pauseReason, setPauseReason] = useState("");
+  const [confirmRestart, setConfirmRestart] = useState(false);
   const [trackSamples, setTrackSamples] = useState<
     readonly RaceScenePoint[]
   >([]);
@@ -863,6 +846,13 @@ export default function RaceReplay({
   const renderingEnabledRef = useRef(true);
   const viewportVisibleRef = useRef(true);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const replayRef = useRef<HTMLElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const controlsTimerRef = useRef<number | null>(null);
+  const restartDialogRef = useRef<HTMLDialogElement>(null);
+  const panelCloseRef = useRef<HTMLButtonElement>(null);
+  const panelTriggerRef = useRef<HTMLElement | null>(null);
+  const phaseBeforeResetRef = useRef<ReplayPhase>("ready");
   const geometryPathRef = useRef<SVGPathElement>(null);
   const progressPathRef = useRef<SVGPathElement>(null);
   const primaryCarRef = useRef<SVGGElement>(null);
@@ -893,6 +883,51 @@ export default function RaceReplay({
     overtakePulse: 0,
     reducedMotion: false,
   });
+
+  const revealControls = useCallback(() => {
+    if (controlsTimerRef.current !== null) window.clearTimeout(controlsTimerRef.current);
+    setControlsVisible(true);
+    if (isFullscreen && canHideReplayControls(phase, false, confirmRestart)) {
+      controlsTimerRef.current = window.setTimeout(() => {
+        const focused = controlsRef.current?.contains(document.activeElement) ?? false;
+        if (canHideReplayControls(phaseRef.current, focused, confirmRestart)) setControlsVisible(false);
+      }, 2600);
+    }
+  }, [confirmRestart, isFullscreen, phase]);
+
+  useEffect(() => {
+    const wake = window.requestAnimationFrame(revealControls);
+    return () => {
+      window.cancelAnimationFrame(wake);
+      if (controlsTimerRef.current !== null) window.clearTimeout(controlsTimerRef.current);
+    };
+  }, [revealControls]);
+
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => setControlsHeight(Math.ceil(controls.getBoundingClientRect().height)));
+    observer.observe(controls);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const dialog = restartDialogRef.current;
+    if (confirmRestart && dialog && !dialog.open) dialog.showModal();
+    else if (!confirmRestart && dialog?.open) dialog.close();
+  }, [confirmRestart]);
+
+  const closePanel = useCallback(() => {
+    setPanel(null);
+    panelTriggerRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  const openPanel = (next: "method" | "metrics" | "data") => {
+    if (panel === next) { closePanel(); return; }
+    panelTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setPanel(next);
+    window.requestAnimationFrame(() => panelCloseRef.current?.focus({ preventScroll: true }));
+  };
 
   const handleSceneAvailability = useCallback(
     (available: boolean, reason?: string) => {
@@ -1025,6 +1060,9 @@ export default function RaceReplay({
         phaseRef.current = "paused";
         setCountdown(null);
         setPhase("paused");
+        setPauseReason(document.hidden
+          ? "다른 탭으로 이동해 자동 일시정지됨"
+          : "주행 화면을 벗어나 자동 일시정지됨");
         setLiveMessage(
           document.hidden
             ? "브라우저가 숨겨져 재생을 일시정지했습니다. 재생 버튼으로 이어서 볼 수 있습니다."
@@ -1053,6 +1091,7 @@ export default function RaceReplay({
     const handleFullscreenChange = () => {
       const fullscreen = activeFullscreenElement() === viewportRef.current;
       setIsFullscreen(fullscreen);
+      if (fullscreen) setPanel(null);
       setLiveMessage(
         fullscreen
           ? "3D 주행 화면 전체 화면"
@@ -1060,6 +1099,7 @@ export default function RaceReplay({
       );
       window.requestAnimationFrame(() => {
         window.dispatchEvent(new Event("resize"));
+        if (fullscreen) viewportRef.current?.focus({ preventScroll: true });
       });
     };
 
@@ -1288,7 +1328,7 @@ export default function RaceReplay({
       : 5;
 
     const tick = (timestamp: number) => {
-      if (!renderingEnabledRef.current || document.hidden) return;
+      if (!renderingEnabledRef.current || document.hidden || phaseRef.current !== "running") return;
       const previousTick = lastTickRef.current ?? timestamp;
       lastTickRef.current = timestamp;
       const realDeltaSeconds = Math.min(
@@ -1371,6 +1411,11 @@ export default function RaceReplay({
 
   const seekTo = useCallback(
     (seconds: number) => {
+      seconds = clampReplaySeconds(seconds, playerGridCar.totalSeconds);
+      if (resultsTimerRef.current !== null) {
+        window.clearTimeout(resultsTimerRef.current);
+        resultsTimerRef.current = null;
+      }
       const nextRaceFrame = strategyRaceFrameAt(
         primaryReplay,
         referenceReplay,
@@ -1411,14 +1456,17 @@ export default function RaceReplay({
     setCountdown(null);
   }, []);
 
+  const replayReady = !!layout && trackSamples.length > 0 && (cameraMode === "map" || webglStatus !== "loading");
+
   const startCountdown = useCallback(() => {
+    if (!replayReady) return;
     cancelCountdown();
     if (resultsTimerRef.current !== null) {
       window.clearTimeout(resultsTimerRef.current);
       resultsTimerRef.current = null;
     }
     seekTo(0);
-    setCameraMode(reducedMotion ? "map" : "chase");
+    setPauseReason("");
     if (reducedMotion) {
       setPhase("running");
       setLiveMessage(`${playbackRate}배 모델 시간으로 자동주행`);
@@ -1457,6 +1505,7 @@ export default function RaceReplay({
     cancelCountdown,
     playbackRate,
     reducedMotion,
+    replayReady,
     seekTo,
   ]);
 
@@ -1491,10 +1540,11 @@ export default function RaceReplay({
     finalGridFrame.cars.find((car) => car.id === driver.id) ??
     finalGridFrame.cars[0];
   const timingTowerCars = useMemo(() => {
-    const leaders = gridFrame.cars.slice(0, 10);
-    if (leaders.some((car) => car.id === driver.id)) return leaders;
-    return [...leaders.slice(0, 9), playerFrame];
-  }, [driver.id, gridFrame.cars, playerFrame]);
+    const nearby = nearbyReplayCars(gridFrame.cars, driver.id);
+    const ids = new Set([...gridFrame.cars.slice(0, 5), ...nearby].map(car => car.id));
+    return gridFrame.cars.filter(car => ids.has(car.id));
+  }, [driver.id, gridFrame.cars]);
+  const nearbyCarIds = useMemo(() => new Set(nearbyReplayCars(gridFrame.cars, driver.id).map(car => car.id)), [driver.id, gridFrame.cars]);
   const displayLap = playerFrame.completed
     ? playerFrame.lap
     : Math.max(1, playerFrame.lap);
@@ -1553,20 +1603,25 @@ export default function RaceReplay({
   const telemetryStyle = {
     "--speed-intensity": displayTelemetry.speed01.toFixed(3),
     "--brake-intensity": displayTelemetry.braking.toFixed(3),
+    "--replay-controls-height": `${controlsHeight}px`,
   } as CSSProperties;
 
   const handlePlayPause = useCallback(() => {
     if (phase === "running") {
       setPhase("paused");
+      setPauseReason("일시정지 · 계속을 누르면 이어서 재생");
       setLiveMessage(`랩 ${displayLap}에서 전략 레이스 일시정지`);
       return;
     }
     if (phase === "countdown") {
       cancelCountdown();
       setPhase("paused");
+      setPauseReason("출발 대기 중 일시정지됨");
       setLiveMessage("출발 카운트다운을 일시정지했습니다.");
       return;
     }
+    if (!replayReady) return;
+    setPauseReason("");
     if (
       phase === "ready" ||
       phase === "finished" ||
@@ -1582,42 +1637,9 @@ export default function RaceReplay({
     displayLap,
     phase,
     playbackRate,
+    replayReady,
     startCountdown,
   ]);
-
-  useEffect(() => {
-    const handleFullscreenSpace = (event: KeyboardEvent) => {
-      if (
-        event.code !== "Space" ||
-        event.repeat ||
-        event.altKey ||
-        event.ctrlKey ||
-        event.metaKey ||
-        event.shiftKey ||
-        activeFullscreenElement() !== viewportRef.current
-      ) {
-        return;
-      }
-
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.isContentEditable ||
-          target.closest(
-            "input, textarea, select, button, a, [role='button'], [role='slider']",
-          ))
-      ) {
-        return;
-      }
-
-      event.preventDefault();
-      handlePlayPause();
-    };
-
-    window.addEventListener("keydown", handleFullscreenSpace);
-    return () =>
-      window.removeEventListener("keydown", handleFullscreenSpace);
-  }, [handlePlayPause]);
 
   const handleReset = () => {
     cancelCountdown();
@@ -1626,8 +1648,28 @@ export default function RaceReplay({
       resultsTimerRef.current = null;
     }
     setPhase("ready");
+    setConfirmRestart(false);
+    setPauseReason("");
     seekTo(0);
     setLiveMessage(`${track.koreanName} 출발 상태로 초기화`);
+  };
+
+  const requestReset = () => {
+    if (elapsedRef.current <= 0 && phase !== "countdown") { handleReset(); return; }
+    phaseBeforeResetRef.current = phase;
+    cancelCountdown();
+    if (resultsTimerRef.current !== null) { window.clearTimeout(resultsTimerRef.current); resultsTimerRef.current = null; }
+    phaseRef.current = "paused";
+    setPhase("paused");
+    setConfirmRestart(true);
+  };
+
+  const cancelReset = () => {
+    setConfirmRestart(false);
+    const restored = phaseAfterResetCancel(phaseBeforeResetRef.current, renderingEnabledRef.current && !document.hidden);
+    phaseRef.current = restored;
+    setPhase(restored);
+    if (restored === "paused" && phaseBeforeResetRef.current === "countdown") setPauseReason("출발 대기 중 일시정지됨");
   };
 
   const handlePerformanceMode = (nextMode: RacePerformanceMode) => {
@@ -1646,7 +1688,7 @@ export default function RaceReplay({
     );
   };
 
-  const toggleFullscreen = async () => {
+  const toggleFullscreen = useCallback(async () => {
     const target = viewportRef.current as FullscreenTarget | null;
     if (!target) return;
 
@@ -1673,16 +1715,49 @@ export default function RaceReplay({
     } catch {
       setLiveMessage("전체 화면 전환을 완료하지 못했습니다.");
     }
+  }, []);
+
+  const selectCamera = useCallback((camera: CameraMode) => {
+    const next = reducedMotion ? "map" : camera;
+    setCameraMode(next);
+    setLiveMessage(`${CAMERA_MODES.find(item => item.id === next)?.description}으로 전환`);
+  }, [reducedMotion]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target;
+      const inReplay = target instanceof Node && (replayRef.current?.contains(target) ?? false);
+      if (inReplay && event.code === "Escape" && panel && !confirmRestart) { event.preventDefault(); closePanel(); return; }
+      const action = replayShortcut({ code: event.code, inReplay, repeat: event.repeat, isComposing: event.isComposing,
+        altKey: event.altKey, ctrlKey: event.ctrlKey, metaKey: event.metaKey, shiftKey: event.shiftKey,
+        dialogOpen: confirmRestart, interactive: target instanceof HTMLElement &&
+          (target.isContentEditable || !!target.closest("input, textarea, select, button, a, summary, [role='button'], [role='slider'], dialog")) });
+      if (!action) return;
+      event.preventDefault();
+      revealControls();
+      if (action === "play") handlePlayPause();
+      else if (action === "camera") selectCamera(nextReplayCamera(cameraMode, reducedMotion));
+      else void toggleFullscreen();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [cameraMode, closePanel, confirmRestart, handlePlayPause, panel, reducedMotion, revealControls, selectCamera, toggleFullscreen]);
+
+  const seekAndPause = (seconds: number) => {
+    if (!replayReady) return;
+    cancelCountdown();
+    phaseRef.current = "paused";
+    setPhase("paused");
+    setPauseReason("선택한 시점 · 계속을 누르면 여기서 재생");
+    seekTo(seconds);
   };
 
   const seekToAdjacentLap = (direction: -1 | 1) => {
-    cancelCountdown();
-    setPhase("paused");
     const targetLap =
       direction < 0
         ? Math.max(1, displayLap - 1)
         : Math.min(frame.totalLaps + 1, displayLap + 1);
-    seekTo(lapStartSeconds(strategy, targetLap));
+    seekAndPause(replayLapSeconds(playerGridCar, targetLap));
     setLiveMessage(
       targetLap > frame.totalLaps
         ? "결승선으로 이동"
@@ -1714,13 +1789,6 @@ export default function RaceReplay({
       : 0;
   const resultScore =
     strategyComparison.eligible ? strategyComparison.score : null;
-  const fullscreenControlShowsPause =
-    phase === "running" || phase === "countdown";
-  const fullscreenControlLabel = fullscreenControlShowsPause
-    ? "일시정지"
-    : phase === "finished" || phase === "results"
-      ? "다시 시작"
-      : "재생";
   const performanceMetrics = [
     ["CAR", "차량", playerPerformance.ratings.carPace],
     ["DRIVER", "페이스", playerPerformance.ratings.driverPace],
@@ -1735,190 +1803,33 @@ export default function RaceReplay({
 
   return (
     <section
-      className="race-replay"
+      ref={replayRef}
+      className="race-replay race-replay--workbench"
       id="strategy-replay"
       aria-labelledby="race-replay-title"
       data-phase={phase}
       data-webgl={webglStatus}
       style={replayTheme}
     >
-      <div className="race-replay__heading">
-        <div>
-          <span>자동 전략 레이스 · 20대 시뮬레이션</span>
-          <h3 id="race-replay-title">전략만 바꿔 승부하는 자동 레이스</h3>
-          <p>
-            {entryContext ? "20대 모두 같은 자동 주행선을 사용합니다. 상단의 동일 성능 설정을 그대로 사용하며, 추천 전략에 이미 반영한 내 차의 능력치는 다시 더하지 않습니다. 상대 차량에만 내 차 대비 페이스·마모·젖은 노면 보정 차이를 적용합니다. 사용자 조작은 결과에 들어가지 않습니다." : <>20대 모두 같은 자동 주행선을 사용합니다. 동일 성능 모드는
-            타이어 전략만 분리해 비교하고, 추정 성능 모드는 공식 2026
-            결과 기반의 보수적인 팀·드라이버 추정치를 추가합니다. 사용자
-            조작은 어느 모드에서도 결과에 들어가지 않습니다.</>}
-          </p>
+      <header className="replay-workbench-heading">
+        <div><span>자동 주행 · 20대 · 프로젝트 추정</span>
+          <h3 id="race-replay-title">{track.koreanName}</h3>
+          <p>{driver.code} · {strategyLabel} · {compactStrategy(strategy)} · 출발 P{playerGridCar.gridPosition}</p>
         </div>
-        <div className="race-replay__identity">
-          <span>내 차량 · P{playerGridCar.gridPosition}</span>
-          <strong>
-            {strategyLabel} · {track.shortCode}
-          </strong>
-          <small>
-            {team.code} · {driver.code} · {compactStrategy(strategy)}
-          </small>
+        <div className="replay-workbench-heading__actions" role="group" aria-label="리플레이 정보">
+          {onOpenSetup && <button type="button" onClick={() => {
+            if (phase === "running" || phase === "countdown") handlePlayPause();
+            onOpenSetup();
+          }}>조건 변경</button>}
+          <button type="button" onClick={() => openPanel("method")} aria-expanded={panel === "method"} aria-controls="replay-details">계산 기준 ⓘ</button>
+          <button type="button" onClick={() => openPanel("metrics")} aria-expanded={panel === "metrics"} aria-controls="replay-details">차량 상세</button>
+          <button type="button" onClick={() => openPanel("data")} aria-expanded={panel === "data"} aria-controls="replay-details">레이스 기록</button>
         </div>
-      </div>
-
-      <div className="race-replay__camera-bar">
-        <div>
-          <span>주행 시점</span>
-          <strong>
-            {cameraMode === "map"
-              ? "서킷 전체"
-              : cameraMode === "chase"
-                ? "3인칭 추적"
-                : cameraMode === "cockpit"
-                  ? "1인칭 콕핏"
-                  : "TV 중계"}
-          </strong>
-        </div>
-        <div role="group" aria-label="주행 카메라">
-          {CAMERA_MODES.map((camera) => (
-            <button
-              type="button"
-              aria-pressed={cameraMode === camera.id}
-              aria-label={camera.description}
-              disabled={reducedMotion && camera.id !== "map"}
-              onClick={() => {
-                setCameraMode(camera.id);
-                setLiveMessage(`${camera.description}으로 전환`);
-              }}
-              key={camera.id}
-            >
-              {camera.label}
-            </button>
-          ))}
-          <button
-            type="button"
-            className="race-replay__fullscreen-button"
-            aria-pressed={isFullscreen}
-            aria-label={
-              isFullscreen
-                ? "3D 주행 화면 전체 화면 종료"
-                : "3D 주행 화면 전체 화면"
-            }
-            title={isFullscreen ? "전체 화면 종료 (Esc)" : "전체 화면"}
-            onClick={() => void toggleFullscreen()}
-          >
-            <span aria-hidden="true">{isFullscreen ? "↙" : "⛶"}</span>
-            {isFullscreen ? "화면 축소" : "전체 화면"}
-          </button>
-        </div>
-      </div>
-
-      {entryContext && entryPerformance ? <div className="race-replay__performance-panel">
-        <div className="race-replay__performance-copy">
-          <span>상단 동일 성능 모드 사용</span>
-          <strong>{entryContext.equalPerformance ? "동일 성능 · 추가 능력치 보정 0" : "EA 공식 점수 → 프로젝트 추정"}</strong>
-          <small>내 차는 DP 계산값을 그대로 사용합니다. 상대만 내 차 대비 계수 차이를 적용하며, 이전 포인트 기반 재생 전용 능력치는 중복 적용하지 않습니다. 그리드·교통·피트 대기 손실은 별도입니다.</small>
-        </div>
-        <div className="race-replay__performance-source">
-          <span>EA 게임 점수 · {entryPerformance.driver.iteration.label} · 확인 {entryPerformance.driver.source.checkedAt}</span>
-          <a href={entryPerformance.driver.source.url} target="_blank" rel="noreferrer">EA 레이팅 원문</a>
-          <span>점수→초/마모 변환은 실측이 아닌 프로젝트 규칙입니다.</span>
-          <span>{entryPerformance.team.explanation}</span>
-        </div>
-      </div> : <div className="race-replay__performance-panel">
-        <div className="race-replay__performance-copy">
-          <span>차량·선수 성능 추정</span>
-          <strong>
-            {performanceMode === "realistic"
-              ? "2026 성능 추정 모델"
-              : "동일 성능 비교"}
-          </strong>
-          <small>
-            성능치는 20대 레이스 재생에만 적용되며 추천 전략·상위 3개·전략
-            점수는 바꾸지 않습니다.
-          </small>
-        </div>
-        <div
-          className="race-replay__performance-toggle"
-          role="group"
-          aria-label="차량과 드라이버 성능 모델"
-        >
-          <button
-            type="button"
-            aria-pressed={performanceMode === "equal"}
-            disabled={phase === "running" || phase === "countdown"}
-            onClick={() => handlePerformanceMode("equal")}
-          >
-            동일 성능
-          </button>
-          <button
-            type="button"
-            aria-pressed={performanceMode === "realistic"}
-            disabled={phase === "running" || phase === "countdown"}
-            onClick={() => handlePerformanceMode("realistic")}
-          >
-            실전 성능
-          </button>
-        </div>
-        <div className="race-replay__performance-ratings">
-          {performanceMetrics.map(([code, label, value]) => (
-            <div title={`${label} 추정 ${value}/100`} key={code}>
-              <span>{label}</span>
-              <strong>{value}</strong>
-              <i>
-                <b style={{ width: `${value}%` }} />
-              </i>
-            </div>
-          ))}
-        </div>
-        <div className="race-replay__performance-source">
-          <span>{PERFORMANCE_MODEL_VERSION}</span>
-          <span>
-            {team.code} {playerPerformance.teamPoints}점 · {driver.code}{" "}
-            {playerPerformance.driverPoints}점
-          </span>
-          <span>
-            공식 데이터{" "}
-            <a
-              href={PERFORMANCE_DATA_SOURCES.teams}
-              target="_blank"
-              rel="noreferrer"
-            >
-              팀
-            </a>
-            {" · "}
-            <a
-              href={PERFORMANCE_DATA_SOURCES.drivers}
-              target="_blank"
-              rel="noreferrer"
-            >
-              드라이버
-            </a>
-            {" · "}
-            <a
-              href={PERFORMANCE_DATA_SOURCES.pitStops}
-              target="_blank"
-              rel="noreferrer"
-            >
-              피트스톱
-            </a>
-          </span>
-        </div>
-      </div>}
+      </header>
 
       <div className="race-replay__grid">
         <div className="race-replay__stage">
-          <div className="race-replay__stage-header">
-            <div>
-              <span>주행 화면</span>
-              <strong>{track.koreanName}</strong>
-            </div>
-            <b className={playerFrame.isPitting ? "is-pitting" : ""}>
-              {playerFrame.completed
-                ? "완주"
-                : playerFrame.isPitting
-                  ? "피트 정차"
-                  : `P${playerFrame.position} · ${displayLap}랩`}
-            </b>
-          </div>
+
 
           <div
             ref={viewportRef}
@@ -1926,10 +1837,19 @@ export default function RaceReplay({
               isFullscreen ? " is-fullscreen-view" : ""
             }`}
             data-camera={cameraMode}
+            data-controls-visible={controlsVisible}
+            tabIndex={0}
+            aria-label="주행 화면. 스페이스 재생과 정지, C 카메라, F 전체화면"
+            onPointerMove={revealControls}
+            onPointerDown={(event) => {
+              revealControls();
+              if (event.target instanceof Element && !event.target.closest("button, input, select, a, dialog")) viewportRef.current?.focus({ preventScroll: true });
+            }}
+            onFocusCapture={revealControls}
+            onBlurCapture={revealControls}
             style={telemetryStyle}
           >
-            {isFullscreen && <button type="button" className="race-fullscreen-exit"
-              aria-label="주행 전체화면 나가기" onClick={() => void toggleFullscreen()}>화면 나가기</button>}
+            <div className="race-replay__screen">
             {!layout && !layoutError && (
               <div className="race-replay__loading" role="status">
                 실제 서킷 경로를 불러오는 중…
@@ -2078,14 +1998,15 @@ export default function RaceReplay({
 
                 <aside
                   className="race-replay__timing-tower"
-                  aria-label="실시간 상위 10대와 플레이어 순위"
+                  aria-label="선두권과 내 차 주변 순위"
                 >
                   <div className="race-replay__timing-heading">
                     <span>순위</span>
-                    <strong>주행 기록 · 추정</strong>
-                    <small>타이어 · 간격</small>
+                    <strong>순위 · 추정</strong>
+                    <button type="button" aria-expanded={towerExpanded} aria-controls="replay-nearby-ranks"
+                      onClick={() => setTowerExpanded(value => !value)}>{towerExpanded ? "접기" : "펼치기"}</button>
                   </div>
-                  <ol>
+                  <ol id="replay-nearby-ranks" hidden={!towerExpanded}>
                     {timingTowerCars.map((car) => {
                       const visual = raceGridData.visuals.find(
                         (candidate) => candidate.id === car.id,
@@ -2093,7 +2014,7 @@ export default function RaceReplay({
                       const isPlayer = car.id === driver.id;
                       return (
                         <li
-                          className={isPlayer ? "is-player" : ""}
+                          className={`${isPlayer ? "is-player" : ""}${nearbyCarIds.has(car.id) ? " is-nearby" : ""}`}
                           key={car.id}
                         >
                           <b>{car.position}</b>
@@ -2114,10 +2035,7 @@ export default function RaceReplay({
                       );
                     })}
                   </ol>
-                  <p>
-                    자동 주행 ·{" "}
-                    {performanceModeLabel}
-                  </p>
+                  <p>{towerExpanded ? "내 차와 앞뒤 차량 항상 표시" : `내 차 P${playerFrame.position} · ${driver.code}`}</p>
                 </aside>
 
                 <div
@@ -2228,15 +2146,14 @@ export default function RaceReplay({
                       type="button"
                       className="race-replay__start-button"
                       disabled={
-                        trackSamples.length === 0 ||
-                        webglStatus === "loading"
+                        !replayReady
                       }
                       onClick={startCountdown}
                     >
                       <span>
-                        {webglStatus === "loading"
+                        {!replayReady
                           ? "서킷 준비 중"
-                          : "그리드 배치 · 출발"}
+                          : "시작"}
                       </span>
                       <b aria-hidden="true">→</b>
                     </button>
@@ -2294,11 +2211,9 @@ export default function RaceReplay({
                     </small>
                   </div>
                 )}
-                {phase === "paused" && !playerFrame.isPitting && (
-                  <div className="race-replay__race-overlay is-paused">
-                    <span>자동 전략 레이스</span>
-                    <strong>일시정지</strong>
-                    <small>재생 버튼을 눌러 계속하기</small>
+                {phase === "paused" && (
+                  <div className="replay-pause-notice" role="status">
+                    <span aria-hidden="true">Ⅱ</span><span>{pauseReason || "일시정지"}</span>
                   </div>
                 )}
                 {playerFrame.isPitting &&
@@ -2388,27 +2303,140 @@ export default function RaceReplay({
                 )}
               </>
             )}
-            <div
-              className="race-replay__fullscreen-playback"
-              role="group"
-              aria-label="전체화면 재생 제어"
-            >
-              <button
-                type="button"
-                aria-keyshortcuts="Space"
-                aria-label={`${fullscreenControlLabel} (스페이스바)`}
-                onClick={handlePlayPause}
-              >
-                <span aria-hidden="true">
-                  {fullscreenControlShowsPause ? "Ⅱ" : "▶"}
-                </span>
-                <strong>{fullscreenControlLabel}</strong>
-              </button>
-              <kbd>스페이스</kbd>
             </div>
+            <div ref={controlsRef} className="replay-control-dock" onClick={(event) => {
+              // Pointer-activated buttons return focus to the track so the dock can fade.
+              // Keyboard focus, an open camera select, and seek dragging remain untouched.
+              if (event.detail > 0 && event.target instanceof Element && event.target.closest("button:not(.replay-controls__reset)")) {
+                viewportRef.current?.focus({ preventScroll: true });
+                revealControls();
+              }
+            }}>
+              <RaceReplayControls phase={phase} ready={replayReady} rate={playbackRate}
+                camera={cameraMode} reducedMotion={reducedMotion} fullscreen={isFullscreen}
+                elapsed={gridFrame.elapsedSeconds} lap={displayLap} car={playerGridCar}
+                onPlay={handlePlayPause} onRate={(rate) => { setPlaybackRate(rate); setLiveMessage(`${rate}배 모델 시간으로 설정`); }}
+                onCamera={selectCamera} onFullscreen={() => void toggleFullscreen()}
+                onReset={requestReset} onLap={seekToAdjacentLap} onSeek={seekAndPause} />
+            </div>
+            <dialog ref={restartDialogRef} className="replay-reset-dialog" aria-labelledby="replay-reset-title"
+              onCancel={(event) => { event.preventDefault(); cancelReset(); }}>
+              <h3 id="replay-reset-title">처음부터 다시 볼까요?</h3>
+              <p>현재 재생 위치만 출발 전으로 돌아갑니다. 전략·배속·카메라는 유지됩니다.</p>
+              <div><button type="button" autoFocus onClick={cancelReset}>취소</button><button type="button" onClick={handleReset}>처음부터</button></div>
+            </dialog>
           </div>
-
-          <div className="race-replay__track-meta">
+          <aside id="replay-details" className="replay-drawer" hidden={!panel} aria-labelledby="replay-details-title">
+            <header><h3 id="replay-details-title">{panel === "method" ? "계산 기준·출처" : panel === "metrics" ? "차량 상세 · 추정" : "레이스 기록"}</h3>
+              <button ref={panelCloseRef} type="button" onClick={closePanel} aria-label="리플레이 정보 닫기">닫기 ×</button></header>
+            <div className="replay-drawer__body">
+              <div hidden={panel !== "method"}>
+                {scenarioSummary && <p>{scenarioSummary}</p>}
+                <p>
+            {entryContext ? "20대 모두 같은 자동 주행선을 사용합니다. 상단의 동일 성능 설정을 그대로 사용하며, 추천 전략에 이미 반영한 내 차의 능력치는 다시 더하지 않습니다. 상대 차량에만 내 차 대비 페이스·마모·젖은 노면 보정 차이를 적용합니다. 사용자 조작은 결과에 들어가지 않습니다." : <>20대 모두 같은 자동 주행선을 사용합니다. 동일 성능 모드는
+            타이어 전략만 분리해 비교하고, 추정 성능 모드는 공식 2026
+            결과 기반의 보수적인 팀·드라이버 추정치를 추가합니다. 사용자
+            조작은 어느 모드에서도 결과에 들어가지 않습니다.</>}
+          </p>
+                {entryContext && entryPerformance ? <div className="race-replay__performance-panel">
+        <div className="race-replay__performance-copy">
+          <span>상단 동일 성능 모드 사용</span>
+          <strong>{entryContext.equalPerformance ? "동일 성능 · 추가 능력치 보정 0" : "EA 공식 점수 → 프로젝트 추정"}</strong>
+          <small>내 차는 DP 계산값을 그대로 사용합니다. 상대만 내 차 대비 계수 차이를 적용하며, 이전 포인트 기반 재생 전용 능력치는 중복 적용하지 않습니다. 그리드·교통·피트 대기 손실은 별도입니다.</small>
+        </div>
+        <div className="race-replay__performance-source">
+          <span>EA 게임 점수 · {entryPerformance.driver.iteration.label} · 확인 {entryPerformance.driver.source.checkedAt}</span>
+          <a href={entryPerformance.driver.source.url} target="_blank" rel="noreferrer">EA 레이팅 원문</a>
+          <span>점수→초/마모 변환은 실측이 아닌 프로젝트 규칙입니다.</span>
+          <span>{entryPerformance.team.explanation}</span>
+        </div>
+      </div> : <div className="race-replay__performance-panel">
+        <div className="race-replay__performance-copy">
+          <span>차량·선수 성능 추정</span>
+          <strong>
+            {performanceMode === "realistic"
+              ? "2026 성능 추정 모델"
+              : "동일 성능 비교"}
+          </strong>
+          <small>
+            성능치는 20대 레이스 재생에만 적용되며 추천 전략·상위 3개·전략
+            점수는 바꾸지 않습니다.
+          </small>
+        </div>
+        <div
+          className="race-replay__performance-toggle"
+          role="group"
+          aria-label="차량과 드라이버 성능 모델"
+        >
+          <button
+            type="button"
+            aria-pressed={performanceMode === "equal"}
+            disabled={phase === "running" || phase === "countdown"}
+            onClick={() => handlePerformanceMode("equal")}
+          >
+            동일 성능
+          </button>
+          <button
+            type="button"
+            aria-pressed={performanceMode === "realistic"}
+            disabled={phase === "running" || phase === "countdown"}
+            onClick={() => handlePerformanceMode("realistic")}
+          >
+            실전 성능
+          </button>
+        </div>
+        <div className="race-replay__performance-ratings">
+          {performanceMetrics.map(([code, label, value]) => (
+            <div title={`${label} 추정 ${value}/100`} key={code}>
+              <span>{label}</span>
+              <strong>{value}</strong>
+              <i>
+                <b style={{ width: `${value}%` }} />
+              </i>
+            </div>
+          ))}
+        </div>
+        <div className="race-replay__performance-source">
+          <span>{PERFORMANCE_MODEL_VERSION}</span>
+          <span>
+            {team.code} {playerPerformance.teamPoints}점 · {driver.code}{" "}
+            {playerPerformance.driverPoints}점
+          </span>
+          <span>
+            공식 데이터{" "}
+            <a
+              href={PERFORMANCE_DATA_SOURCES.teams}
+              target="_blank"
+              rel="noreferrer"
+            >
+              팀
+            </a>
+            {" · "}
+            <a
+              href={PERFORMANCE_DATA_SOURCES.drivers}
+              target="_blank"
+              rel="noreferrer"
+            >
+              드라이버
+            </a>
+            {" · "}
+            <a
+              href={PERFORMANCE_DATA_SOURCES.pitStops}
+              target="_blank"
+              rel="noreferrer"
+            >
+              피트스톱
+            </a>
+          </span>
+        </div>
+      </div>}
+                <p className="race-replay__disclaimer">
+        실제 서킷 윤곽 기반의 모델 시각화입니다. 실제 고도·차량 물리를
+        재현하지 않습니다. 결과 차이는 타이어 전략과 공개한 결정론적
+        그리드·교통·피트 규칙에서 발생합니다. {entryContext ? "상단 성능 설정에 따라 내 차에 이미 반영한 계수는 유지하고 상대의 계수 차이만 추가합니다." : "추정 성능 모드에서는 팀·드라이버 추정치가 작은 범위로 추가됩니다."} 표시 속도·시야각·카메라
+        효과는 연출용이며 전략 계산에는 사용하지 않습니다.
+      </p>
+                <div className="race-replay__track-meta">
             <span>
               {track.circuitLengthKm.toFixed(3)} km · {track.turns}개 코너 · 공식 제원
             </span>
@@ -2430,9 +2458,8 @@ export default function RaceReplay({
               </a>
             </div>
           </div>
-        </div>
-
-        <aside className="race-replay__telemetry" aria-label="재생 상태">
+              </div>
+              <div hidden={panel !== "metrics"}><aside className="race-replay__telemetry" aria-label="재생 상태">
           <div className="race-replay__lap">
             <span>추정 순위</span>
             <strong>
@@ -2543,159 +2570,26 @@ export default function RaceReplay({
                   }, 두 차량은 같은 자동주행 조건입니다.`}
             </p>
           </div>
-        </aside>
+        </aside></div>
+              <div hidden={panel !== "data"}>
+                <ReplayTelemetry grid={raceGridData.grid} frame={gridFrame} playerId={driver.id}
+                  hasStarted={phase !== "ready" && phase !== "countdown"} experimentTimeline={experimentTimeline}
+                  onSeek={seekAndPause} />
+                <details className="replay-strategy-comparison"><summary>내 전략·기준 전략 비교 · {finalDeltaText}</summary>
+                  <StrategyTimelineRow label={strategyLabel} strategy={strategy} />
+                  <StrategyTimelineRow label={referenceLabel} strategy={referenceStrategy} isReference />
+                </details>
+              </div>
+            </div>
+          </aside>
+
+
+        </div>
+
+
       </div>
 
-      <div className="race-replay__controls">
-        {(phase === "paused" || phase === "results") && (
-          <label className="race-replay__scrubber">
-            <span>
-              리플레이 모델 시간
-              <b>
-                {Math.round(
-                  (gridFrame.elapsedSeconds /
-                    Math.max(1, playerGridCar.totalSeconds)) *
-                    100,
-                )}
-                %
-              </b>
-            </span>
-            <input
-              type="range"
-              min="0"
-              max={playerGridCar.totalSeconds}
-              step="any"
-              value={Math.min(
-                gridFrame.elapsedSeconds,
-                playerGridCar.totalSeconds,
-              )}
-              aria-label="전략 레이스 모델 시간 탐색"
-              aria-valuetext={`랩 ${displayLap}, 누적 ${formatRaceTime(
-                gridFrame.elapsedSeconds,
-                1,
-              )}`}
-              onChange={(event) => {
-                cancelCountdown();
-                setPhase("paused");
-                seekTo(Number(event.target.value));
-              }}
-            />
-          </label>
-        )}
-
-        <div className="race-replay__transport">
-          {(phase === "paused" || phase === "results") && (
-            <button
-              type="button"
-              onClick={() => seekToAdjacentLap(-1)}
-              aria-label="이전 랩 시작"
-              disabled={gridFrame.elapsedSeconds <= 0}
-            >
-              −1랩
-            </button>
-          )}
-          <button
-            type="button"
-            className="race-replay__play"
-            onClick={
-              phase === "ready" ? startCountdown : handlePlayPause
-            }
-          >
-            {phase === "countdown"
-              ? "출발 취소"
-              : isPlaying
-                ? "일시정지"
-                : phase === "finished" || phase === "results"
-                  ? "다시 레이스"
-                  : phase === "ready"
-                    ? "레이스 시작"
-                    : "계속"}
-          </button>
-          {(phase === "paused" || phase === "results") && (
-            <button
-              type="button"
-              onClick={() => seekToAdjacentLap(1)}
-              aria-label="다음 랩 시작"
-              disabled={playerFrame.completed}
-            >
-              +1랩
-            </button>
-          )}
-          {phase !== "ready" && (
-            <button type="button" onClick={handleReset}>
-              그리드로
-            </button>
-          )}
-          <label>
-            <span>시간 압축</span>
-            <select
-              value={playbackRate}
-              aria-label="모델 시간 압축률"
-              onChange={(event) => {
-                const nextRate = Number(event.target.value);
-                setPlaybackRate(nextRate);
-                setLiveMessage(`${nextRate}배 모델 시간으로 설정`);
-              }}
-            >
-              {PLAYBACK_RATES.map((rate) => (
-                <option value={rate} key={rate}>
-                  {rate}×
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
-
-      {(phase === "paused" || phase === "results") && (
-      <div className="race-replay__timeline">
-        <div className="race-replay__timeline-heading">
-          <span>전략 타임라인</span>
-          <strong>
-            최종 예상 차이 · {finalDeltaText}
-          </strong>
-        </div>
-        <div className="race-replay__timeline-tracks">
-          <StrategyTimelineRow
-            label={strategyLabel}
-            strategy={strategy}
-          />
-          <StrategyTimelineRow
-            label={referenceLabel}
-            strategy={referenceStrategy}
-            isReference
-          />
-          <i
-            className="race-replay__timeline-cursor"
-            style={{
-              left: `${clamp(
-                (raceFrame.primaryDistanceLaps /
-                  strategy.lapCosts.length) *
-                  100,
-                0,
-                100,
-              )}%`,
-            }}
-            aria-hidden="true"
-          />
-        </div>
-      </div>
-      )}
-
-      <ReplayTelemetry
-        grid={raceGridData.grid}
-        frame={gridFrame}
-        playerId={driver.id}
-        hasStarted={phase !== "ready" && phase !== "countdown"}
-        experimentTimeline={experimentTimeline}
-      />
-
-      <p className="race-replay__disclaimer">
-        실제 서킷 윤곽 기반의 모델 시각화입니다. 실제 고도·차량 물리를
-        재현하지 않습니다. 결과 차이는 타이어 전략과 공개한 결정론적
-        그리드·교통·피트 규칙에서 발생합니다. {entryContext ? "상단 성능 설정에 따라 내 차에 이미 반영한 계수는 유지하고 상대의 계수 차이만 추가합니다." : "추정 성능 모드에서는 팀·드라이버 추정치가 작은 범위로 추가됩니다."} 표시 속도·시야각·카메라
-        효과는 연출용이며 전략 계산에는 사용하지 않습니다.
-      </p>
+      <p className="replay-workbench-note">자동 주행 · 표시 속도와 카메라는 연출이며 전략 계산에 영향을 주지 않습니다.</p>
       <p className="sr-only" aria-live="polite">
         {liveMessage}
       </p>

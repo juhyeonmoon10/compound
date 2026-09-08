@@ -132,7 +132,7 @@ test("SC/VSC data is shown only when supplied, unchanged and explicitly separate
   assert.match(empty, /이 시행에는 SC\/VSC 구간이 없습니다/);
 });
 
-test("ReplayTelemetry is a direct replay-section child, outside the fullscreen viewport", () => {
+test("ReplayTelemetry remains outside the fullscreen viewport in the information drawer", () => {
   const source = readFileSync(new URL("../app/RaceReplay.tsx", import.meta.url), "utf8");
   const ast = ts.createSourceFile("RaceReplay.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const telemetry = [], viewports = [];
@@ -146,7 +146,8 @@ test("ReplayTelemetry is a direct replay-section child, outside the fullscreen v
   visit(ast);
   assert.equal(telemetry.length, 1);
   assert.equal(viewports.length, 1);
-  assert.equal(telemetry[0].parent.openingElement.tagName.getText(ast), "section");
+  assert.equal(telemetry[0].parent.openingElement.tagName.getText(ast), "div");
+  assert.match(telemetry[0].parent.openingElement.getText(ast), /hidden=\{panel !== "data"\}/);
   assert.ok(telemetry[0].getStart(ast) > viewports[0].end);
   const props = new Map(telemetry[0].attributes.properties.map((attribute) => [attribute.name.getText(ast), attribute.initializer?.getText(ast)]));
   assert.equal(props.get("grid"), "{raceGridData.grid}");
@@ -154,6 +155,7 @@ test("ReplayTelemetry is a direct replay-section child, outside the fullscreen v
   assert.equal(props.get("playerId"), "{driver.id}");
   assert.equal(props.get("hasStarted"), '{phase !== "ready" && phase !== "countdown"}');
   assert.equal(props.get("experimentTimeline"), "{experimentTimeline}");
+  assert.equal(props.get("onSeek"), "{seekAndPause}");
   assert.match(source, /const target = viewportRef\.current as FullscreenTarget/);
   assert.match(source, /readonly experimentTimeline\?: RaceExperimentTimeline \| null/);
 });

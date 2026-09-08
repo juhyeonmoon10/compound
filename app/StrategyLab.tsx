@@ -1432,7 +1432,7 @@ export default function StrategyLab({
             }}
           />
 
-          <p className="weather-model-summary">강수: {RAIN_LABELS[applied.weather.preset]} · 수막·우천 페널티: 프로젝트 추정. 슬릭→인터 경계 {calculatedCrossovers().slickInter.toFixed(2)} 초과, 인터→웨트 약 {calculatedCrossovers().interWet.toFixed(2)}. {selectedTopThree.ruleExplanation} 3D 노면 광택·물보라는 계산과 분리된 연출입니다.</p>
+          <p className="weather-model-summary" hidden={workspace === "replay"}>강수: {RAIN_LABELS[applied.weather.preset]} · 수막·우천 페널티: 프로젝트 추정. 슬릭→인터 경계 {calculatedCrossovers().slickInter.toFixed(2)} 초과, 인터→웨트 약 {calculatedCrossovers().interWet.toFixed(2)}. {selectedTopThree.ruleExplanation} 3D 노면 광택·물보라는 계산과 분리된 연출입니다.</p>
           <p className="weather-model-summary" hidden={workspace !== "board"}>1번은 기존 K-best DP의 최단 해입니다. 2·3번은 순서만 다른 구성을 묶은 대표 대안이며 전역 2·3위가 아닙니다. 같은 스톱 수·컴파운드 집합은 {MODEL_PARAMS.race.minimumDistinctSeconds}초 이상 차이 나는 후보만 표시합니다.{results.length < 3 && ` 현재 조건에서 구별되는 후보는 ${results.length}개입니다.`}</p>
           <RaceExperimentPanel hidden={pageView !== "strategy" || workspace !== "board"} candidates={results} seed={experimentSeed} onSeedChange={setExperimentSeed} result={raceExperiment} onResult={setRaceExperiment} racecraft={entryProfile.racecraft} startingGridPosition={applied.startingGridPosition} pitLossSeconds={applied.pitLossSeconds} trialIndex={experimentTrial} onTrialChange={setExperimentTrial} fixedRivals={sharedExperimentGrid?.fixedRivals} playerId={sharedExperimentGrid?.playerId} gridSlotOffsetSeconds={sharedExperimentGrid?.gridSlotOffsetSeconds} eventPrior={neutralisationPrior} />
           <div className="lab-grid">
@@ -2558,6 +2558,7 @@ export default function StrategyLab({
                 trafficLevel={applied.trafficLevel}
                 entryContext={{ teamId: applied.teamId, driverId: applied.driverId, equalPerformance: applied.equalPerformance }}
                 experimentTimeline={raceExperiment?.eventTimelines[experimentTrial] ?? null}
+                scenarioSummary={`강수: ${RAIN_LABELS[applied.weather.preset]} · 수막·우천 페널티: 프로젝트 추정. 슬릭→인터 경계 ${calculatedCrossovers().slickInter.toFixed(2)} 초과, 인터→웨트 약 ${calculatedCrossovers().interWet.toFixed(2)}. ${selectedTopThree.ruleExplanation} 3D 노면 광택·물보라는 계산과 분리된 연출입니다.`}
                 onOpenSetup={openScenarioSetup}
                 onEditStrategy={() => {
                   setWorkspace("manual");
