@@ -34,6 +34,14 @@ const TRAFFIC_LABELS: Readonly<Record<RaceTrafficLevel, string>> = {
 
 type BoardCompound = keyof typeof TYRE_COLORS;
 
+const BOARD_TYRE_ASSETS: Readonly<Record<BoardCompound, string>> = {
+  H: "/ui/tyres/hard.webp",
+  M: "/ui/tyres/medium.webp",
+  S: "/ui/tyres/soft.webp",
+  INTER: "/ui/tyres/intermediate.webp",
+  WET: "/ui/tyres/wet.webp",
+};
+
 function strategySequence(strategy: StrategyResult): string {
   return strategy.stints.map((stint) => TYRE_LABELS[stint.compound]).join(" → ");
 }
@@ -97,14 +105,12 @@ export function strategyBoardRowGeometry(
   };
 }
 
-function BoardTyre({ compound, x, y, size, clipId }: {
-  compound: BoardCompound; x: number; y: number; size: number; clipId: string;
+function BoardTyre({ compound, x, y, size }: {
+  compound: BoardCompound; x: number; y: number; size: number;
 }) {
   return <g aria-hidden="true" className="strategy-board-tyre" data-compound={compound}>
-    <image href={publicAsset("/ui/tyre-compound-icon.png")} x={x - size / 2} y={y - size / 2} width={size} height={size}
-      preserveAspectRatio="xMidYMid slice" clipPath={`url(#${clipId})`} />
-    <circle cx={x} cy={y} r={(size - MODEL_PARAMS.board.lineWidth) / 2} fill="none"
-      stroke={TYRE_COLORS[compound]} strokeWidth={MODEL_PARAMS.board.lineWidth} />
+    <image href={publicAsset(BOARD_TYRE_ASSETS[compound])} x={x - size / 2} y={y - size / 2} width={size} height={size}
+      preserveAspectRatio="xMidYMid meet" />
   </g>;
 }
 
@@ -115,7 +121,6 @@ function StrategyBoardGraphic({ track, results, pitWindows, selectedRank, topThr
 }) {
   const id = useId().replaceAll(":", "");
   const board = MODEL_PARAMS.board;
-  const clipId = `${id}-tyre-clip`;
   const rows = results.slice(0, 3).map((strategy, index) => ({
     strategy, geometry: strategyBoardRowGeometry(strategy, pitWindows[index] ?? [], track.laps, index),
   }));
@@ -131,7 +136,6 @@ function StrategyBoardGraphic({ track, results, pitWindows, selectedRank, topThr
       } as CSSProperties}>
         <svg viewBox={`0 0 ${board.width} ${board.height}`} className="strategy-board__svg" aria-hidden="true">
           <defs>
-            <clipPath id={clipId} clipPathUnits="objectBoundingBox"><circle cx=".5" cy=".5" r=".5" /></clipPath>
             {rows.flatMap(({ geometry }, rowIndex) => geometry.pits.map((pit, pitIndex) => (
               <linearGradient id={`${id}-fade-${rowIndex}-${pitIndex}`} key={`${rowIndex}-${pitIndex}`} gradientUnits="userSpaceOnUse"
                 x1={pit.x - board.fadeWidth / 2} x2={pit.x + board.fadeWidth / 2}>
@@ -151,10 +155,10 @@ function StrategyBoardGraphic({ track, results, pitWindows, selectedRank, topThr
               <line x1={Math.max(board.lineStart, pit.x - board.fadeWidth / 2)} x2={Math.min(board.lineEnd, pit.x + board.fadeWidth / 2)}
                 y1={geometry.y} y2={geometry.y} stroke={`url(#${id}-fade-${rowIndex}-${pitIndex})`} strokeWidth={board.lineWidth} />
               <text x={pit.labelX} y={pit.labelY} textAnchor={pit.labelAnchor} fontSize={board.windowFont} className="strategy-board__window"><tspan fontWeight="800">{pit.startLap}</tspan>{pit.startLap !== pit.endLap && <> ~ <tspan fontWeight="800">{pit.endLap}</tspan></>}랩</text>
-              <BoardTyre compound={pit.compound} x={pit.x} y={geometry.y} size={board.pitWheel} clipId={clipId} />
+              <BoardTyre compound={pit.compound} x={pit.x} y={geometry.y} size={board.pitWheel} />
             </g>)}
             <text x={board.finishX - board.pitWheel / 2 - board.stopLabelGap} y={geometry.y - board.windowGap} textAnchor="end" fontSize={board.windowFont} className="strategy-board__stop-label">{strategy.stopCount}스톱</text>
-            <BoardTyre compound={geometry.finalCompound} x={board.finishX} y={geometry.y} size={board.pitWheel} clipId={clipId} />
+            <BoardTyre compound={geometry.finalCompound} x={board.finishX} y={geometry.y} size={board.pitWheel} />
           </g>)}
           <text x={board.lineStart} y={board.dividerY - board.windowGap} fontSize={board.footerFont} className="strategy-board__note">교체 구간은 각 전략의 민감도 추정치이며, 실제 경기 예보가 아닙니다.</text>
           <line x1={board.lineStart} x2={board.width - board.lineStart} y1={board.dividerY} y2={board.dividerY} className="strategy-board__rule" />
@@ -162,7 +166,7 @@ function StrategyBoardGraphic({ track, results, pitWindows, selectedRank, topThr
             const x = board.legendStart + index * board.legendStep;
             const labelX = x + board.legendWheel + board.windowGap;
             return <g key={compound} data-legend-compound={compound}>
-              <BoardTyre compound={compound} x={x + board.legendWheel / 2} y={board.legendY} size={board.legendWheel} clipId={clipId} />
+              <BoardTyre compound={compound} x={x + board.legendWheel / 2} y={board.legendY} size={board.legendWheel} />
               <text x={labelX} y={board.legendY - board.windowGap / 2} fontSize={compound === "INTER" ? board.footerFont : board.legendLabelFont} fill={TYRE_COLORS[compound]} className="strategy-board__legend-name">{TYRE_LABELS[compound]}</text>
               <text x={labelX} y={board.legendY + board.windowFont} fontSize={board.windowFont} fill={TYRE_COLORS[compound]} className="strategy-board__legend-code">{compound === "INTER" ? "I" : compound === "WET" ? "W" : compound}</text>
             </g>;

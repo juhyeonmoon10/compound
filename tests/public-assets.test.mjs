@@ -8,7 +8,16 @@ test("assets work at root and at a GitHub Pages repository subpath", () => {
     delete process.env.NEXT_PUBLIC_BASE_PATH;
     assert.equal(publicAsset("/models/formula-car.glb"), "/models/formula-car.glb");
     process.env.NEXT_PUBLIC_BASE_PATH = "/compound/";
-    for (const path of ["/models/formula-car.glb", "/cars/ferrari-sf26.webp", "/circuits/melbourne-2.svg", "/ui/tyre-compound-icon.png"]) {
+    for (const path of [
+      "/models/formula-car.glb",
+      "/cars/ferrari-sf26.webp",
+      "/circuits/melbourne-2.svg",
+      "/ui/tyres/hard.webp",
+      "/ui/tyres/intermediate.webp",
+      "/ui/tyres/medium.webp",
+      "/ui/tyres/soft.webp",
+      "/ui/tyres/wet.webp",
+    ]) {
       assert.equal(publicAsset(path), `/compound${path}`);
     }
     assert.equal(publicAsset("https://example.com/car.webp"), "https://example.com/car.webp");

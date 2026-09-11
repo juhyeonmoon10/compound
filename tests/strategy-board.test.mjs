@@ -110,6 +110,10 @@ test("rendered board preserves incoming strategy order, five-tyre legend, and ac
   assert.match(rowLabels[2], /하드 → 미디엄/);
   assert.match(graphic, /class="strategy-board__row-hit" aria-pressed="true" aria-label="전략 2/);
   for (const compound of Object.keys(TYRE_LABELS)) assert.ok(graphic.includes(`data-legend-compound="${compound}"`));
+  for (const asset of ["hard", "intermediate", "medium", "soft", "wet"]) {
+    assert.ok(graphic.includes(`/ui/tyres/${asset}.webp`), `${asset} tyre art should be rendered`);
+  }
+  assert.ok(!graphic.includes("tyre-compound-icon.png"));
   assert.ok(!graphic.includes("1:23:20.000"), "model race times belong below the graphic");
   assert.ok(!markup.includes("공동 최단"));
   assert.ok(markup.includes("22.7초"));
