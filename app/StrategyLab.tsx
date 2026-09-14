@@ -268,6 +268,14 @@ function strategySequence(strategy: StrategyEvaluation) {
   return strategy.stints.map((stint) => stint.compound).join(" → ");
 }
 
+function cloneManualPlan(plan: ManualStrategyPlan): ManualStrategyPlan {
+  return {
+    stopCount: plan.stopCount,
+    compounds: [...plan.compounds],
+    pitAfterLaps: [...plan.pitAfterLaps],
+  };
+}
+
 function formatDelta(seconds: number) {
   return `${seconds >= 0 ? "+" : "−"}${Math.abs(seconds).toFixed(3)}초`;
 }
@@ -844,6 +852,8 @@ export default function StrategyLab({
     const initialTrack = TRACK_PRESETS[initialConfig.trackId];
     return createDefaultManualPlan(initialTrack.laps);
   });
+  const [manualUndoStack, setManualUndoStack] = useState<ManualStrategyPlan[]>([]);
+  const [manualRedoStack, setManualRedoStack] = useState<ManualStrategyPlan[]>([]);
   const [committedManualPlan, setCommittedManualPlan] =
     useState<ManualStrategyPlan | null>(null);
   const [announcement, setAnnouncement] = useState(
@@ -998,6 +1008,8 @@ export default function StrategyLab({
     setWorkspace("board");
     setAnalysisMode("top3");
     setCommittedManualPlan(null);
+    setManualUndoStack([]);
+    setManualRedoStack([]);
     setResultDetailTab("chart");
     setManualPlan(
       nextBest
@@ -1095,37 +1107,66 @@ export default function StrategyLab({
     analysisStrategy.breakdown.pitLossSeconds,
   );
 
+  const applyManualEdit = (nextPlan: ManualStrategyPlan) => {
+    setManualUndoStack((current) => [
+      ...current.slice(-19),
+      cloneManualPlan(manualPlan),
+    ]);
+    setManualRedoStack([]);
+    setManualPlan(nextPlan);
+  };
+
+  const undoManualEdit = () => {
+    const previous = manualUndoStack.at(-1);
+    if (!previous) return;
+    setManualUndoStack((current) => current.slice(0, -1));
+    setManualRedoStack((current) => [
+      ...current.slice(-19),
+      cloneManualPlan(manualPlan),
+    ]);
+    setManualPlan(cloneManualPlan(previous));
+    setAnnouncement("이전 전략 편집 상태로 돌아갔습니다.");
+  };
+
+  const redoManualEdit = () => {
+    const next = manualRedoStack.at(-1);
+    if (!next) return;
+    setManualRedoStack((current) => current.slice(0, -1));
+    setManualUndoStack((current) => [
+      ...current.slice(-19),
+      cloneManualPlan(manualPlan),
+    ]);
+    setManualPlan(cloneManualPlan(next));
+    setAnnouncement("되돌린 전략 편집을 다시 적용했습니다.");
+  };
+
   const updateManualCompound = (index: number, compound: Compound) => {
-    setManualPlan((current) => {
-      const compounds: ManualStrategyPlan["compounds"] = [
-        ...current.compounds,
-      ];
-      compounds[index] = compound;
-      return { ...current, compounds };
-    });
+    const compounds: ManualStrategyPlan["compounds"] = [
+      ...manualPlan.compounds,
+    ];
+    compounds[index] = compound;
+    applyManualEdit({ ...manualPlan, compounds });
   };
 
   const updateManualPit = (index: number, lap: number) => {
-    setManualPlan((current) => {
-      const pitAfterLaps: ManualStrategyPlan["pitAfterLaps"] = [
-        ...current.pitAfterLaps,
-      ];
-      pitAfterLaps[index] = lap;
-      return normalizeManualPlan(
-        { ...current, pitAfterLaps },
-        appliedTrack.laps,
-        applied.maxStops,
-      );
-    });
+    const pitAfterLaps: ManualStrategyPlan["pitAfterLaps"] = [
+      ...manualPlan.pitAfterLaps,
+    ];
+    pitAfterLaps[index] = lap;
+    applyManualEdit(normalizeManualPlan(
+      { ...manualPlan, pitAfterLaps },
+      appliedTrack.laps,
+      applied.maxStops,
+    ));
   };
 
   const loadBestIntoManual = () => {
-    setManualPlan(manualPlanFromStrategy(best, appliedTrack.laps));
+    applyManualEdit(manualPlanFromStrategy(best, appliedTrack.laps));
     setAnnouncement("추천 1위 전략을 직접 전략 편집기에 불러왔습니다.");
   };
 
   const resetManualPlan = () => {
-    setManualPlan(createDefaultManualPlan(appliedTrack.laps));
+    applyManualEdit(createDefaultManualPlan(appliedTrack.laps));
     setAnalysisMode("manual");
     setAnnouncement("직접 전략을 1스톱 기본 구성으로 초기화했습니다.");
   };
@@ -1287,6 +1328,27 @@ export default function StrategyLab({
           aria-label="전략 설계"
           hidden={pageView !== "strategy"}
         >
+          <nav className="manual-flow" aria-label="전략 작업 단계">
+            <button type="button" aria-current={!scenarioReady ? "step" : undefined} onClick={openScenarioSetup}>
+              <span>1</span>레이스 설정
+            </button>
+            <i aria-hidden="true" />
+            <button type="button" aria-current={scenarioReady && workspace === "manual" ? "step" : undefined} disabled={!scenarioReady} onClick={() => {
+              setAnalysisMode("manual");
+              setWorkspace("manual");
+            }}>
+              <span>2</span>직접 전략
+            </button>
+            <i aria-hidden="true" />
+            <button type="button" aria-current={scenarioReady && workspace !== "manual" ? "step" : undefined} disabled={!scenarioReady || !manualStrategy.isLegal} onClick={() => {
+              setCommittedManualPlan(null);
+              setAnalysisMode("manual");
+              setWorkspace("detail");
+            }}>
+              <span>3</span>비교·주행
+            </button>
+          </nav>
+
           {!scenarioReady && (
             <section className="manual-entry" aria-labelledby="manual-entry-title">
               <div>
@@ -1931,10 +1993,6 @@ export default function StrategyLab({
                   <div>
                     <span>02 / 직접 전략 설계</span>
                     <h3 id="manual-builder-title">직접 전략 만들기</h3>
-                    <p>
-                      상위 3개는 그대로 두고, 컴파운드와 피트랩을 직접 정해
-                      같은 비용식으로 비교합니다.
-                    </p>
                   </div>
                   <div className="manual-builder__tools">
                     <span>
@@ -1943,6 +2001,12 @@ export default function StrategyLab({
                       {appliedTrack.laps}랩
                     </span>
                     <div>
+                      <button type="button" onClick={undoManualEdit} disabled={manualUndoStack.length === 0}>
+                        실행 취소
+                      </button>
+                      <button type="button" onClick={redoManualEdit} disabled={manualRedoStack.length === 0}>
+                        다시 실행
+                      </button>
                       <button type="button" onClick={loadBestIntoManual}>
                         추천 1위 불러오기
                       </button>
@@ -1969,13 +2033,11 @@ export default function StrategyLab({
                               }
                               disabled={stops > applied.maxStops}
                               onChange={() =>
-                                setManualPlan((current) =>
-                                  normalizeManualPlan(
-                                    { ...current, stopCount: stops },
-                                    appliedTrack.laps,
-                                    applied.maxStops,
-                                  ),
-                                )
+                                applyManualEdit(normalizeManualPlan(
+                                  { ...manualPlan, stopCount: stops },
+                                  appliedTrack.laps,
+                                  applied.maxStops,
+                                ))
                               }
                             />
                             <span>{stops}회 교체</span>

@@ -1443,6 +1443,12 @@ test("the direct strategy workspace is the empty main view and connects to resea
   assert.ok(component.includes('useState<PageView>("strategy")'));
   assert.ok(component.includes('useState<StrategyWorkspace>("manual")'));
   assert.ok(component.includes('const [scenarioReady, setScenarioReady] = useState(false);'));
+  assert.ok(component.includes('className="manual-flow"'));
+  assert.ok(component.includes('레이스 설정'));
+  assert.ok(component.includes('직접 전략'));
+  assert.ok(component.includes('비교·주행'));
+  assert.ok(component.includes('onClick={undoManualEdit}'));
+  assert.ok(component.includes('onClick={redoManualEdit}'));
   assert.ok(component.includes('{PAGE_VIEWS.map((view) => ('));
   assert.ok(component.includes('aria-current={pageView === view.id ? "page" : undefined}'));
   assert.ok(component.includes('onClick={() => selectPageView(view.id)}'));

@@ -279,9 +279,16 @@
 .site-shell .home-page__hero article dd { color:#fff; font-weight:700; }
 
 .site-shell .simulator { width:100%; padding:0; }
+.site-shell .manual-flow { width:min(1280px,calc(100% - 56px)); min-height:62px; margin:0 auto; display:flex; align-items:center; justify-content:center; gap:12px; border-bottom:1px solid var(--line); }
+.site-shell .manual-flow button { display:flex; align-items:center; gap:8px; min-height:36px; padding:0 10px; border:0; color:#7f8994; background:transparent; font-size:11px; font-weight:700; }
+.site-shell .manual-flow button span { display:grid; width:22px; height:22px; place-items:center; border:1px solid #414953; border-radius:50%; color:#aab2bb; font:700 10px/1 ui-monospace,monospace; }
+.site-shell .manual-flow button[aria-current="step"] { color:#f2f4f6; }
+.site-shell .manual-flow button[aria-current="step"] span { border-color:var(--apex); color:var(--team-on-primary,#101215); background:var(--apex); }
+.site-shell .manual-flow button:disabled { opacity:.38; cursor:not-allowed; }
+.site-shell .manual-flow > i { width:54px; height:1px; background:#343b43; }
 .site-shell .manual-entry {
   width:min(760px,calc(100% - 48px));
-  min-height:calc(100vh - 58px);
+  min-height:calc(100vh - 120px);
   margin:0 auto;
   display:flex;
   align-items:center;
@@ -298,6 +305,7 @@
 .site-shell .manual-page-toolbar span { color:var(--muted); font-size:11px; }
 .site-shell .manual-page-toolbar button { min-height:34px; padding:0 12px; border:1px solid #39414a; color:#dce1e6; background:#181c21; font-size:11px; }
 .site-shell .manual-page-toolbar button:last-child { color:#111418; background:#e5e9ed; border-color:#e5e9ed; }
+.site-shell .manual-builder__tools button:disabled { opacity:.35; cursor:not-allowed; }
 .site-shell .race-briefing { border:0; background:var(--canvas); }
 .site-shell .race-briefing__stage { border-bottom:1px solid var(--line); background:#111419; }
 .site-shell .race-briefing__track,.site-shell .race-briefing__driver,.site-shell .race-briefing__car { border-color:var(--line); }
@@ -352,6 +360,10 @@
   .site-shell .home-page__hero article { padding:20px; }
   .site-shell .home-page__hero article > dl { display:grid; }
   .site-shell .manual-entry { width:calc(100% - 32px); min-height:calc(100vh - 86px); align-items:flex-start; justify-content:center; flex-direction:column; gap:24px; }
+  .site-shell .manual-flow { width:calc(100% - 32px); gap:4px; justify-content:space-between; }
+  .site-shell .manual-flow > i { width:18px; }
+  .site-shell .manual-flow button { padding-inline:4px; }
+  .site-shell .manual-flow button span { width:20px; height:20px; }
   .site-shell .manual-entry > div { width:100%; flex:0 0 auto; }
   .site-shell .manual-page-toolbar { width:calc(100% - 32px); padding:14px 0; align-items:flex-start; flex-direction:column; }
   .site-shell .manual-page-toolbar > div:last-child { width:100%; }
