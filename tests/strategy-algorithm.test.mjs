@@ -1391,7 +1391,7 @@ test("manual two-stop selection follows a one-stop calculation limit", () => {
   assert.equal(buildManualStints(normalized, 57).length, 2);
 });
 
-test("Option 3 workspace connects the race briefing to five research views and existing tools", () => {
+test("the direct strategy workspace is the empty main view and connects to research tools", () => {
   const component = readFileSync(
     new URL("../app/StrategyLab.tsx", import.meta.url),
     "utf8",
@@ -1421,8 +1421,7 @@ test("Option 3 workspace connects the race briefing to five research views and e
   // presentation dimensions or the exact layout used inside each view.
   assert.ok(component.includes("type PageView ="));
   const expectedViews = [
-    ['home', '홈', 'home'],
-    ['strategy', '전략 설계', 'simulation'],
+    ['strategy', '직접 설계', 'simulation'],
     ['data', '데이터 분석', 'data-analysis'],
     ['method', '알고리즘·검증', 'algorithm verification'],
     ['research', '정보·출처', 'research'],
@@ -1436,17 +1435,18 @@ test("Option 3 workspace connects the race briefing to five research views and e
     );
   }
   const declaredViews = component.match(
-    /\{ id: "(?:home|strategy|data|method|research)", label:/g,
+    /\{ id: "(?:strategy|data|method|research)", label:/g,
   ) ?? [];
-  assert.equal(declaredViews.length, 5);
+  assert.equal(declaredViews.length, 4);
   assert.ok(component.includes('const [pageView, setPageView]'));
   assert.ok(component.includes('useState<AnalysisMode>("manual")'));
   assert.ok(component.includes('useState<PageView>("strategy")'));
   assert.ok(component.includes('useState<StrategyWorkspace>("manual")'));
+  assert.ok(component.includes('const [scenarioReady, setScenarioReady] = useState(false);'));
   assert.ok(component.includes('{PAGE_VIEWS.map((view) => ('));
   assert.ok(component.includes('aria-current={pageView === view.id ? "page" : undefined}'));
   assert.ok(component.includes('onClick={() => selectPageView(view.id)}'));
-  assert.ok(component.includes('hidden={pageView !== "home"}'));
+  assert.ok(!component.includes('hidden={pageView !== "home"}'));
   assert.ok(component.includes('hidden={pageView !== "strategy"}'));
   assert.ok(component.includes('hidden={pageView !== "data"}'));
   assert.equal(

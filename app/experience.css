@@ -279,6 +279,25 @@
 .site-shell .home-page__hero article dd { color:#fff; font-weight:700; }
 
 .site-shell .simulator { width:100%; padding:0; }
+.site-shell .manual-entry {
+  width:min(760px,calc(100% - 48px));
+  min-height:calc(100vh - 58px);
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:40px;
+}
+.site-shell .manual-entry > div { flex:1; padding-top:22px; border-top:1px solid var(--line); }
+.site-shell .manual-entry span { color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.12em; }
+.site-shell .manual-entry h1 { margin:10px 0 0; color:#f4f6f8; font-size:clamp(34px,5vw,54px); line-height:1.08; letter-spacing:-.045em; }
+.site-shell .manual-entry button { min-height:42px; padding:0 20px; border:1px solid var(--apex); color:var(--team-on-primary,#0b0d0f); background:var(--apex); font-size:12px; font-weight:700; }
+.site-shell .manual-page-toolbar { width:min(1280px,calc(100% - 56px)); min-height:72px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:24px; border-bottom:1px solid var(--line); }
+.site-shell .manual-page-toolbar > div { display:flex; align-items:center; gap:12px; }
+.site-shell .manual-page-toolbar strong { color:#f1f3f5; font-size:15px; }
+.site-shell .manual-page-toolbar span { color:var(--muted); font-size:11px; }
+.site-shell .manual-page-toolbar button { min-height:34px; padding:0 12px; border:1px solid #39414a; color:#dce1e6; background:#181c21; font-size:11px; }
+.site-shell .manual-page-toolbar button:last-child { color:#111418; background:#e5e9ed; border-color:#e5e9ed; }
 .site-shell .race-briefing { border:0; background:var(--canvas); }
 .site-shell .race-briefing__stage { border-bottom:1px solid var(--line); background:#111419; }
 .site-shell .race-briefing__track,.site-shell .race-briefing__driver,.site-shell .race-briefing__car { border-color:var(--line); }
@@ -332,6 +351,11 @@
   .site-shell .home-page__hero { grid-template-columns:1fr; gap:32px; }
   .site-shell .home-page__hero article { padding:20px; }
   .site-shell .home-page__hero article > dl { display:grid; }
+  .site-shell .manual-entry { width:calc(100% - 32px); min-height:calc(100vh - 86px); align-items:flex-start; justify-content:center; flex-direction:column; gap:24px; }
+  .site-shell .manual-entry > div { width:100%; flex:0 0 auto; }
+  .site-shell .manual-page-toolbar { width:calc(100% - 32px); padding:14px 0; align-items:flex-start; flex-direction:column; }
+  .site-shell .manual-page-toolbar > div:last-child { width:100%; }
+  .site-shell .manual-page-toolbar button { flex:1; }
   .site-shell .race-setup-modal { padding:0; }
   .site-shell .race-setup-modal__panel { width:100%; max-height:100vh; min-height:100vh; border:0; border-radius:0; }
   .site-shell .race-setup-modal__body { padding:18px 16px; }

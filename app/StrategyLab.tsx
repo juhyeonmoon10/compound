@@ -103,7 +103,6 @@ type RunConfig = {
 
 type AnalysisMode = "top3" | "manual";
 type PageView =
-  | "home"
   | "strategy"
   | "data"
   | "method"
@@ -115,8 +114,7 @@ const PAGE_VIEWS: ReadonlyArray<{
   label: string;
   controls: string;
 }> = [
-  { id: "home", label: "홈", controls: "home" },
-  { id: "strategy", label: "전략 설계", controls: "simulation" },
+  { id: "strategy", label: "직접 설계", controls: "simulation" },
   { id: "data", label: "데이터 분석", controls: "data-analysis" },
   { id: "method", label: "알고리즘·검증", controls: "algorithm verification" },
   { id: "research", label: "정보·출처", controls: "research" },
@@ -827,6 +825,12 @@ export default function StrategyLab({
     useState<AnalysisMode>("manual");
   const [pageView, setPageView] = useState<PageView>("strategy");
   const [workspace, setWorkspace] = useState<StrategyWorkspace>("manual");
+  const [scenarioReady, setScenarioReady] = useState(false);
+  const [draftSelections, setDraftSelections] = useState({
+    track: false,
+    team: false,
+    driver: false,
+  });
   const [resultDetailTab, setResultDetailTab] =
     useState<ResultDetailTab>("chart");
   const [results, setResults] = useState<StrategyResult[]>(() =>
@@ -987,6 +991,7 @@ export default function StrategyLab({
 
     setDraft({ ...nextConfig });
     setApplied({ ...nextConfig });
+    setScenarioReady(true);
     setResults(nextResults);
     setCalculationRevision((revision) => revision + 1);
     setSelectedRank(0);
@@ -1159,6 +1164,10 @@ export default function StrategyLab({
 
   const selectPageView = (view: PageView) => {
     setPageView(view);
+    if (view === "strategy") {
+      setWorkspace("manual");
+      setAnalysisMode("manual");
+    }
     setAnnouncement(
       `${PAGE_VIEWS.find((item) => item.id === view)?.label ?? "주요 화면"}을 열었습니다.`,
     );
@@ -1170,6 +1179,11 @@ export default function StrategyLab({
     setDraft({ ...applied });
     setDraftTeamId(teamId);
     setDraftDriverId(driverId);
+    setDraftSelections({
+      track: scenarioReady,
+      team: scenarioReady,
+      driver: scenarioReady,
+    });
     setRaceSetupOpen(true);
   };
 
@@ -1229,7 +1243,7 @@ export default function StrategyLab({
             type="button"
             className="brand"
             aria-label="compound 홈"
-            onClick={() => selectPageView("home")}
+            onClick={() => selectPageView("strategy")}
           >
             <span className="brand__mark">c</span>
             <span>
@@ -1251,7 +1265,13 @@ export default function StrategyLab({
               </button>
             ))}
           </div>
-          <label className="equal-performance-toggle"><input type="checkbox" checked={applied.equalPerformance} onChange={event => applyConfiguration({ ...applied, equalPerformance: event.target.checked })} />동일 성능 모드</label>
+          {scenarioReady && <label className="equal-performance-toggle"><input type="checkbox" checked={applied.equalPerformance} onChange={event => {
+            const currentManualPlan = manualPlan;
+            applyConfiguration({ ...applied, equalPerformance: event.target.checked });
+            setManualPlan(currentManualPlan);
+            setAnalysisMode("manual");
+            setWorkspace("manual");
+          }} />동일 성능 모드</label>}
         </nav>
 
       </header>
@@ -1262,48 +1282,40 @@ export default function StrategyLab({
         </p>
 
         <section
-          className="home-page section-shell"
-          id="home"
-          aria-labelledby="home-title"
-          hidden={pageView !== "home"}
-        >
-          <div className="home-page__hero">
-            <div>
-              <span>COMPOUND</span>
-              <h1 id="home-title">F1 타이어 전략</h1>
-              <dl className="home-page__current">
-                <div><dt>서킷</dt><dd>{appliedTrack.koreanName}</dd></div>
-                <div><dt>레이스</dt><dd>{appliedTrack.laps}랩</dd></div>
-                <div><dt>날씨</dt><dd>{RAIN_LABELS[applied.weather.preset]}</dd></div>
-              </dl>
-              <div className="home-page__actions">
-                <button type="button" onClick={() => selectPageView("strategy")}>
-                  전략 보기
-                </button>
-                <button type="button" onClick={openScenarioSetup}>
-                  조건 변경
-                </button>
-              </div>
-            </div>
-            <article>
-              <span>추천 전략</span>
-              <strong>{strategySequence(best)}</strong>
-              <StrategyTimeline strategy={best} totalLaps={appliedTrack.laps} />
-              <dl>
-                <div><dt>피트스톱</dt><dd>{best.stopCount}회</dd></div>
-                <div><dt>예상 시간</dt><dd>{best.formattedTime}</dd></div>
-              </dl>
-            </article>
-          </div>
-        </section>
-
-        <section
           className="simulator section-shell"
           id="simulation"
           aria-label="전략 설계"
           hidden={pageView !== "strategy"}
         >
-          <RaceBriefingOverview
+          {!scenarioReady && (
+            <section className="manual-entry" aria-labelledby="manual-entry-title">
+              <div>
+                <span>새 전략</span>
+                <h1 id="manual-entry-title">직접 전략 만들기</h1>
+              </div>
+              <button type="button" onClick={openScenarioSetup}>
+                레이스 설정
+              </button>
+            </section>
+          )}
+
+          {scenarioReady && workspace === "manual" && (
+            <div className="manual-page-toolbar">
+              <div>
+                <strong>{appliedTrack.koreanName}</strong>
+                <span>{uiLabel(selectedDriver.firstName)} {uiLabel(selectedDriver.lastName)}</span>
+              </div>
+              <div>
+                <button type="button" onClick={openScenarioSetup}>조건 변경</button>
+                <button type="button" onClick={() => {
+                  setAnalysisMode("top3");
+                  setWorkspace("board");
+                }}>추천 전략 보기</button>
+              </div>
+            </div>
+          )}
+
+          {scenarioReady && workspace !== "manual" && <RaceBriefingOverview
             track={appliedTrack}
             team={selectedTeam}
             driver={selectedDriver}
@@ -1319,6 +1331,9 @@ export default function StrategyLab({
             topThreeActive={analysisMode === "top3"}
             workspace={workspace}
             onWorkspaceChange={(view) => {
+              if (view === "manual") {
+                setAnalysisMode("manual");
+              }
               if (workspace === "manual" && (view === "detail" || view === "notebook")) {
                 setCommittedManualPlan(null);
                 setAnalysisMode("manual");
@@ -1341,10 +1356,10 @@ export default function StrategyLab({
               setAnalysisMode("top3");
               openRaceSimulation();
             }}
-          />
+          />}
 
-          <RaceExperimentPanel hidden={pageView !== "strategy" || workspace !== "board"} candidates={results} seed={experimentSeed} onSeedChange={setExperimentSeed} result={raceExperiment} onResult={setRaceExperiment} racecraft={entryProfile.racecraft} startingGridPosition={applied.startingGridPosition} pitLossSeconds={applied.pitLossSeconds} trialIndex={experimentTrial} onTrialChange={setExperimentTrial} fixedRivals={sharedExperimentGrid?.fixedRivals} playerId={sharedExperimentGrid?.playerId} gridSlotOffsetSeconds={sharedExperimentGrid?.gridSlotOffsetSeconds} eventPrior={neutralisationPrior} />
-          <div className="lab-grid">
+          {scenarioReady && <RaceExperimentPanel hidden={pageView !== "strategy" || workspace !== "board"} candidates={results} seed={experimentSeed} onSeedChange={setExperimentSeed} result={raceExperiment} onResult={setRaceExperiment} racecraft={entryProfile.racecraft} startingGridPosition={applied.startingGridPosition} pitLossSeconds={applied.pitLossSeconds} trialIndex={experimentTrial} onTrialChange={setExperimentTrial} fixedRivals={sharedExperimentGrid?.fixedRivals} playerId={sharedExperimentGrid?.playerId} gridSlotOffsetSeconds={sharedExperimentGrid?.gridSlotOffsetSeconds} eventPrior={neutralisationPrior} />}
+          {scenarioReady && <div className="lab-grid">
             <aside className="setup-column" aria-label="레이스 시나리오 설정">
               <section
                 className="participant-panel participant-theme"
@@ -2406,7 +2421,7 @@ export default function StrategyLab({
               } : null} />}
 
             </div>
-          </div>
+          </div>}
         </section>
 
         <section
@@ -2885,13 +2900,15 @@ export default function StrategyLab({
                     <span>서킷</span>
                     <select
                       aria-label="서킷"
-                      value={draft.trackId}
-                      onChange={(event) =>
+                      value={draftSelections.track ? draft.trackId : ""}
+                      onChange={(event) => {
                         handleTrackChange(
                           event.target.value as TrackPresetId,
-                        )
-                      }
+                        );
+                        setDraftSelections((current) => ({ ...current, track: true }));
+                      }}
                     >
+                      <option value="" disabled>서킷 선택</option>
                       {TRACK_PRESET_IDS.map((trackId) => {
                         const track = TRACK_PRESETS[trackId];
                         return (
@@ -2906,13 +2923,15 @@ export default function StrategyLab({
                     <span>팀</span>
                     <select
                       aria-label="팀"
-                      value={draftTeam.id}
+                      value={draftSelections.team ? draftTeam.id : ""}
                       onChange={(event) => {
                         const nextTeamId = event.target.value as TeamId;
                         setDraftTeamId(nextTeamId);
                         setDraftDriverId(findTeamProfile(nextTeamId).drivers[0].id);
+                        setDraftSelections((current) => ({ ...current, team: true, driver: false }));
                       }}
                     >
+                      <option value="" disabled>팀 선택</option>
                       {TEAM_PROFILES.map((candidate) => (
                         <option value={candidate.id} key={candidate.id}>
                           {uiLabel(candidate.name)}
@@ -2924,11 +2943,14 @@ export default function StrategyLab({
                     <span>드라이버</span>
                     <select
                       aria-label="드라이버"
-                      value={draftDriver.id}
-                      onChange={(event) =>
-                        setDraftDriverId(event.target.value)
-                      }
+                      value={draftSelections.driver ? draftDriver.id : ""}
+                      disabled={!draftSelections.team}
+                      onChange={(event) => {
+                        setDraftDriverId(event.target.value);
+                        setDraftSelections((current) => ({ ...current, driver: true }));
+                      }}
                     >
+                      <option value="" disabled>드라이버 선택</option>
                       {draftTeam.drivers.map((candidate) => (
                         <option value={candidate.id} key={candidate.id}>
                           {uiLabel(candidate.firstName)} {uiLabel(candidate.lastName)}
@@ -2938,6 +2960,7 @@ export default function StrategyLab({
                   </label>
                 </div>
 
+                {draftSelections.track && draftSelections.team && draftSelections.driver && <>
                 <WeatherControls value={draft.weather} laps={draftTrack.laps} temperatureC={draft.trackTemperatureC} onChange={weather => setDraft(current => ({ ...current, weather, maxStops: weather.preset === "none" && current.maxStops === MODEL_PARAMS.weather.maxStops ? 2 : current.maxStops }))} />
                 <div className="race-setup-modal__conditions">
                   <label className="race-setup-modal__number-field">
@@ -3097,11 +3120,12 @@ export default function StrategyLab({
                     </div>
                   </details>
                 </div>
+                </>}
               </div>
             </div>
 
             <footer>
-              <p>
+              <p hidden={!draftSelections.track}>
                 {draftTrack.koreanName} · {draftTrack.laps}랩 ·{" "}
                 {draftTrack.circuitLengthKm.toFixed(3)} km · 공식 제원
               </p>
@@ -3115,10 +3139,14 @@ export default function StrategyLab({
                 <button
                   type="button"
                   className="is-primary"
+                  disabled={!draftSelections.track || !draftSelections.team || !draftSelections.driver}
                   onClick={() => {
                     applyConfiguration(draft, draftDriver);
                     setTeamId(draftTeam.id);
                     setDriverId(draftDriver.id);
+                    setManualPlan(createDefaultManualPlan(draftTrack.laps));
+                    setAnalysisMode("manual");
+                    setWorkspace("manual");
                     setRaceSetupOpen(false);
                   }}
                 >
