@@ -1440,6 +1440,9 @@ test("Option 3 workspace connects the race briefing to five research views and e
   ) ?? [];
   assert.equal(declaredViews.length, 5);
   assert.ok(component.includes('const [pageView, setPageView]'));
+  assert.ok(component.includes('useState<AnalysisMode>("manual")'));
+  assert.ok(component.includes('useState<PageView>("strategy")'));
+  assert.ok(component.includes('useState<StrategyWorkspace>("manual")'));
   assert.ok(component.includes('{PAGE_VIEWS.map((view) => ('));
   assert.ok(component.includes('aria-current={pageView === view.id ? "page" : undefined}'));
   assert.ok(component.includes('onClick={() => selectPageView(view.id)}'));

@@ -824,9 +824,9 @@ export default function StrategyLab({
   const [draftDriverId, setDraftDriverId] = useState(driverId);
   const [selectedRank, setSelectedRank] = useState(0);
   const [analysisMode, setAnalysisMode] =
-    useState<AnalysisMode>("top3");
+    useState<AnalysisMode>("manual");
   const [pageView, setPageView] = useState<PageView>("strategy");
-  const [workspace, setWorkspace] = useState<StrategyWorkspace>("board");
+  const [workspace, setWorkspace] = useState<StrategyWorkspace>("manual");
   const [resultDetailTab, setResultDetailTab] =
     useState<ResultDetailTab>("chart");
   const [results, setResults] = useState<StrategyResult[]>(() =>
@@ -838,15 +838,12 @@ export default function StrategyLab({
   const [calculationRevision, setCalculationRevision] = useState(0);
   const [manualPlan, setManualPlan] = useState<ManualStrategyPlan>(() => {
     const initialTrack = TRACK_PRESETS[initialConfig.trackId];
-    const initialBest = results[0];
-    return initialBest
-      ? manualPlanFromStrategy(initialBest, initialTrack.laps)
-      : createDefaultManualPlan(initialTrack.laps);
+    return createDefaultManualPlan(initialTrack.laps);
   });
   const [committedManualPlan, setCommittedManualPlan] =
     useState<ManualStrategyPlan | null>(null);
   const [announcement, setAnnouncement] = useState(
-    `${TRACK_PRESETS[initialConfig.trackId].koreanName} 예시 전략 계산이 완료되었습니다.`,
+    `${TRACK_PRESETS[initialConfig.trackId].koreanName} 직접 전략 설계를 열었습니다.`,
   );
   const [raceSetupOpen, setRaceSetupOpen] = useState(false);
   const setupPanelRef = useRef<HTMLElement>(null);
@@ -1124,7 +1121,7 @@ export default function StrategyLab({
 
   const resetManualPlan = () => {
     setManualPlan(createDefaultManualPlan(appliedTrack.laps));
-    setAnalysisMode("top3");
+    setAnalysisMode("manual");
     setAnnouncement("직접 전략을 1스톱 기본 구성으로 초기화했습니다.");
   };
 
