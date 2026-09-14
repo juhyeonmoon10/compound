@@ -205,7 +205,6 @@ export interface RaceBriefingOverviewProps {
   readonly trafficLevel: RaceTrafficLevel;
   readonly maxStops: number;
   readonly pitLossSeconds: number;
-  readonly modelSource: "project" | "fastf1-2025";
   readonly results: readonly StrategyResult[];
   readonly pitWindows: readonly (readonly StrategyPitWindow[])[];
   readonly selectedRank: number;
@@ -216,11 +215,7 @@ export interface RaceBriefingOverviewProps {
   readonly onOpenReplay: () => void;
   readonly workspace: StrategyWorkspace;
   readonly onWorkspaceChange: (view: StrategyWorkspace) => void;
-  readonly weatherSummary?: string;
   readonly pitSource?: string;
-  readonly modelSummary?: string;
-  readonly ruleExplanation?: string;
-  readonly performanceSummary?: string;
 }
 
 export default function RaceBriefingOverview({
@@ -232,7 +227,6 @@ export default function RaceBriefingOverview({
   trafficLevel,
   maxStops,
   pitLossSeconds,
-  modelSource,
   results,
   pitWindows,
   selectedRank,
@@ -243,11 +237,7 @@ export default function RaceBriefingOverview({
   onOpenReplay,
   workspace,
   onWorkspaceChange,
-  weatherSummary,
   pitSource = "프로젝트 추정",
-  modelSummary,
-  ruleExplanation,
-  performanceSummary,
 }: RaceBriefingOverviewProps) {
   const best = results[0];
   const selected = results[selectedRank] ?? best;
@@ -331,7 +321,6 @@ export default function RaceBriefingOverview({
             <span>{item.number}</span>{item.label}
           </button>
         ))}
-        <span className="workspace-nav__model">{modelSource === "fastf1-2025" ? "2023–2025 관측 보정" : "가정 기반 계수"} · 프로젝트 추정</span>
       </nav>
 
       <div className="race-briefing__main strategy-board-layout" hidden={workspace !== "board"}>
@@ -352,17 +341,7 @@ export default function RaceBriefingOverview({
             <button type="button" className="is-primary" onClick={onOpenManual}>이 전략 직접 편집</button>
             <button type="button" onClick={onOpenReplay}>3D 리플레이</button>
           </div>
-          <div className="strategy-board-result__context">
-            {weatherSummary && <p><strong>날씨 조건</strong>{weatherSummary}</p>}
-            <p><strong>규칙 판정</strong>{ruleExplanation ?? (selected.isLegal ? "선택한 전략은 현재 모델의 제약조건을 만족합니다." : "선택한 전략의 제약조건을 확인해 주세요.")}</p>
-            {performanceSummary && <p><strong>성능 가정</strong>{performanceSummary}</p>}
-          </div>
         </aside>
-        <footer className="strategy-board-provenance">
-          {modelSummary && <p><strong>채택 근거</strong>{modelSummary}</p>}
-          <p><strong>프로젝트 추정</strong>{modelSource === "fastf1-2025" ? "2023–2025 실측 자료로 일부 계수를 보정했습니다. 미수집 서킷은 대체값이며 전략 시간과 교체 구간은 모델 추정입니다." : "타이어·피트 비용의 가정 계수로 계산한 결과이며 실제 경기 기록이 아닙니다."}</p>
-          <p>휠은 교체 구간의 중간 지점에 표시합니다. 실제로 선택된 교체 랩은 결과 설명에서 확인하세요. 교체 구간은 다른 피트랩을 고정했을 때의 개별 민감도이며 여러 구간을 동시에 움직여도 같은 결과가 보장되는 것은 아닙니다.</p>
-        </footer>
       </div>
     </section>
   );

@@ -1451,7 +1451,9 @@ test("Option 3 workspace connects the race briefing to five research views and e
     2,
   );
   assert.ok(component.includes('hidden={pageView !== "research"}'));
-  assert.ok(component.includes('{pageView === "method" && sensitivity && ('));
+  assert.ok(component.includes('{pageView === "method" && ('));
+  assert.ok(!component.includes('degradationPercent: number'));
+  assert.ok(!component.includes('type="range"'));
   assert.ok(!component.includes('{pageView === "verification"'));
 
   // The Option 3 briefing owns the visible Top 3 board and wires every
@@ -1621,7 +1623,7 @@ test("Option 3 workspace connects the race briefing to five research views and e
     ".race-briefing__conditions > button:focus-visible",
     ".race-setup-modal__panel > header > button:focus-visible",
     ".race-setup-modal select:focus-visible",
-    '.race-setup-modal input[type="range"]:focus-visible',
+    '.race-setup-modal input[type="number"]:focus-visible',
     ".race-setup-modal__advanced summary:focus-visible",
     ".race-setup-modal__panel > footer button:focus-visible",
   ]) {

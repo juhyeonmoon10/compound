@@ -165,7 +165,7 @@ export default function ExperimentNotebook({ currentSnapshot: snapshot, research
         <tr><th scope="row">타이어 순서</th>{selected.map((record) => <td key={record.id}><TyreSequence record={record} /></td>)}</tr>
         <tr><th scope="row">피트 진입</th>{selected.map((record) => <td key={record.id}>{record.strategy.pitAfterLaps.map((lap) => `L${lap} 종료 후`).join(" / ") || "없음"}</td>)}</tr>
         <tr><th scope="row">노면 / 피트 손실 · 설정</th>{selected.map((record) => <td key={record.id}>{record.trackTemperatureC}°C / {record.pitLossSeconds}초</td>)}</tr>
-        <tr><th scope="row">마모 / 최대 피트 · 설정</th>{selected.map((record) => <td key={record.id}>{record.degradationPercent}% / {record.maxStops}회</td>)}</tr>
+        <tr><th scope="row">최대 피트</th>{selected.map((record) => <td key={record.id}>{record.maxStops}회</td>)}</tr>
         <tr><th scope="row">강수 조건</th>{selected.map((record) => <td key={record.id}>{weatherLabel(record)}</td>)}</tr>
         <tr><th scope="row">팀 / 선수</th>{selected.map((record) => <td key={record.id}>{record.research ? participantLabel(record.research) : "미기록(v1)"}</td>)}</tr>
         <tr><th scope="row">능력치 적용</th>{selected.map((record) => <td key={record.id}>{record.research ? record.research.performanceEnabled ? "적용" : "미적용 · 동일 기본 페이스" : "미기록(v1)"}</td>)}</tr>

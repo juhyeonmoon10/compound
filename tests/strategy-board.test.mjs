@@ -96,8 +96,8 @@ test("rendered board preserves incoming strategy order, five-tyre legend, and ac
   const markup = renderToStaticMarkup(React.createElement(RaceBriefingOverview, {
     track: TRACK_PRESETS.melbourne, team, driver: team.drivers[0], trackTemperatureC: 34,
     startingGridPosition: 10, trafficLevel: "medium", maxStops: 3, pitLossSeconds: 22.7,
-    modelSource: "project", results, pitWindows: [[], [], []], selectedRank: 1, topThreeActive: true,
-    workspace: "board", weatherSummary: "비 뒤 마름", ruleExplanation: "우천 타이어 사용 시 건식 두 종류 의무 면제",
+    results, pitWindows: [[], [], []], selectedRank: 1, topThreeActive: true,
+    workspace: "board",
     onOpenSetup() {}, onSelectStrategy() {}, onOpenManual() {}, onOpenReplay() {}, onWorkspaceChange() {},
   }));
   const boardEnd = markup.indexOf('class="strategy-board-result"');
@@ -117,6 +117,6 @@ test("rendered board preserves incoming strategy order, five-tyre legend, and ac
   assert.ok(!graphic.includes("1:23:20.000"), "model race times belong below the graphic");
   assert.ok(!markup.includes("공동 최단"));
   assert.ok(markup.includes("22.7초"));
-  assert.ok(markup.includes("우천 타이어 사용 시 건식 두 종류 의무 면제"));
+  assert.ok(!markup.includes("우천 타이어 사용 시 건식 두 종류 의무 면제"));
   assert.ok(markup.includes("프로젝트 추정"));
 });
