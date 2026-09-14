@@ -280,12 +280,14 @@ test("3D race scene uses one real-world metric scale", () => {
   assert.ok(!scene.includes("WORLD_SPAN"));
   assert.ok(scene.includes("normalizeCarWidth(group, options.targetWidthMeters)"));
   assert.ok(scene.includes("gridSlotOffsetMeters(gridPosition)"));
-  assert.ok(scene.includes("const OPPONENT_GRID_CAR_OPACITY = 0.3"));
+  assert.ok(!scene.includes("OPPONENT_GRID_CAR_OPACITY"));
   assert.ok(
     scene.includes(
-      "const OPPONENT_GRID_CAR_RIDE_HEIGHT = ROAD_SURFACE_HEIGHT",
+      "const OPPONENT_GRID_CAR_RIDE_HEIGHT = PLAYER_GRID_CAR_RIDE_HEIGHT",
     ),
   );
+  assert.ok(scene.includes("material.transparent = false"));
+  assert.ok(scene.includes("addDriverNumberDecal(car.group, visual.number)"));
   assert.ok(
     scene.includes(
       "car.isPlayer\n    ? PLAYER_GRID_CAR_RIDE_HEIGHT\n    : OPPONENT_GRID_CAR_RIDE_HEIGHT",
@@ -1422,9 +1424,9 @@ test("the direct strategy workspace is the empty main view and connects to resea
   assert.ok(component.includes("type PageView ="));
   const expectedViews = [
     ['strategy', '직접 설계', 'simulation'],
-    ['data', '데이터 분석', 'data-analysis'],
-    ['method', '알고리즘·검증', 'algorithm verification'],
-    ['research', '정보·출처', 'research'],
+    ['data', '데이터', 'data-analysis'],
+    ['method', '계산·검증', 'algorithm verification'],
+    ['research', '근거', 'research'],
   ];
   for (const [id, label, controls] of expectedViews) {
     assert.ok(component.includes(`| "${id}"`) || component.includes(`=\n  | "${id}"`));
@@ -1446,7 +1448,7 @@ test("the direct strategy workspace is the empty main view and connects to resea
   assert.ok(component.includes('className="manual-flow"'));
   assert.ok(component.includes('레이스 설정'));
   assert.ok(component.includes('직접 전략'));
-  assert.ok(component.includes('비교·주행'));
+  assert.ok(component.includes('<span>3</span>레이스'));
   assert.ok(component.includes('onClick={undoManualEdit}'));
   assert.ok(component.includes('onClick={redoManualEdit}'));
   assert.ok(component.includes('{PAGE_VIEWS.map((view) => ('));

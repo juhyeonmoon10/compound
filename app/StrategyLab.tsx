@@ -115,9 +115,9 @@ const PAGE_VIEWS: ReadonlyArray<{
   controls: string;
 }> = [
   { id: "strategy", label: "직접 설계", controls: "simulation" },
-  { id: "data", label: "데이터 분석", controls: "data-analysis" },
-  { id: "method", label: "알고리즘·검증", controls: "algorithm verification" },
-  { id: "research", label: "정보·출처", controls: "research" },
+  { id: "data", label: "데이터", controls: "data-analysis" },
+  { id: "method", label: "계산·검증", controls: "algorithm verification" },
+  { id: "research", label: "근거", controls: "research" },
 ];
 
 const RESULT_DETAIL_TABS: ReadonlyArray<{
@@ -130,6 +130,13 @@ const RESULT_DETAIL_TABS: ReadonlyArray<{
 
 const COMPOUND_NAMES = TYRE_LABELS;
 const COMPOUND_COLORS = TYRE_COLORS;
+const COMPOUND_IMAGES: Readonly<Record<Compound, string>> = {
+  S: "/ui/tyres/soft.webp",
+  M: "/ui/tyres/medium.webp",
+  H: "/ui/tyres/hard.webp",
+  INTER: "/ui/tyres/intermediate.webp",
+  WET: "/ui/tyres/wet.webp",
+};
 
 const TYRE_CONDITION_LABELS: Readonly<Record<TyreCondition, string>> = {
   warming: "워밍업",
@@ -859,15 +866,16 @@ export default function StrategyLab({
   const [announcement, setAnnouncement] = useState(
     `${TRACK_PRESETS[initialConfig.trackId].koreanName} 직접 전략 설계를 열었습니다.`,
   );
-  const [raceSetupOpen, setRaceSetupOpen] = useState(false);
+  const [raceSetupOpen, setRaceSetupOpen] = useState(true);
   const setupPanelRef = useRef<HTMLElement>(null);
   const setupTriggerRef = useRef<HTMLElement | null>(null);
   const closeScenarioSetup = useCallback(() => {
+    if (!scenarioReady) return;
     setDraft({ ...applied });
     setDraftTeamId(teamId);
     setDraftDriverId(driverId);
     setRaceSetupOpen(false);
-  }, [applied, teamId, driverId]);
+  }, [applied, scenarioReady, teamId, driverId]);
 
   useEffect(() => {
     if (!raceSetupOpen) return;
@@ -942,6 +950,10 @@ export default function StrategyLab({
   );
   const selectedTopThree = results[selectedRank] ?? results[0];
   const draftTrack = TRACK_PRESETS[draft.trackId];
+  const draftNeutralisationPrior = useMemo(
+    () => getNeutralisationPrior(draft.trackId),
+    [draft.trackId],
+  );
   const dirty = !sameConfig(draft, applied);
 
   const normalizedManualPlan = useMemo(
@@ -976,6 +988,23 @@ export default function StrategyLab({
       stints: committedStints,
     });
   }, [appliedTrack.laps, committedManualPlan, optimizerInput]);
+  const raceExperimentCandidates = useMemo(() => {
+    const primaryCandidate: StrategyResult | undefined = analysisMode === "manual"
+      ? (() => {
+          const evaluation = committedManualStrategy ?? manualStrategy;
+          return {
+            ...evaluation,
+            rank: 1,
+            signature: stintSignature(evaluation.stints),
+          };
+        })()
+      : selectedTopThree;
+    if (!primaryCandidate) return results.slice(0, 3);
+    return [
+      primaryCandidate,
+      ...results.filter((candidate) => candidate.signature !== primaryCandidate.signature),
+    ].slice(0, 3);
+  }, [analysisMode, committedManualStrategy, manualStrategy, results, selectedTopThree]);
 
   const handleTrackChange = (trackId: TrackPresetId) => {
     setDraft((current) => configForTrack(current, trackId));
@@ -1286,7 +1315,7 @@ export default function StrategyLab({
             aria-label="compound 홈"
             onClick={() => selectPageView("strategy")}
           >
-            <span className="brand__mark">c</span>
+            <span className="brand__mark" aria-hidden="true"><i /><i /><i /></span>
             <span>
               compound
               <small>타이어 전략 분석</small>
@@ -1333,19 +1362,17 @@ export default function StrategyLab({
               <span>1</span>레이스 설정
             </button>
             <i aria-hidden="true" />
-            <button type="button" aria-current={scenarioReady && workspace === "manual" ? "step" : undefined} disabled={!scenarioReady} onClick={() => {
+            <button type="button" aria-current={scenarioReady && workspace !== "replay" ? "step" : undefined} disabled={!scenarioReady} onClick={() => {
               setAnalysisMode("manual");
               setWorkspace("manual");
             }}>
               <span>2</span>직접 전략
             </button>
             <i aria-hidden="true" />
-            <button type="button" aria-current={scenarioReady && workspace !== "manual" ? "step" : undefined} disabled={!scenarioReady || !manualStrategy.isLegal} onClick={() => {
-              setCommittedManualPlan(null);
-              setAnalysisMode("manual");
-              setWorkspace("detail");
+            <button type="button" aria-current={scenarioReady && workspace === "replay" ? "step" : undefined} disabled={!scenarioReady || !manualStrategy.isLegal} onClick={() => {
+              commitManualStrategyForReplay();
             }}>
-              <span>3</span>비교·주행
+              <span>3</span>레이스
             </button>
           </nav>
 
@@ -1377,7 +1404,24 @@ export default function StrategyLab({
             </div>
           )}
 
-          {scenarioReady && workspace !== "manual" && <RaceBriefingOverview
+          {scenarioReady && workspace !== "manual" && (
+            <header className="workspace-context">
+              <div>
+                <span>{workspace === "board" ? "추천 전략" : workspace === "replay" ? "레이스 재생" : workspace === "detail" ? "전략 비교" : "실험 노트"}</span>
+                <h1>{appliedTrack.koreanName}</h1>
+                <p>{uiLabel(selectedTeam.name)} · {uiLabel(selectedDriver.firstName)} {uiLabel(selectedDriver.lastName)} · P{applied.startingGridPosition} · {applied.trackTemperatureC}°C</p>
+              </div>
+              <div>
+                <button type="button" onClick={() => {
+                  setAnalysisMode("manual");
+                  setWorkspace("manual");
+                }}>직접 전략</button>
+                <button type="button" onClick={openScenarioSetup}>조건 변경</button>
+              </div>
+            </header>
+          )}
+
+          {scenarioReady && workspace === "board" && <RaceBriefingOverview
             track={appliedTrack}
             team={selectedTeam}
             driver={selectedDriver}
@@ -1394,10 +1438,6 @@ export default function StrategyLab({
             workspace={workspace}
             onWorkspaceChange={(view) => {
               if (view === "manual") {
-                setAnalysisMode("manual");
-              }
-              if (workspace === "manual" && (view === "detail" || view === "notebook")) {
-                setCommittedManualPlan(null);
                 setAnalysisMode("manual");
               }
               setWorkspace(view);
@@ -1420,7 +1460,7 @@ export default function StrategyLab({
             }}
           />}
 
-          {scenarioReady && <RaceExperimentPanel hidden={pageView !== "strategy" || workspace !== "board"} candidates={results} seed={experimentSeed} onSeedChange={setExperimentSeed} result={raceExperiment} onResult={setRaceExperiment} racecraft={entryProfile.racecraft} startingGridPosition={applied.startingGridPosition} pitLossSeconds={applied.pitLossSeconds} trialIndex={experimentTrial} onTrialChange={setExperimentTrial} fixedRivals={sharedExperimentGrid?.fixedRivals} playerId={sharedExperimentGrid?.playerId} gridSlotOffsetSeconds={sharedExperimentGrid?.gridSlotOffsetSeconds} eventPrior={neutralisationPrior} />}
+          {scenarioReady && <RaceExperimentPanel hidden={pageView !== "strategy" || workspace !== "replay"} candidates={raceExperimentCandidates} seed={experimentSeed} onSeedChange={setExperimentSeed} result={raceExperiment} onResult={setRaceExperiment} racecraft={entryProfile.racecraft} startingGridPosition={applied.startingGridPosition} pitLossSeconds={applied.pitLossSeconds} trialIndex={experimentTrial} onTrialChange={setExperimentTrial} fixedRivals={sharedExperimentGrid?.fixedRivals} playerId={sharedExperimentGrid?.playerId} gridSlotOffsetSeconds={sharedExperimentGrid?.gridSlotOffsetSeconds} eventPrior={neutralisationPrior} />}
           {scenarioReady && <div className="lab-grid">
             <aside className="setup-column" aria-label="레이스 시나리오 설정">
               <section
@@ -2105,7 +2145,9 @@ export default function StrategyLab({
                                       className={compoundClass(compound)}
                                       aria-hidden="true"
                                     >
-                                      {compound}
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img src={COMPOUND_IMAGES[compound]} alt="" />
+                                      <small>{COMPOUND_NAMES[compound]}</small>
                                     </span>
                                   </label>
                                 ))}
@@ -2944,11 +2986,13 @@ export default function StrategyLab({
           >
             <header>
               <div>
-                <h2 id="race-setup-title">레이스 설정</h2>
+                <span>1 / 3 · 레이스 설정</span>
+                <h2 id="race-setup-title">레이스 조건</h2>
               </div>
               <button
                 type="button"
                 aria-label="레이스 설정 닫기"
+                hidden={!scenarioReady}
                 onClick={closeScenarioSetup}
               >
                 ×
@@ -3108,6 +3152,45 @@ export default function StrategyLab({
                       </label>
                     ))}
                   </fieldset>
+                  <fieldset>
+                    <legend>차량 성능</legend>
+                    <label>
+                      <input
+                        type="radio"
+                        name="modal-performance-mode"
+                        checked={!draft.equalPerformance}
+                        onChange={() => setDraft((current) => ({ ...current, equalPerformance: false }))}
+                      />
+                      <span>팀·드라이버 반영</span>
+                    </label>
+                    <label>
+                      <input
+                        type="radio"
+                        name="modal-performance-mode"
+                        checked={draft.equalPerformance}
+                        onChange={() => setDraft((current) => ({ ...current, equalPerformance: true }))}
+                      />
+                      <span>동일 성능</span>
+                    </label>
+                  </fieldset>
+                  <fieldset className="race-setup-modal__neutralisation">
+                    <legend>중립화 발생률</legend>
+                    <dl>
+                      <div>
+                        <dt>SC</dt>
+                        <dd>{(draftNeutralisationPrior.scProbability * 100).toFixed(1)}%</dd>
+                      </div>
+                      <div>
+                        <dt>VSC</dt>
+                        <dd>{(draftNeutralisationPrior.vscProbability * 100).toFixed(1)}%</dd>
+                      </div>
+                    </dl>
+                    <small>
+                      {draftNeutralisationPrior.sourceType === "observed"
+                        ? "선택 서킷의 과거 타이밍 관측값"
+                        : "관측 표본 부족 · 프로젝트 기본값"}
+                    </small>
+                  </fieldset>
                   <label className="race-setup-modal__number-field">
                     <span>피트 손실</span>
                     <span>
@@ -3184,6 +3267,33 @@ export default function StrategyLab({
                 </div>
                 </>}
               </div>
+              <aside className="scenario-garage" aria-live="polite">
+                {draftSelections.team && draftSelections.driver ? (
+                  <>
+                    <div className="scenario-garage__driver">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={draftDriver.headshotUrl} alt="" />
+                      <div>
+                        <span>{draftDriver.code} · #{draftDriver.number}</span>
+                        <strong>{uiLabel(draftDriver.firstName)} {uiLabel(draftDriver.lastName)}</strong>
+                        <small>{uiLabel(draftTeam.name)} · {draftTeam.carModel}</small>
+                      </div>
+                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img className="scenario-garage__car" src={publicAsset(draftTeam.carImage.src)} alt={draftTeam.carImage.alt} />
+                    {draftSelections.track && <dl>
+                      <div><dt>서킷</dt><dd>{draftTrack.koreanName}</dd></div>
+                      <div><dt>거리</dt><dd>{draftTrack.laps}랩 · {draftTrack.circuitLengthKm.toFixed(3)} km</dd></div>
+                      <div><dt>피트 손실</dt><dd>{draft.pitLossSeconds.toFixed(1)}초</dd></div>
+                    </dl>}
+                  </>
+                ) : (
+                  <div className="scenario-garage__empty">
+                    <span>레이스 참가자</span>
+                    <strong>팀과 드라이버를 선택하십시오.</strong>
+                  </div>
+                )}
+              </aside>
             </div>
 
             <footer>
@@ -3194,6 +3304,7 @@ export default function StrategyLab({
               <div>
                 <button
                   type="button"
+                  hidden={!scenarioReady}
                   onClick={closeScenarioSetup}
                 >
                   닫기
@@ -3212,7 +3323,11 @@ export default function StrategyLab({
                     setRaceSetupOpen(false);
                   }}
                 >
-                  {dirty ? "계산하고 그리드 적용" : "설정 적용"}
+                  {!scenarioReady
+                    ? "직접 전략 시작"
+                    : dirty
+                      ? "변경 적용"
+                      : "설정 적용"}
                 </button>
               </div>
             </footer>
@@ -3224,7 +3339,7 @@ export default function StrategyLab({
         <div className="section-shell footer__inner">
           <div>
             <a className="brand brand--footer" href="#top">
-              <span className="brand__mark">c</span>
+              <span className="brand__mark" aria-hidden="true"><i /><i /><i /></span>
               <span>
                 compound
                 <small>타이어 전략 분석</small>
