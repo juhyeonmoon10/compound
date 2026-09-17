@@ -8,14 +8,14 @@
 .strategy-board { width: 100%; min-width: 0; margin: 0; color: #f3f4f5; background: #030507; }
 .strategy-board__scroll { overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: #46515f #080a0d; }
 .strategy-board__canvas { position: relative; width: 100%; min-width: 48rem; container-type: inline-size; }
-.strategy-board__svg { display: block; width: 100%; height: 100%; overflow: visible; font-family: Pretendard, "Noto Sans KR", sans-serif; }
+.strategy-board__svg { display: block; width: 100%; height: 100%; overflow: visible; font-family: var(--font-ui); }
 .strategy-board__eyebrow { fill: #aeb5bc; font-weight: 550; letter-spacing: .035em; }
 .strategy-board__title { fill: #fafafa; font-weight: 850; letter-spacing: -.045em; }
 .strategy-board__brand { fill: #f1f3f4; font-weight: 800; letter-spacing: -.05em; }
 .strategy-board__rule { stroke: #72777d; stroke-width: 1; }
 .strategy-board__window { fill: #f9fafb; font-weight: 400; font-style: normal; paint-order: stroke; stroke: #030507; stroke-width: 3; stroke-linejoin: round; }
 .strategy-board__stop-label { fill: #fafafa; font-weight: 850; font-style: normal; paint-order: stroke; stroke: #030507; stroke-width: 3; stroke-linejoin: round; }
-.strategy-board-tyre image { filter: grayscale(1) brightness(.8); }
+.strategy-board-tyre image { filter: none; }
 .strategy-board__legend-name { font-weight: 650; }
 .strategy-board__legend-code { font-weight: 850; }
 .strategy-board__fact-label { fill: #aeb5bf; font-weight: 550; }

@@ -34,7 +34,7 @@ import { getNeutralisationPrior } from "./lib/neutralisation-prior";
 import PerformanceEvidencePanel from "./PerformanceEvidencePanel";
 import { applyEntryPerformance, resolveEntryPerformance } from "./lib/entry-performance";
 import { TYRE_COLORS, TYRE_LABELS, RAIN_LABELS, MODEL_PARAMS } from "./model/params";
-import { calculatedCrossovers, type WeatherInput } from "./lib/weather";
+import type { WeatherInput } from "./lib/weather";
 import type { RaceTrafficLevel } from "./RaceReplay";
 import { DEFAULT_INCIDENT_SETTINGS, type IncidentSettings } from "./lib/virtual-incidents";
 const RaceReplay = lazy(() => import("./RaceReplay"));
@@ -90,7 +90,6 @@ type RunConfig = {
   modelSource: ModelSource;
   maxStops: StopCount;
   pitLossSeconds: number;
-  degradationPercent: number;
   fuelGainSecondsPerLap: number;
   trackTemperatureC: number;
   airTemperatureC: number;
@@ -105,7 +104,6 @@ type RunConfig = {
 
 type AnalysisMode = "top3" | "manual";
 type PageView =
-  | "home"
   | "strategy"
   | "data"
   | "method"
@@ -117,11 +115,10 @@ const PAGE_VIEWS: ReadonlyArray<{
   label: string;
   controls: string;
 }> = [
-  { id: "home", label: "홈", controls: "home" },
-  { id: "strategy", label: "전략 설계", controls: "simulation" },
-  { id: "data", label: "데이터 분석", controls: "data-analysis" },
-  { id: "method", label: "알고리즘·검증", controls: "algorithm verification" },
-  { id: "research", label: "정보·출처", controls: "research" },
+  { id: "strategy", label: "직접 설계", controls: "simulation" },
+  { id: "data", label: "데이터", controls: "data-analysis" },
+  { id: "method", label: "계산·검증", controls: "algorithm verification" },
+  { id: "research", label: "근거", controls: "research" },
 ];
 
 const RESULT_DETAIL_TABS: ReadonlyArray<{
@@ -134,6 +131,13 @@ const RESULT_DETAIL_TABS: ReadonlyArray<{
 
 const COMPOUND_NAMES = TYRE_LABELS;
 const COMPOUND_COLORS = TYRE_COLORS;
+const COMPOUND_IMAGES: Readonly<Record<Compound, string>> = {
+  S: "/ui/tyres/soft.webp",
+  M: "/ui/tyres/medium.webp",
+  H: "/ui/tyres/hard.webp",
+  INTER: "/ui/tyres/intermediate.webp",
+  WET: "/ui/tyres/wet.webp",
+};
 
 const TYRE_CONDITION_LABELS: Readonly<Record<TyreCondition, string>> = {
   warming: "워밍업",
@@ -160,7 +164,6 @@ const INITIAL_CONFIG: RunConfig = {
   modelSource: "fastf1-2025",
   maxStops: 2,
   pitLossSeconds: TRACK_PRESETS.melbourne.pitLossSeconds,
-  degradationPercent: 100,
   fuelGainSecondsPerLap:
     TRACK_PRESETS.melbourne.fuelGainSecondsPerLap,
   trackTemperatureC: 34,
@@ -191,7 +194,6 @@ function configForTrack(
         : "project",
     pitLossSeconds: current.modelSource === "fastf1-2025" ? getHistoricalCalibration(trackId).pitLossSeconds ?? preset.pitLossSeconds : preset.pitLossSeconds,
     fuelGainSecondsPerLap: preset.fuelGainSecondsPerLap,
-    degradationPercent: 100,
   };
 }
 
@@ -211,8 +213,7 @@ function makeOptimizerInput(config: RunConfig): StrategyOptimizerInput {
     coldTrackAdjustment +
     hotAirAdjustment +
     humidityAdjustment;
-  const degradationScale =
-    (config.degradationPercent / 100) * environmentScale;
+  const degradationScale = environmentScale;
   const calibratedCompound = (compound: Compound) => {
     const learned = calibration?.compoundModels[compound];
     return {
@@ -253,7 +254,6 @@ function sameConfig(left: RunConfig, right: RunConfig) {
     left.modelSource === right.modelSource &&
     left.maxStops === right.maxStops &&
     left.pitLossSeconds === right.pitLossSeconds &&
-    left.degradationPercent === right.degradationPercent &&
     left.fuelGainSecondsPerLap === right.fuelGainSecondsPerLap &&
     left.trackTemperatureC === right.trackTemperatureC &&
     left.airTemperatureC === right.airTemperatureC &&
@@ -274,6 +274,14 @@ function compoundClass(compound: Compound) {
 
 function strategySequence(strategy: StrategyEvaluation) {
   return strategy.stints.map((stint) => stint.compound).join(" → ");
+}
+
+function cloneManualPlan(plan: ManualStrategyPlan): ManualStrategyPlan {
+  return {
+    stopCount: plan.stopCount,
+    compounds: [...plan.compounds],
+    pitAfterLaps: [...plan.pitAfterLaps],
+  };
 }
 
 function formatDelta(seconds: number) {
@@ -831,9 +839,15 @@ export default function StrategyLab({
   const [draftDriverId, setDraftDriverId] = useState(driverId);
   const [selectedRank, setSelectedRank] = useState(0);
   const [analysisMode, setAnalysisMode] =
-    useState<AnalysisMode>("top3");
+    useState<AnalysisMode>("manual");
   const [pageView, setPageView] = useState<PageView>("strategy");
-  const [workspace, setWorkspace] = useState<StrategyWorkspace>("board");
+  const [workspace, setWorkspace] = useState<StrategyWorkspace>("manual");
+  const [scenarioReady, setScenarioReady] = useState(false);
+  const [draftSelections, setDraftSelections] = useState({
+    track: false,
+    team: false,
+    driver: false,
+  });
   const [resultDetailTab, setResultDetailTab] =
     useState<ResultDetailTab>("chart");
   const [results, setResults] = useState<StrategyResult[]>(() =>
@@ -845,25 +859,25 @@ export default function StrategyLab({
   const [calculationRevision, setCalculationRevision] = useState(0);
   const [manualPlan, setManualPlan] = useState<ManualStrategyPlan>(() => {
     const initialTrack = TRACK_PRESETS[initialConfig.trackId];
-    const initialBest = results[0];
-    return initialBest
-      ? manualPlanFromStrategy(initialBest, initialTrack.laps)
-      : createDefaultManualPlan(initialTrack.laps);
+    return createDefaultManualPlan(initialTrack.laps);
   });
+  const [manualUndoStack, setManualUndoStack] = useState<ManualStrategyPlan[]>([]);
+  const [manualRedoStack, setManualRedoStack] = useState<ManualStrategyPlan[]>([]);
   const [committedManualPlan, setCommittedManualPlan] =
     useState<ManualStrategyPlan | null>(null);
   const [announcement, setAnnouncement] = useState(
-    `${TRACK_PRESETS[initialConfig.trackId].koreanName} 예시 전략 계산이 완료되었습니다.`,
+    `${TRACK_PRESETS[initialConfig.trackId].koreanName} 직접 전략 설계를 열었습니다.`,
   );
-  const [raceSetupOpen, setRaceSetupOpen] = useState(false);
+  const [raceSetupOpen, setRaceSetupOpen] = useState(true);
   const setupPanelRef = useRef<HTMLElement>(null);
   const setupTriggerRef = useRef<HTMLElement | null>(null);
   const closeScenarioSetup = useCallback(() => {
+    if (!scenarioReady) return;
     setDraft({ ...applied });
     setDraftTeamId(teamId);
     setDraftDriverId(driverId);
     setRaceSetupOpen(false);
-  }, [applied, teamId, driverId]);
+  }, [applied, scenarioReady, teamId, driverId]);
 
   useEffect(() => {
     if (!raceSetupOpen) return;
@@ -927,8 +941,6 @@ export default function StrategyLab({
   const entryProfile = useMemo(() => resolveEntryPerformance(applied.teamId, applied.driverId, applied.equalPerformance), [applied.teamId, applied.driverId, applied.equalPerformance]);
   const neutralisationPrior = useMemo(() => getNeutralisationPrior(applied.trackId), [applied.trackId]);
   const sharedExperimentGrid = useMemo(() => results[0] ? buildSharedRaceGrid({ teamId: applied.teamId, driverId: applied.driverId, playerStrategy: results[0], strategyPool: results, startingGridPosition: applied.startingGridPosition, equalPerformance: applied.equalPerformance }) : null, [applied.teamId, applied.driverId, applied.startingGridPosition, applied.equalPerformance, results]);
-  const equalResults = useMemo(() => calculateDisplayedStrategies(makeOptimizerInput({ ...applied, equalPerformance: true })), [applied]);
-  const performanceSummary = applied.equalPerformance ? "동일 성능 모드 · 팀·선수 시간 보정 없음" : `능력치 반영 · 동일 성능 대비 대표 전략 3개 ${equalResults.every((value, index) => value.signature === results[index]?.signature) ? "구성 유지" : "구성 변경"} · 1번 총시간 차이 ${formatDelta((results[0]?.totalSeconds ?? 0) - (equalResults[0]?.totalSeconds ?? 0))} · 프로젝트 추정`;
   const strategyPitWindows = useMemo(
     () =>
       results
@@ -940,6 +952,10 @@ export default function StrategyLab({
   );
   const selectedTopThree = results[selectedRank] ?? results[0];
   const draftTrack = TRACK_PRESETS[draft.trackId];
+  const draftNeutralisationPrior = useMemo(
+    () => getNeutralisationPrior(draft.trackId),
+    [draft.trackId],
+  );
   const dirty = !sameConfig(draft, applied);
 
   const normalizedManualPlan = useMemo(
@@ -974,37 +990,23 @@ export default function StrategyLab({
       stints: committedStints,
     });
   }, [appliedTrack.laps, committedManualPlan, optimizerInput]);
-
-  const sensitivity = useMemo(() => {
-    if (pageView !== "method") {
-      return null;
-    }
-
-    const low = optimizeTyreStrategies(
-      makeOptimizerInput({
-        ...applied,
-        degradationPercent: Math.max(
-          60,
-          applied.degradationPercent - 10,
-        ),
-      }),
-    )[0];
-    const high = optimizeTyreStrategies(
-      makeOptimizerInput({
-        ...applied,
-        degradationPercent: Math.min(
-          150,
-          applied.degradationPercent + 10,
-        ),
-      }),
-    )[0];
-    const reference = results[0];
-    const stable =
-      reference !== undefined &&
-      low?.signature === reference.signature &&
-      high?.signature === reference.signature;
-    return { low, high, stable };
-  }, [applied, pageView, results]);
+  const raceExperimentCandidates = useMemo(() => {
+    const primaryCandidate: StrategyResult | undefined = analysisMode === "manual"
+      ? (() => {
+          const evaluation = committedManualStrategy ?? manualStrategy;
+          return {
+            ...evaluation,
+            rank: 1,
+            signature: stintSignature(evaluation.stints),
+          };
+        })()
+      : selectedTopThree;
+    if (!primaryCandidate) return results.slice(0, 3);
+    return [
+      primaryCandidate,
+      ...results.filter((candidate) => candidate.signature !== primaryCandidate.signature),
+    ].slice(0, 3);
+  }, [analysisMode, committedManualStrategy, manualStrategy, results, selectedTopThree]);
 
   const handleTrackChange = (trackId: TrackPresetId) => {
     setDraft((current) => configForTrack(current, trackId));
@@ -1030,12 +1032,15 @@ export default function StrategyLab({
 
     setDraft({ ...nextConfig });
     setApplied({ ...nextConfig });
+    setScenarioReady(true);
     setResults(nextResults);
     setCalculationRevision((revision) => revision + 1);
     setSelectedRank(0);
     setWorkspace("board");
     setAnalysisMode("top3");
     setCommittedManualPlan(null);
+    setManualUndoStack([]);
+    setManualRedoStack([]);
     setResultDetailTab("chart");
     setManualPlan(
       nextBest
@@ -1133,38 +1138,67 @@ export default function StrategyLab({
     analysisStrategy.breakdown.pitLossSeconds,
   );
 
+  const applyManualEdit = (nextPlan: ManualStrategyPlan) => {
+    setManualUndoStack((current) => [
+      ...current.slice(-19),
+      cloneManualPlan(manualPlan),
+    ]);
+    setManualRedoStack([]);
+    setManualPlan(nextPlan);
+  };
+
+  const undoManualEdit = () => {
+    const previous = manualUndoStack.at(-1);
+    if (!previous) return;
+    setManualUndoStack((current) => current.slice(0, -1));
+    setManualRedoStack((current) => [
+      ...current.slice(-19),
+      cloneManualPlan(manualPlan),
+    ]);
+    setManualPlan(cloneManualPlan(previous));
+    setAnnouncement("이전 전략 편집 상태로 돌아갔습니다.");
+  };
+
+  const redoManualEdit = () => {
+    const next = manualRedoStack.at(-1);
+    if (!next) return;
+    setManualRedoStack((current) => current.slice(0, -1));
+    setManualUndoStack((current) => [
+      ...current.slice(-19),
+      cloneManualPlan(manualPlan),
+    ]);
+    setManualPlan(cloneManualPlan(next));
+    setAnnouncement("되돌린 전략 편집을 다시 적용했습니다.");
+  };
+
   const updateManualCompound = (index: number, compound: Compound) => {
-    setManualPlan((current) => {
-      const compounds: ManualStrategyPlan["compounds"] = [
-        ...current.compounds,
-      ];
-      compounds[index] = compound;
-      return { ...current, compounds };
-    });
+    const compounds: ManualStrategyPlan["compounds"] = [
+      ...manualPlan.compounds,
+    ];
+    compounds[index] = compound;
+    applyManualEdit({ ...manualPlan, compounds });
   };
 
   const updateManualPit = (index: number, lap: number) => {
-    setManualPlan((current) => {
-      const pitAfterLaps: ManualStrategyPlan["pitAfterLaps"] = [
-        ...current.pitAfterLaps,
-      ];
-      pitAfterLaps[index] = lap;
-      return normalizeManualPlan(
-        { ...current, pitAfterLaps },
-        appliedTrack.laps,
-        applied.maxStops,
-      );
-    });
+    const pitAfterLaps: ManualStrategyPlan["pitAfterLaps"] = [
+      ...manualPlan.pitAfterLaps,
+    ];
+    pitAfterLaps[index] = lap;
+    applyManualEdit(normalizeManualPlan(
+      { ...manualPlan, pitAfterLaps },
+      appliedTrack.laps,
+      applied.maxStops,
+    ));
   };
 
   const loadBestIntoManual = () => {
-    setManualPlan(manualPlanFromStrategy(best, appliedTrack.laps));
+    applyManualEdit(manualPlanFromStrategy(best, appliedTrack.laps));
     setAnnouncement("추천 1위 전략을 직접 전략 편집기에 불러왔습니다.");
   };
 
   const resetManualPlan = () => {
-    setManualPlan(createDefaultManualPlan(appliedTrack.laps));
-    setAnalysisMode("top3");
+    applyManualEdit(createDefaultManualPlan(appliedTrack.laps));
+    setAnalysisMode("manual");
     setAnnouncement("직접 전략을 1스톱 기본 구성으로 초기화했습니다.");
   };
 
@@ -1202,6 +1236,10 @@ export default function StrategyLab({
 
   const selectPageView = (view: PageView) => {
     setPageView(view);
+    if (view === "strategy") {
+      setWorkspace("manual");
+      setAnalysisMode("manual");
+    }
     setAnnouncement(
       `${PAGE_VIEWS.find((item) => item.id === view)?.label ?? "주요 화면"}을 열었습니다.`,
     );
@@ -1213,6 +1251,11 @@ export default function StrategyLab({
     setDraft({ ...applied });
     setDraftTeamId(teamId);
     setDraftDriverId(driverId);
+    setDraftSelections({
+      track: scenarioReady,
+      team: scenarioReady,
+      driver: scenarioReady,
+    });
     setRaceSetupOpen(true);
   };
 
@@ -1272,9 +1315,9 @@ export default function StrategyLab({
             type="button"
             className="brand"
             aria-label="compound 홈"
-            onClick={() => selectPageView("home")}
+            onClick={() => selectPageView("strategy")}
           >
-            <span className="brand__mark">c</span>
+            <span className="brand__mark" aria-hidden="true"><i /><i /><i /></span>
             <span>
               compound
               <small>타이어 전략 분석</small>
@@ -1294,7 +1337,13 @@ export default function StrategyLab({
               </button>
             ))}
           </div>
-          <label className="equal-performance-toggle"><input type="checkbox" checked={applied.equalPerformance} onChange={event => applyConfiguration({ ...applied, equalPerformance: event.target.checked })} />동일 성능 모드</label>
+          {scenarioReady && <label className="equal-performance-toggle"><input type="checkbox" checked={applied.equalPerformance} onChange={event => {
+            const currentManualPlan = manualPlan;
+            applyConfiguration({ ...applied, equalPerformance: event.target.checked });
+            setManualPlan(currentManualPlan);
+            setAnalysisMode("manual");
+            setWorkspace("manual");
+          }} />동일 성능 모드</label>}
         </nav>
 
       </header>
@@ -1305,91 +1354,76 @@ export default function StrategyLab({
         </p>
 
         <section
-          className="home-page section-shell"
-          id="home"
-          aria-labelledby="home-title"
-          hidden={pageView !== "home"}
-        >
-          <div className="home-page__hero">
-            <div>
-              <span>데이터 기반 F1 전략 분석</span>
-              <h1 id="home-title">더 빠른 한 랩보다,<br />더 빠른 레이스.</h1>
-              <p>{performanceSummary}</p>
-              <p>
-                실제 F1 공개 랩을 분석하고, 설명 가능한 동적계획법으로
-                타이어 전략 상위 3개를 만든 뒤 반복 실험과 백테스트로
-                검증합니다.
-              </p>
-              <div>
-                <button type="button" onClick={() => selectPageView("strategy")}>
-                  전략 설계 시작
-                </button>
-                <button type="button" onClick={() => selectPageView("method")}>
-                  계산 원리 보기
-                </button>
-              </div>
-            </div>
-            <article>
-              <span>현재 조건의 예측 전략</span>
-              <strong>{appliedTrack.koreanName}</strong>
-              <small>{appliedTrack.laps}랩 · {RAIN_LABELS[applied.weather.preset]} · 프로젝트 추정</small>
-              <StrategyTimeline strategy={best} totalLaps={appliedTrack.laps} />
-              <p>{strategySequence(best)} · {best.formattedTime}</p>
-            </article>
-          </div>
-          <dl className="home-page__metrics">
-            <div><dt>실측 · 공개 결승 랩</dt><dd>{FASTF1_ANALYSIS_SUMMARY.rawLaps.toLocaleString()}</dd></div>
-            <div><dt>실측 · 정제 후 분석 랩</dt><dd>{FASTF1_ANALYSIS_SUMMARY.modelLaps.toLocaleString()}</dd></div>
-            <div><dt>실측 · 분석 스틴트</dt><dd>{FASTF1_ANALYSIS_SUMMARY.stints}</dd></div>
-            <div><dt>공식 제원 · 서킷</dt><dd>{TRACK_PRESET_IDS.length}</dd></div>
-          </dl>
-          <p className="weather-model-summary">실측 분석 · 7서킷 21경기, 랩 수 가중 홀드아웃 MAE {HISTORICAL_EVIDENCE.selectedModelSummary.weightedHoldoutMaeSeconds?.toFixed(3)}초/랩. 회귀의 예측 오차이며 전체 레이스 시뮬레이션 정확도가 아닙니다.</p>
-          <ol className="home-page__flow">
-            <li><span>01</span><strong>공개 데이터</strong><small>FastF1 랩·타이어·날씨</small></li>
-            <li><span>02</span><strong>열화 추정</strong><small>연료와 환경을 통제한 회귀</small></li>
-            <li><span>03</span><strong>상위 3개 계산</strong><small>상위 후보 동적계획법</small></li>
-            <li><span>04</span><strong>결과 검증</strong><small>백테스트·민감도·반복 실험</small></li>
-          </ol>
-        </section>
-
-        <section
-          className="intro-strip"
-          aria-labelledby="intro-strip-title"
-          hidden={pageView !== "strategy"}
-        >
-          <div>
-            <p>레이스 위크엔드 / 의사결정 지원</p>
-            <h1 id="intro-strip-title">
-              레이스가 시작되기 전에
-              <br />
-              전략을 설계하세요.
-            </h1>
-          </div>
-          <p className="intro-strip__copy">
-            2026 시즌의 실제 서킷과 조건을 선택해 규정을 만족하는 타이어
-            전략 상위 3개를 비교합니다. 계산 결과와 모델 가정, 전략 전환
-            조건을 함께 확인할 수 있습니다.
-          </p>
-        </section>
-
-        <section
           className="simulator section-shell"
           id="simulation"
-          aria-labelledby="simulation-title"
+          aria-label="전략 설계"
           hidden={pageView !== "strategy"}
         >
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">01 · 전략 시뮬레이션</p>
-              <h2 id="simulation-title">조건부터 결과까지 한 흐름으로</h2>
-            </div>
-            <p>
-              조건을 바꾸고 계산하면 추천 전략, 상위 3개 타임라인, 직접 만든
-              전략과 상세 차트가 아래 순서대로 갱신됩니다.
-            </p>
-          </div>
+          <nav className="manual-flow" aria-label="전략 작업 단계">
+            <button type="button" aria-current={!scenarioReady ? "step" : undefined} onClick={openScenarioSetup}>
+              <span>1</span>레이스 설정
+            </button>
+            <i aria-hidden="true" />
+            <button type="button" aria-current={scenarioReady && workspace !== "replay" ? "step" : undefined} disabled={!scenarioReady} onClick={() => {
+              setAnalysisMode("manual");
+              setWorkspace("manual");
+            }}>
+              <span>2</span>직접 전략
+            </button>
+            <i aria-hidden="true" />
+            <button type="button" aria-current={scenarioReady && workspace === "replay" ? "step" : undefined} disabled={!scenarioReady || !manualStrategy.isLegal} onClick={() => {
+              commitManualStrategyForReplay();
+            }}>
+              <span>3</span>레이스
+            </button>
+          </nav>
 
-          <RaceBriefingOverview
+          {!scenarioReady && (
+            <section className="manual-entry" aria-labelledby="manual-entry-title">
+              <div>
+                <span>새 전략</span>
+                <h1 id="manual-entry-title">직접 전략 만들기</h1>
+              </div>
+              <button type="button" onClick={openScenarioSetup}>
+                레이스 설정
+              </button>
+            </section>
+          )}
+
+          {scenarioReady && workspace === "manual" && (
+            <div className="manual-page-toolbar">
+              <div>
+                <strong>{appliedTrack.koreanName}</strong>
+                <span>{uiLabel(selectedDriver.firstName)} {uiLabel(selectedDriver.lastName)}</span>
+              </div>
+              <div>
+                <button type="button" onClick={openScenarioSetup}>조건 변경</button>
+                <button type="button" onClick={() => {
+                  setAnalysisMode("top3");
+                  setWorkspace("board");
+                }}>추천 전략 보기</button>
+              </div>
+            </div>
+          )}
+
+          {scenarioReady && workspace !== "manual" && (
+            <header className="workspace-context">
+              <div>
+                <span>{workspace === "board" ? "추천 전략" : workspace === "replay" ? "레이스 재생" : workspace === "detail" ? "전략 비교" : "실험 노트"}</span>
+                <h1>{appliedTrack.koreanName}</h1>
+                <p>{uiLabel(selectedTeam.name)} · {uiLabel(selectedDriver.firstName)} {uiLabel(selectedDriver.lastName)} · P{applied.startingGridPosition} · {applied.trackTemperatureC}°C</p>
+              </div>
+              <div>
+                <button type="button" onClick={() => {
+                  setAnalysisMode("manual");
+                  setWorkspace("manual");
+                }}>직접 전략</button>
+                <button type="button" onClick={openScenarioSetup}>조건 변경</button>
+              </div>
+            </header>
+          )}
+
+          {scenarioReady && workspace === "board" && <RaceBriefingOverview
             track={appliedTrack}
             team={selectedTeam}
             driver={selectedDriver}
@@ -1398,20 +1432,14 @@ export default function StrategyLab({
             trafficLevel={applied.trafficLevel}
             maxStops={applied.maxStops}
             pitLossSeconds={applied.pitLossSeconds}
-            modelSource={applied.modelSource}
             pitSource={Math.abs(applied.pitLossSeconds - (getHistoricalCalibration(applied.trackId).pitLossSeconds ?? Infinity)) < MODEL_PARAMS.validation.toleranceSeconds ? "실측 기반 추정" : "프로젝트 추정"}
-            modelSummary={applied.modelSource === "fastf1-2025" ? getHistoricalCalibration(applied.trackId).summaryKorean : "가정 기반 타이어 계수입니다. 팀·선수 보정은 상단 동일 성능 설정을 따릅니다."}
-            weatherSummary={`${RAIN_LABELS[applied.weather.preset]} · 수막·우천 페널티는 프로젝트 추정`}
-            ruleExplanation={selectedTopThree.ruleExplanation}
-            performanceSummary={performanceSummary}
             results={results}
             pitWindows={strategyPitWindows}
             selectedRank={selectedRank}
             topThreeActive={analysisMode === "top3"}
             workspace={workspace}
             onWorkspaceChange={(view) => {
-              if (workspace === "manual" && (view === "detail" || view === "notebook")) {
-                setCommittedManualPlan(null);
+              if (view === "manual") {
                 setAnalysisMode("manual");
               }
               setWorkspace(view);
@@ -1432,13 +1460,10 @@ export default function StrategyLab({
               setAnalysisMode("top3");
               openRaceSimulation();
             }}
-          />
+          />}
 
-          <p className="weather-model-summary" hidden={workspace === "replay"}>강수: {RAIN_LABELS[applied.weather.preset]} · 수막·우천 페널티: 프로젝트 추정. 슬릭→인터 경계 {calculatedCrossovers().slickInter.toFixed(2)} 초과, 인터→웨트 약 {calculatedCrossovers().interWet.toFixed(2)}. {selectedTopThree.ruleExplanation} 3D 노면 광택·물보라는 계산과 분리된 연출입니다.</p>
-          <p className="weather-model-summary" hidden={workspace !== "board"}>1번은 기존 K-best DP의 최단 해입니다. 2·3번은 순서만 다른 구성을 묶은 대표 대안이며 전역 2·3위가 아닙니다. 같은 스톱 수·컴파운드 집합은 {MODEL_PARAMS.race.minimumDistinctSeconds}초 이상 차이 나는 후보만 표시합니다.{results.length < 3 && ` 현재 조건에서 구별되는 후보는 ${results.length}개입니다.`}</p>
-          <RaceExperimentPanel hidden={pageView !== "strategy" || workspace !== "board"} candidates={results} seed={experimentSeed} onSeedChange={setExperimentSeed} result={raceExperiment} onResult={setRaceExperiment} racecraft={entryProfile.racecraft} startingGridPosition={applied.startingGridPosition} pitLossSeconds={applied.pitLossSeconds} trialIndex={experimentTrial} onTrialChange={setExperimentTrial} fixedRivals={sharedExperimentGrid?.fixedRivals} playerId={sharedExperimentGrid?.playerId} gridSlotOffsetSeconds={sharedExperimentGrid?.gridSlotOffsetSeconds} eventPrior={neutralisationPrior} />
-          <div className="lab-grid">
-            <p className="sr-only">{performanceSummary}</p>
+          {scenarioReady && <RaceExperimentPanel hidden={pageView !== "strategy" || workspace !== "replay"} candidates={raceExperimentCandidates} seed={experimentSeed} onSeedChange={setExperimentSeed} result={raceExperiment} onResult={setRaceExperiment} racecraft={entryProfile.racecraft} startingGridPosition={applied.startingGridPosition} pitLossSeconds={applied.pitLossSeconds} trialIndex={experimentTrial} onTrialChange={setExperimentTrial} fixedRivals={sharedExperimentGrid?.fixedRivals} playerId={sharedExperimentGrid?.playerId} gridSlotOffsetSeconds={sharedExperimentGrid?.gridSlotOffsetSeconds} eventPrior={neutralisationPrior} />}
+          {scenarioReady && <div className="lab-grid">
             <aside className="setup-column" aria-label="레이스 시나리오 설정">
               <section
                 className="participant-panel participant-theme"
@@ -1607,31 +1632,25 @@ export default function StrategyLab({
                   </div>
 
                   <div className="apex-weather-grid">
-                    <label className="apex-track-temperature">
+                    <label className="apex-number-field">
+                      <span>노면 온도</span>
                       <span>
-                        노면 온도
-                        <output htmlFor="track-temperature">
-                          {draft.trackTemperatureC}°C
-                        </output>
+                        <input
+                          id="track-temperature"
+                          type="number"
+                          min="10"
+                          max="60"
+                          step="1"
+                          value={draft.trackTemperatureC}
+                          onChange={(event) =>
+                            setDraft((current) => ({
+                              ...current,
+                              trackTemperatureC: Number(event.target.value),
+                            }))
+                          }
+                        />
+                        <b>°C</b>
                       </span>
-                      <input
-                        id="track-temperature"
-                        type="range"
-                        min="10"
-                        max="60"
-                        step="1"
-                        value={draft.trackTemperatureC}
-                        onChange={(event) =>
-                          setDraft((current) => ({
-                            ...current,
-                            trackTemperatureC: Number(event.target.value),
-                          }))
-                        }
-                      />
-                      <small>
-                        <span>10°</span>
-                        <span>60°</span>
-                      </small>
                     </label>
 
                     <label className="apex-number-field">
@@ -1760,53 +1779,6 @@ export default function StrategyLab({
               </div>
 
               <div className="condition-grid">
-              <fieldset className="field-group model-source-field">
-                <legend>타이어 열화 계수 출처</legend>
-                <div className="segmented-control">
-                  <label>
-                    <input
-                      type="radio"
-                      name="model-source"
-                      value="project"
-                      checked={draft.modelSource === "project"}
-                      onChange={() =>
-                        setDraft((current) => ({
-                          ...current,
-                          modelSource: "project",
-                        }))
-                      }
-                    />
-                    <span>가정 기반 모델</span>
-                  </label>
-                  <label
-                    title={
-                      historicalCalibrationForTrack(draft.trackId)
-                        ? getHistoricalCalibration(draft.trackId).summaryKorean
-                        : "이 서킷은 아직 실제 데이터 보정 사례가 없습니다."
-                    }
-                  >
-                    <input
-                      type="radio"
-                      name="model-source"
-                      value="fastf1-2025"
-                      checked={draft.modelSource === "fastf1-2025"}
-                      disabled={
-                        historicalCalibrationForTrack(draft.trackId) === null
-                      }
-                      onChange={() =>
-                        setDraft((current) => configForTrack({ ...current, modelSource: "fastf1-2025" }, current.trackId))
-                      }
-                    />
-                    <span>2023–2025 관측 기반 보정</span>
-                  </label>
-                </div>
-                <small>
-                  {historicalCalibrationForTrack(draft.trackId)
-                    ? historicalCalibrationForTrack(draft.trackId)?.note
-                    : "현재 바레인·바르셀로나·레드불 링·헝가로링·몬차에서만 활성화됩니다."}
-                </small>
-              </fieldset>
-
               <fieldset className="field-group">
                 <legend>탐색할 최대 피트스톱</legend>
                 <div className="segmented-control">
@@ -1830,16 +1802,12 @@ export default function StrategyLab({
                 </div>
               </fieldset>
 
-              <div className="range-field">
-                <div className="range-field__label">
-                  <label htmlFor="pit-loss">고정 피트 손실</label>
-                  <output htmlFor="pit-loss">
-                    {draft.pitLossSeconds.toFixed(1)}초
-                  </output>
-                </div>
+              <label className="direct-number-field" htmlFor="pit-loss">
+                <span>고정 피트 손실</span>
+                <span>
                 <input
                   id="pit-loss"
-                  type="range"
+                  type="number"
                   min="16"
                   max="30"
                   step="0.1"
@@ -1851,51 +1819,18 @@ export default function StrategyLab({
                     }))
                   }
                 />
-                <div className="range-field__ends">
-                  <span>16초</span>
-                  <span>30초</span>
-                </div>
-              </div>
-
-              <div className="range-field">
-                <div className="range-field__label">
-                  <label htmlFor="degradation">타이어 열화 강도</label>
-                  <output htmlFor="degradation">
-                    {draft.degradationPercent}%
-                  </output>
-                </div>
-                <input
-                  id="degradation"
-                  type="range"
-                  min="70"
-                  max="140"
-                  step="1"
-                  value={draft.degradationPercent}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      degradationPercent: Number(event.target.value),
-                    }))
-                  }
-                />
-                <div className="range-field__ends">
-                  <span>낮음</span>
-                  <span>높음</span>
-                </div>
-              </div>
+                  <b>초</b>
+                </span>
+              </label>
 
               <details className="advanced-settings">
                 <summary>고급 설정 드로어</summary>
-                <div className="range-field">
-                  <div className="range-field__label">
-                    <label htmlFor="fuel-gain">랩당 연료 효과</label>
-                    <output htmlFor="fuel-gain">
-                      {draft.fuelGainSecondsPerLap.toFixed(3)}초
-                    </output>
-                  </div>
+                <label className="direct-number-field" htmlFor="fuel-gain">
+                  <span>랩당 연료 효과</span>
+                  <span>
                   <input
                     id="fuel-gain"
-                    type="range"
+                    type="number"
                     min="0.02"
                     max="0.08"
                     step="0.001"
@@ -1907,7 +1842,9 @@ export default function StrategyLab({
                       }))
                     }
                   />
-                </div>
+                    <b>초</b>
+                  </span>
+                </label>
               </details>
               </div>
 
@@ -2098,10 +2035,6 @@ export default function StrategyLab({
                   <div>
                     <span>02 / 직접 전략 설계</span>
                     <h3 id="manual-builder-title">직접 전략 만들기</h3>
-                    <p>
-                      상위 3개는 그대로 두고, 컴파운드와 피트랩을 직접 정해
-                      같은 비용식으로 비교합니다.
-                    </p>
                   </div>
                   <div className="manual-builder__tools">
                     <span>
@@ -2110,6 +2043,12 @@ export default function StrategyLab({
                       {appliedTrack.laps}랩
                     </span>
                     <div>
+                      <button type="button" onClick={undoManualEdit} disabled={manualUndoStack.length === 0}>
+                        실행 취소
+                      </button>
+                      <button type="button" onClick={redoManualEdit} disabled={manualRedoStack.length === 0}>
+                        다시 실행
+                      </button>
                       <button type="button" onClick={loadBestIntoManual}>
                         추천 1위 불러오기
                       </button>
@@ -2136,13 +2075,11 @@ export default function StrategyLab({
                               }
                               disabled={stops > applied.maxStops}
                               onChange={() =>
-                                setManualPlan((current) =>
-                                  normalizeManualPlan(
-                                    { ...current, stopCount: stops },
-                                    appliedTrack.laps,
-                                    applied.maxStops,
-                                  ),
-                                )
+                                applyManualEdit(normalizeManualPlan(
+                                  { ...manualPlan, stopCount: stops },
+                                  appliedTrack.laps,
+                                  applied.maxStops,
+                                ))
                               }
                             />
                             <span>{stops}회 교체</span>
@@ -2210,7 +2147,9 @@ export default function StrategyLab({
                                       className={compoundClass(compound)}
                                       aria-hidden="true"
                                     >
-                                      {compound}
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img src={COMPOUND_IMAGES[compound]} alt="" />
+                                      <small>{COMPOUND_NAMES[compound]}</small>
                                     </span>
                                   </label>
                                 ))}
@@ -2221,26 +2160,13 @@ export default function StrategyLab({
                               normalizedManualPlan.stopCount && (
                               <div className="manual-pit-control">
                                 <label
-                                  htmlFor={`manual-pit-range-${index}`}
+                                  htmlFor={`manual-pit-input-${index}`}
                                 >
                                   L{pitLap} 종료 후 피트
                                 </label>
                                 <div>
                                   <input
-                                    id={`manual-pit-range-${index}`}
-                                    type="range"
-                                    min={pitMinimum}
-                                    max={pitMaximum}
-                                    step="1"
-                                    value={pitLap}
-                                    onChange={(event) =>
-                                      updateManualPit(
-                                        index,
-                                        Number(event.target.value),
-                                      )
-                                    }
-                                  />
-                                  <input
+                                    id={`manual-pit-input-${index}`}
                                     type="number"
                                     inputMode="numeric"
                                     min={pitMinimum}
@@ -2562,7 +2488,7 @@ export default function StrategyLab({
                 trafficLevel={applied.trafficLevel}
                 entryContext={{ teamId: applied.teamId, driverId: applied.driverId, equalPerformance: applied.equalPerformance }}
                 experimentTimeline={raceExperiment?.eventTimelines[experimentTrial] ?? null}
-                scenarioSummary={`강수: ${RAIN_LABELS[applied.weather.preset]} · 수막·우천 페널티: 프로젝트 추정. 슬릭→인터 경계 ${calculatedCrossovers().slickInter.toFixed(2)} 초과, 인터→웨트 약 ${calculatedCrossovers().interWet.toFixed(2)}. ${selectedTopThree.ruleExplanation} 3D 노면 광택·물보라는 계산과 분리된 연출입니다.`}
+                scenarioSummary={RAIN_LABELS[applied.weather.preset]}
                 onOpenSetup={openScenarioSetup}
                 onEditStrategy={() => {
                   setWorkspace("manual");
@@ -2595,7 +2521,7 @@ export default function StrategyLab({
                 laps: appliedTrack.laps,
                 modelSource: applied.modelSource,
                 pitLossSeconds: applied.pitLossSeconds,
-                degradationPercent: applied.degradationPercent,
+                degradationPercent: 100,
                 trackTemperatureC: applied.trackTemperatureC,
                 maxStops: applied.maxStops,
                 modeLabel: analysisMode === "manual" ? "직접 설계" : `추천 후보 ${selectedTopThree.rank}`,
@@ -2603,7 +2529,7 @@ export default function StrategyLab({
               } : null} />}
 
             </div>
-          </div>
+          </div>}
         </section>
 
         <section
@@ -2613,7 +2539,6 @@ export default function StrategyLab({
           hidden={pageView !== "data"}
         >
           <PerformanceEvidencePanel selectedDriverId={applied.driverId} equalPerformance={applied.equalPerformance} />
-          <p className="weather-model-summary">프로젝트 추정 · 현재 팀 페이스 +{entryProfile.teamPaceSeconds.toFixed(3)}초/랩 (관측 확보 팀 중 최속 기준 0), 팀·선수 합산 열화 {entryProfile.wearMultiplier.toFixed(4)}배. {entryProfile.team.explanation}</p>
           <WetEvidencePanel />
           {pageView === "data" && <Suspense fallback={<p role="status">관측 자료를 불러오는 중…</p>}><HistoricalEvidencePanel appliedTrackId={applied.trackId} onApply={applyHistoricalCalibration} /></Suspense>}
         </section>
@@ -2626,13 +2551,8 @@ export default function StrategyLab({
         >
           <div className="section-heading section-heading--light">
             <div>
-              <p className="eyebrow">03 · 계산 원리</p>
-              <h2 id="algorithm-title">알고리즘을 숨기지 않습니다</h2>
+              <h2 id="algorithm-title">계산 방식</h2>
             </div>
-            <p>
-              compound의 결과는 AI 문장이 아니라, 공개된 비용식과 제약조건을
-              같은 순서로 계산한 값입니다.
-            </p>
           </div>
 
           <div className="formula-card">
@@ -2767,45 +2687,13 @@ export default function StrategyLab({
         >
           <div className="section-heading">
             <div>
-              <p className="eyebrow">04 · 알고리즘 검증</p>
-              <h2 id="verification-title">정답보다 검증 가능한 과정</h2>
+              <h2 id="verification-title">검증 결과</h2>
             </div>
-            <p>
-              아래 항목은 현재 브라우저에서 같은 계산 함수를 다시 실행해
-              확인합니다. 통과하지 못한 항목은 따로 표시합니다.
-            </p>
           </div>
-          {pageView === "method" && sensitivity && (
+          {pageView === "method" && (
             <>
               <ValidationPanel input={optimizerInput} results={results} />
-              {pageView === "method" && <Suspense fallback={<p role="status">실제 경기 비교 자료를 불러오는 중…</p>}><StrategyBacktestPanel /></Suspense>}
-
-              <section
-                className={`sensitivity-card ${
-                  sensitivity.stable ? "is-stable" : "is-sensitive"
-                }`}
-                aria-label="민감도 분석"
-              >
-                <div>
-                  <span>
-                    {sensitivity.stable ? "전략 유지" : "조건에 민감"}
-                  </span>
-                  <h3>열화율 ±10% 민감도</h3>
-                </div>
-                <p>
-                  {sensitivity.stable
-                    ? "열화율을 10% 낮추거나 높여도 추천 1위 전략이 유지됩니다."
-                    : `열화율 가정이 바뀌면 1위 전략도 바뀝니다. 낮은 열화: ${
-                        sensitivity.low
-                          ? strategySequence(sensitivity.low)
-                          : "계산 불가"
-                      }, 높은 열화: ${
-                        sensitivity.high
-                          ? strategySequence(sensitivity.high)
-                          : "계산 불가"
-                      }.`}
-                </p>
-              </section>
+              <Suspense fallback={<p role="status">실제 경기 비교 자료를 불러오는 중…</p>}><StrategyBacktestPanel /></Suspense>
             </>
           )}
 
@@ -3102,15 +2990,13 @@ export default function StrategyLab({
           >
             <header>
               <div>
-                <span>레이스 조건 설정</span>
-                <h2 id="race-setup-title">그리드에 들어가기 전 설정</h2>
-                <p>
-                  팀·선수 능력치를 타이어 전략 비용에 기본 반영합니다. EA 게임 점수는 공식 자료이며, 초·열화·우천 배수로의 변환은 프로젝트 추정입니다. 상단 동일 성능 모드로 끌 수 있습니다.
-                </p>
+                <span>1 / 3 · 레이스 설정</span>
+                <h2 id="race-setup-title">레이스 조건</h2>
               </div>
               <button
                 type="button"
                 aria-label="레이스 설정 닫기"
+                hidden={!scenarioReady}
                 onClick={closeScenarioSetup}
               >
                 ×
@@ -3118,36 +3004,21 @@ export default function StrategyLab({
             </header>
 
             <div className="race-setup-modal__body">
-              <div className="race-setup-modal__visual">
-                <div>
-                  <span>{draftDriver.code}</span>
-                  <strong>{draftDriver.number}</strong>
-                  <h3>
-                    {uiLabel(draftDriver.firstName)}{" "}
-                    {uiLabel(draftDriver.lastName)}
-                  </h3>
-                  <p>{uiLabel(draftTeam.name)} · 2026 참가자</p>
-                </div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={publicAsset(draftTeam.carImage.src)}
-                  alt={draftTeam.carImage.alt}
-                />
-              </div>
-
               <div className="race-setup-modal__form">
                 <div className="race-setup-modal__selects">
                   <label>
                     <span>서킷</span>
                     <select
                       aria-label="서킷"
-                      value={draft.trackId}
-                      onChange={(event) =>
+                      value={draftSelections.track ? draft.trackId : ""}
+                      onChange={(event) => {
                         handleTrackChange(
                           event.target.value as TrackPresetId,
-                        )
-                      }
+                        );
+                        setDraftSelections((current) => ({ ...current, track: true }));
+                      }}
                     >
+                      <option value="" disabled>서킷 선택</option>
                       {TRACK_PRESET_IDS.map((trackId) => {
                         const track = TRACK_PRESETS[trackId];
                         return (
@@ -3162,13 +3033,15 @@ export default function StrategyLab({
                     <span>팀</span>
                     <select
                       aria-label="팀"
-                      value={draftTeam.id}
+                      value={draftSelections.team ? draftTeam.id : ""}
                       onChange={(event) => {
                         const nextTeamId = event.target.value as TeamId;
                         setDraftTeamId(nextTeamId);
                         setDraftDriverId(findTeamProfile(nextTeamId).drivers[0].id);
+                        setDraftSelections((current) => ({ ...current, team: true, driver: false }));
                       }}
                     >
+                      <option value="" disabled>팀 선택</option>
                       {TEAM_PROFILES.map((candidate) => (
                         <option value={candidate.id} key={candidate.id}>
                           {uiLabel(candidate.name)}
@@ -3180,11 +3053,14 @@ export default function StrategyLab({
                     <span>드라이버</span>
                     <select
                       aria-label="드라이버"
-                      value={draftDriver.id}
-                      onChange={(event) =>
-                        setDraftDriverId(event.target.value)
-                      }
+                      value={draftSelections.driver ? draftDriver.id : ""}
+                      disabled={!draftSelections.team}
+                      onChange={(event) => {
+                        setDraftDriverId(event.target.value);
+                        setDraftSelections((current) => ({ ...current, driver: true }));
+                      }}
                     >
+                      <option value="" disabled>드라이버 선택</option>
                       {draftTeam.drivers.map((candidate) => (
                         <option value={candidate.id} key={candidate.id}>
                           {uiLabel(candidate.firstName)} {uiLabel(candidate.lastName)}
@@ -3194,26 +3070,27 @@ export default function StrategyLab({
                   </label>
                 </div>
 
+                {draftSelections.track && draftSelections.team && draftSelections.driver && <>
                 <WeatherControls value={draft.weather} laps={draftTrack.laps} temperatureC={draft.trackTemperatureC} onChange={weather => setDraft(current => ({ ...current, weather, maxStops: weather.preset === "none" && current.maxStops === MODEL_PARAMS.weather.maxStops ? 2 : current.maxStops }))} />
                 <div className="race-setup-modal__conditions">
-                  <label className="race-setup-modal__condition-wide">
+                  <label className="race-setup-modal__number-field">
+                    <span>노면 온도</span>
                     <span>
-                      노면 온도
-                      <b>{draft.trackTemperatureC}°C</b>
+                      <input
+                        type="number"
+                        min="10"
+                        max="60"
+                        step="1"
+                        value={draft.trackTemperatureC}
+                        onChange={(event) =>
+                          setDraft((current) => ({
+                            ...current,
+                            trackTemperatureC: Number(event.target.value),
+                          }))
+                        }
+                      />
+                      <b>°C</b>
                     </span>
-                    <input
-                      type="range"
-                      min="10"
-                      max="60"
-                      step="1"
-                      value={draft.trackTemperatureC}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          trackTemperatureC: Number(event.target.value),
-                        }))
-                      }
-                    />
                   </label>
 
                   <label className="race-setup-modal__grid-input">
@@ -3279,90 +3156,72 @@ export default function StrategyLab({
                       </label>
                     ))}
                   </fieldset>
-                  <label>
-                    <span>
-                      타이어 열화
-                      <b>{draft.degradationPercent}%</b>
-                    </span>
-                    <input
-                      type="range"
-                      min="70"
-                      max="140"
-                      value={draft.degradationPercent}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          degradationPercent: Number(
-                            event.target.value,
-                          ),
-                        }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    <span>
-                      피트 손실
-                      <b>{draft.pitLossSeconds.toFixed(1)}초</b>
-                    </span>
-                    <input
-                      type="range"
-                      min="16"
-                      max="30"
-                      step="0.1"
-                      value={draft.pitLossSeconds}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          pitLossSeconds: Number(event.target.value),
-                        }))
-                      }
-                    />
-                  </label>
-                  <fieldset className="race-setup-modal__condition-wide">
-                    <legend>타이어 열화 계수 출처</legend>
+                  <fieldset>
+                    <legend>차량 성능</legend>
                     <label>
                       <input
                         type="radio"
-                        name="modal-model-source"
-                        checked={draft.modelSource === "project"}
-                        onChange={() =>
+                        name="modal-performance-mode"
+                        checked={!draft.equalPerformance}
+                        onChange={() => setDraft((current) => ({ ...current, equalPerformance: false }))}
+                      />
+                      <span>팀·드라이버 반영</span>
+                    </label>
+                    <label>
+                      <input
+                        type="radio"
+                        name="modal-performance-mode"
+                        checked={draft.equalPerformance}
+                        onChange={() => setDraft((current) => ({ ...current, equalPerformance: true }))}
+                      />
+                      <span>동일 성능</span>
+                    </label>
+                  </fieldset>
+                  <fieldset className="race-setup-modal__neutralisation">
+                    <legend>중립화 발생률</legend>
+                    <dl>
+                      <div>
+                        <dt>SC</dt>
+                        <dd>{(draftNeutralisationPrior.scProbability * 100).toFixed(1)}%</dd>
+                      </div>
+                      <div>
+                        <dt>VSC</dt>
+                        <dd>{(draftNeutralisationPrior.vscProbability * 100).toFixed(1)}%</dd>
+                      </div>
+                    </dl>
+                    <small>
+                      {draftNeutralisationPrior.sourceType === "observed"
+                        ? "선택 서킷의 과거 타이밍 관측값"
+                        : "관측 표본 부족 · 프로젝트 기본값"}
+                    </small>
+                  </fieldset>
+                  <label className="race-setup-modal__number-field">
+                    <span>피트 손실</span>
+                    <span>
+                      <input
+                        type="number"
+                        min="16"
+                        max="30"
+                        step="0.1"
+                        value={draft.pitLossSeconds}
+                        onChange={(event) =>
                           setDraft((current) => ({
                             ...current,
-                            modelSource: "project",
+                            pitLossSeconds: Number(event.target.value),
                           }))
                         }
                       />
-                      <span>가정 기반 모델</span>
-                    </label>
-                    <label
-                      title={
-                        historicalCalibrationForTrack(draft.trackId)
-                          ? getHistoricalCalibration(draft.trackId).summaryKorean
-                          : "이 서킷은 아직 실제 데이터 보정 사례가 없습니다."
-                      }
-                    >
-                      <input
-                        type="radio"
-                        name="modal-model-source"
-                        checked={draft.modelSource === "fastf1-2025"}
-                        disabled={
-                          historicalCalibrationForTrack(draft.trackId) === null
-                        }
-                        onChange={() =>
-                          setDraft((current) => configForTrack({ ...current, modelSource: "fastf1-2025" }, current.trackId))
-                        }
-                      />
-                      <span>2023–2025 관측 기반 보정</span>
-                    </label>
-                  </fieldset>
+                      <b>초</b>
+                    </span>
+                  </label>
 
                   <details className="race-setup-modal__advanced">
                     <summary>고급 환경 보정</summary>
                     <div>
-                      <label>
-                        <span>기온 <b>{draft.airTemperatureC}°C</b></span>
-                        <input
-                          type="range"
+                      <label className="race-setup-modal__number-field">
+                        <span>기온</span>
+                        <span><input
+                          type="number"
                           min="0"
                           max="45"
                           step="1"
@@ -3373,12 +3232,12 @@ export default function StrategyLab({
                               airTemperatureC: Number(event.target.value),
                             }))
                           }
-                        />
+                        /><b>°C</b></span>
                       </label>
-                      <label>
-                        <span>습도 <b>{draft.humidityPercent}%</b></span>
-                        <input
-                          type="range"
+                      <label className="race-setup-modal__number-field">
+                        <span>습도</span>
+                        <span><input
+                          type="number"
                           min="20"
                           max="100"
                           step="1"
@@ -3389,15 +3248,12 @@ export default function StrategyLab({
                               humidityPercent: Number(event.target.value),
                             }))
                           }
-                        />
+                        /><b>%</b></span>
                       </label>
-                      <label>
-                        <span>
-                          연료 감소 효과
-                          <b>{draft.fuelGainSecondsPerLap.toFixed(3)}초/랩</b>
-                        </span>
-                        <input
-                          type="range"
+                      <label className="race-setup-modal__number-field">
+                        <span>연료 감소 효과</span>
+                        <span><input
+                          type="number"
                           min="0.02"
                           max="0.08"
                           step="0.001"
@@ -3408,22 +3264,51 @@ export default function StrategyLab({
                               fuelGainSecondsPerLap: Number(event.target.value),
                             }))
                           }
-                        />
+                        /><b>초/랩</b></span>
                       </label>
                     </div>
                   </details>
                 </div>
+                </>}
               </div>
+              <aside className="scenario-garage" aria-live="polite">
+                {draftSelections.team && draftSelections.driver ? (
+                  <>
+                    <div className="scenario-garage__driver">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={draftDriver.headshotUrl} alt="" />
+                      <div>
+                        <span>{draftDriver.code} · #{draftDriver.number}</span>
+                        <strong>{uiLabel(draftDriver.firstName)} {uiLabel(draftDriver.lastName)}</strong>
+                        <small>{uiLabel(draftTeam.name)} · {draftTeam.carModel}</small>
+                      </div>
+                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img className="scenario-garage__car" src={publicAsset(draftTeam.carImage.src)} alt={draftTeam.carImage.alt} />
+                    {draftSelections.track && <dl>
+                      <div><dt>서킷</dt><dd>{draftTrack.koreanName}</dd></div>
+                      <div><dt>거리</dt><dd>{draftTrack.laps}랩 · {draftTrack.circuitLengthKm.toFixed(3)} km</dd></div>
+                      <div><dt>피트 손실</dt><dd>{draft.pitLossSeconds.toFixed(1)}초</dd></div>
+                    </dl>}
+                  </>
+                ) : (
+                  <div className="scenario-garage__empty">
+                    <span>레이스 참가자</span>
+                    <strong>팀과 드라이버를 선택하십시오.</strong>
+                  </div>
+                )}
+              </aside>
             </div>
 
             <footer>
-              <p>
+              <p hidden={!draftSelections.track}>
                 {draftTrack.koreanName} · {draftTrack.laps}랩 ·{" "}
                 {draftTrack.circuitLengthKm.toFixed(3)} km · 공식 제원
               </p>
               <div>
                 <button
                   type="button"
+                  hidden={!scenarioReady}
                   onClick={closeScenarioSetup}
                 >
                   닫기
@@ -3431,14 +3316,22 @@ export default function StrategyLab({
                 <button
                   type="button"
                   className="is-primary"
+                  disabled={!draftSelections.track || !draftSelections.team || !draftSelections.driver}
                   onClick={() => {
                     applyConfiguration(draft, draftDriver);
                     setTeamId(draftTeam.id);
                     setDriverId(draftDriver.id);
+                    setManualPlan(createDefaultManualPlan(draftTrack.laps));
+                    setAnalysisMode("manual");
+                    setWorkspace("manual");
                     setRaceSetupOpen(false);
                   }}
                 >
-                  {dirty ? "계산하고 그리드 적용" : "설정 적용"}
+                  {!scenarioReady
+                    ? "직접 전략 시작"
+                    : dirty
+                      ? "변경 적용"
+                      : "설정 적용"}
                 </button>
               </div>
             </footer>
@@ -3450,7 +3343,7 @@ export default function StrategyLab({
         <div className="section-shell footer__inner">
           <div>
             <a className="brand brand--footer" href="#top">
-              <span className="brand__mark">c</span>
+              <span className="brand__mark" aria-hidden="true"><i /><i /><i /></span>
               <span>
                 compound
                 <small>타이어 전략 분석</small>

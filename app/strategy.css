@@ -10208,7 +10208,7 @@
 .briefing-recommendation__actions button:focus-visible,
 .race-setup-modal__panel > header > button:focus-visible,
 .race-setup-modal select:focus-visible,
-.race-setup-modal input[type="range"]:focus-visible,
+.race-setup-modal input[type="number"]:focus-visible,
 .race-setup-modal__advanced summary:focus-visible,
 .race-setup-modal__panel > footer button:focus-visible {
   outline: 2px solid var(--team-primary);

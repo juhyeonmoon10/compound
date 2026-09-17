@@ -280,12 +280,14 @@ test("3D race scene uses one real-world metric scale", () => {
   assert.ok(!scene.includes("WORLD_SPAN"));
   assert.ok(scene.includes("normalizeCarWidth(group, options.targetWidthMeters)"));
   assert.ok(scene.includes("gridSlotOffsetMeters(gridPosition)"));
-  assert.ok(scene.includes("const OPPONENT_GRID_CAR_OPACITY = 0.3"));
+  assert.ok(!scene.includes("OPPONENT_GRID_CAR_OPACITY"));
   assert.ok(
     scene.includes(
-      "const OPPONENT_GRID_CAR_RIDE_HEIGHT = ROAD_SURFACE_HEIGHT",
+      "const OPPONENT_GRID_CAR_RIDE_HEIGHT = PLAYER_GRID_CAR_RIDE_HEIGHT",
     ),
   );
+  assert.ok(scene.includes("material.transparent = false"));
+  assert.ok(scene.includes("addDriverNumberDecal(car.group, visual.number)"));
   assert.ok(
     scene.includes(
       "car.isPlayer\n    ? PLAYER_GRID_CAR_RIDE_HEIGHT\n    : OPPONENT_GRID_CAR_RIDE_HEIGHT",
@@ -1391,7 +1393,7 @@ test("manual two-stop selection follows a one-stop calculation limit", () => {
   assert.equal(buildManualStints(normalized, 57).length, 2);
 });
 
-test("Option 3 workspace connects the race briefing to five research views and existing tools", () => {
+test("the direct strategy workspace is the empty main view and connects to research tools", () => {
   const component = readFileSync(
     new URL("../app/StrategyLab.tsx", import.meta.url),
     "utf8",
@@ -1421,11 +1423,10 @@ test("Option 3 workspace connects the race briefing to five research views and e
   // presentation dimensions or the exact layout used inside each view.
   assert.ok(component.includes("type PageView ="));
   const expectedViews = [
-    ['home', '홈', 'home'],
-    ['strategy', '전략 설계', 'simulation'],
-    ['data', '데이터 분석', 'data-analysis'],
-    ['method', '알고리즘·검증', 'algorithm verification'],
-    ['research', '정보·출처', 'research'],
+    ['strategy', '직접 설계', 'simulation'],
+    ['data', '데이터', 'data-analysis'],
+    ['method', '계산·검증', 'algorithm verification'],
+    ['research', '근거', 'research'],
   ];
   for (const [id, label, controls] of expectedViews) {
     assert.ok(component.includes(`| "${id}"`) || component.includes(`=\n  | "${id}"`));
@@ -1436,14 +1437,24 @@ test("Option 3 workspace connects the race briefing to five research views and e
     );
   }
   const declaredViews = component.match(
-    /\{ id: "(?:home|strategy|data|method|research)", label:/g,
+    /\{ id: "(?:strategy|data|method|research)", label:/g,
   ) ?? [];
-  assert.equal(declaredViews.length, 5);
+  assert.equal(declaredViews.length, 4);
   assert.ok(component.includes('const [pageView, setPageView]'));
+  assert.ok(component.includes('useState<AnalysisMode>("manual")'));
+  assert.ok(component.includes('useState<PageView>("strategy")'));
+  assert.ok(component.includes('useState<StrategyWorkspace>("manual")'));
+  assert.ok(component.includes('const [scenarioReady, setScenarioReady] = useState(false);'));
+  assert.ok(component.includes('className="manual-flow"'));
+  assert.ok(component.includes('레이스 설정'));
+  assert.ok(component.includes('직접 전략'));
+  assert.ok(component.includes('<span>3</span>레이스'));
+  assert.ok(component.includes('onClick={undoManualEdit}'));
+  assert.ok(component.includes('onClick={redoManualEdit}'));
   assert.ok(component.includes('{PAGE_VIEWS.map((view) => ('));
   assert.ok(component.includes('aria-current={pageView === view.id ? "page" : undefined}'));
   assert.ok(component.includes('onClick={() => selectPageView(view.id)}'));
-  assert.ok(component.includes('hidden={pageView !== "home"}'));
+  assert.ok(!component.includes('hidden={pageView !== "home"}'));
   assert.ok(component.includes('hidden={pageView !== "strategy"}'));
   assert.ok(component.includes('hidden={pageView !== "data"}'));
   assert.equal(
@@ -1451,7 +1462,9 @@ test("Option 3 workspace connects the race briefing to five research views and e
     2,
   );
   assert.ok(component.includes('hidden={pageView !== "research"}'));
-  assert.ok(component.includes('{pageView === "method" && sensitivity && ('));
+  assert.ok(component.includes('{pageView === "method" && ('));
+  assert.ok(!component.includes('degradationPercent: number'));
+  assert.ok(!component.includes('type="range"'));
   assert.ok(!component.includes('{pageView === "verification"'));
 
   // The Option 3 briefing owns the visible Top 3 board and wires every
@@ -1621,7 +1634,7 @@ test("Option 3 workspace connects the race briefing to five research views and e
     ".race-briefing__conditions > button:focus-visible",
     ".race-setup-modal__panel > header > button:focus-visible",
     ".race-setup-modal select:focus-visible",
-    '.race-setup-modal input[type="range"]:focus-visible',
+    '.race-setup-modal input[type="number"]:focus-visible',
     ".race-setup-modal__advanced summary:focus-visible",
     ".race-setup-modal__panel > footer button:focus-visible",
   ]) {

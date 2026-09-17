@@ -1,1 +1,37 @@
-.race-experiment{margin-top:20px;padding:24px;background:#0b1015;border-top:1px solid #303b46;color:#e5eaf0}.race-experiment[hidden]{display:none}.race-experiment header{display:flex;gap:24px;justify-content:space-between;align-items:center}.race-experiment h3{font-size:22px;margin:8px 0}.race-experiment p,.race-experiment small{font-size:13px;color:#aebac5;line-height:1.7}.race-experiment header span{font-size:12px;color:var(--team-accent,#90c7ff)}.race-experiment__controls{display:flex;gap:10px;align-items:end;flex-shrink:0}.race-experiment label{font-size:12px;display:grid;gap:6px}.race-experiment input{background:#06090d;color:#fff;border:1px solid #42505e;padding:9px;width:132px}.race-experiment button{padding:10px 14px;background:var(--team-accent,#9ed4ff);color:#080c10;font-weight:700;border:0;cursor:pointer}.race-experiment button:disabled{opacity:.5;cursor:wait}.race-experiment__results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.race-experiment__results article{border-left:3px solid var(--team-accent,#90c7ff);background:#111923;padding:16px}.race-experiment__results h4{font-size:15px;margin:0 0 16px}.race-experiment__results strong{font-size:19px;font-variant-numeric:tabular-nums}.race-experiment__results small{display:block}.race-experiment details{font-size:13px;margin-top:16px}.race-experiment summary{cursor:pointer}.race-experiment .race-experiment__trial{display:flex;align-items:center;gap:8px}.race-experiment__trial input{width:80px}@media(max-width:800px){.race-experiment{padding:16px}.race-experiment header{display:block}.race-experiment__controls{margin-top:18px;flex-wrap:wrap}.race-experiment__results{grid-template-columns:1fr}.race-experiment .race-experiment__trial{flex-wrap:wrap}}
+.race-experiment {
+  width: min(1280px, calc(100% - 56px));
+  margin: 24px auto 0;
+  padding: 22px;
+  color: #f2f4f7;
+  border: 1px solid var(--line, #23272e);
+  border-radius: 12px;
+  background: var(--surface, #131519);
+}
+.race-experiment[hidden] { display: none; }
+.race-experiment > header { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding-bottom: 18px; border-bottom: 1px solid var(--line, #23272e); }
+.race-experiment h3 { margin: 5px 0 4px; font-family: var(--font-display, sans-serif); font-size: 27px; line-height: 1; }
+.race-experiment p,.race-experiment small { color: #9ba3af; font-size: 11px; line-height: 1.65; }
+.race-experiment header p { margin: 0; }
+.race-experiment header span { color: var(--team-primary, #ffd12e); font-size: 10px; font-weight: 700; letter-spacing: .11em; }
+.race-experiment__controls { display: flex; align-items: end; flex-shrink: 0; gap: 8px; }
+.race-experiment label { display: grid; gap: 6px; color: #aeb6c0; font-size: 10px; }
+.race-experiment input { width: 132px; height: 38px; padding: 0 10px; color: #fff; border: 1px solid #3a424c; border-radius: 6px; outline: 0; background: #0e1013; font-family: var(--font-mono, monospace); }
+.race-experiment input:focus { border-color: var(--team-primary, #ffd12e); }
+.race-experiment button { min-height: 38px; padding: 0 14px; color: var(--team-on-primary, #0b0d0f); border: 1px solid var(--team-primary, #ffd12e); border-radius: 6px; background: var(--team-primary, #ffd12e); font-size: 11px; font-weight: 700; cursor: pointer; }
+.race-experiment button:disabled { opacity: .45; cursor: wait; }
+.race-experiment__results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.race-experiment__results article { padding: 15px; border: 1px solid var(--line, #23272e); border-radius: 8px; background: #0e1013; }
+.race-experiment__results h4 { margin: 0 0 13px; font-size: 12px; }
+.race-experiment__results strong { font-family: var(--font-mono, monospace); font-size: 17px; font-variant-numeric: tabular-nums; }
+.race-experiment__results small { display: block; }
+.race-experiment details { margin-top: 14px; color: #9ba3af; font-size: 11px; }
+.race-experiment summary { color: #c6ccd3; cursor: pointer; }
+.race-experiment .race-experiment__trial { display: flex; align-items: center; gap: 8px; }
+.race-experiment__trial input { width: 74px; }
+@media (max-width: 800px) {
+  .race-experiment { width: calc(100% - 32px); padding: 16px; }
+  .race-experiment > header { display: block; }
+  .race-experiment__controls { margin-top: 16px; flex-wrap: wrap; }
+  .race-experiment__results { grid-template-columns: 1fr; }
+  .race-experiment .race-experiment__trial { flex-wrap: wrap; }
+}

@@ -200,11 +200,11 @@ const TRACK_SAMPLE_STEP = 1;
 const MOBILE_BREAKPOINT = 700;
 const ROAD_SURFACE_HEIGHT = 0.06;
 const PLAYER_GRID_CAR_RIDE_HEIGHT = 0.13;
-const OPPONENT_GRID_CAR_RIDE_HEIGHT = ROAD_SURFACE_HEIGHT;
-const OPPONENT_GRID_CAR_OPACITY = 0.3;
-const OPPONENT_GRID_CAR_DETAIL_OPACITY = 0.36;
-const OPPONENT_GRID_CAR_TYRE_OPACITY = 0.42;
-const OPPONENT_GRID_CAR_BAND_OPACITY = 0.58;
+const OPPONENT_GRID_CAR_RIDE_HEIGHT = PLAYER_GRID_CAR_RIDE_HEIGHT;
+const REFERENCE_CAR_OPACITY = 0.3;
+const REFERENCE_CAR_DETAIL_OPACITY = 0.36;
+const REFERENCE_CAR_TYRE_OPACITY = 0.42;
+const REFERENCE_CAR_BAND_OPACITY = 0.58;
 const EMPTY_GRID_VISUALS: readonly RaceSceneGridVisual[] = [];
 const PRIMARY_MATERIAL_PATTERN =
   /(?:body|bodywork|carpaint|chassis|livery|paint|primary)/i;
@@ -267,18 +267,28 @@ function hexToNumber(color: string): number {
 
 function setGridCarVisibility(
   material: THREE.MeshStandardMaterial,
-  isPlayer: boolean,
-  opponentOpacity = OPPONENT_GRID_CAR_OPACITY,
 ): void {
-  // Normal alpha blending avoids alphaHash grain without TAA. Keeping
-  // depth writes enabled prevents GLB internals from reading as X-ray glass.
-  material.opacity = isPlayer ? 1 : opponentOpacity;
-  material.transparent = !isPlayer;
+  material.opacity = 1;
+  material.transparent = false;
   material.depthWrite = true;
   material.depthTest = true;
   material.alphaHash = false;
   material.blending = THREE.NormalBlending;
-  material.premultipliedAlpha = !isPlayer;
+  material.premultipliedAlpha = false;
+  material.needsUpdate = true;
+}
+
+function setReferenceCarVisibility(
+  material: THREE.MeshStandardMaterial,
+  opacity = REFERENCE_CAR_OPACITY,
+): void {
+  material.opacity = opacity;
+  material.transparent = true;
+  material.depthWrite = true;
+  material.depthTest = true;
+  material.alphaHash = false;
+  material.blending = THREE.NormalBlending;
+  material.premultipliedAlpha = true;
   material.needsUpdate = true;
 }
 
@@ -1600,12 +1610,11 @@ function createF1Car(
     opacity: ghost ? 0.7 : 1,
   });
   if (ghost) {
-    setGridCarVisibility(bodyMaterial, false);
-    setGridCarVisibility(secondaryMaterial, false);
-    setGridCarVisibility(
+    setReferenceCarVisibility(bodyMaterial);
+    setReferenceCarVisibility(secondaryMaterial);
+    setReferenceCarVisibility(
       carbonMaterial,
-      false,
-      OPPONENT_GRID_CAR_DETAIL_OPACITY,
+      REFERENCE_CAR_DETAIL_OPACITY,
     );
   }
 
@@ -1672,10 +1681,9 @@ function createF1Car(
     roughness: 0.94,
   });
   if (ghost) {
-    setGridCarVisibility(
+    setReferenceCarVisibility(
       tyreMaterial,
-      false,
-      OPPONENT_GRID_CAR_TYRE_OPACITY,
+      REFERENCE_CAR_TYRE_OPACITY,
     );
   }
   const compoundBands: THREE.MeshStandardMaterial[] = [];
@@ -1700,10 +1708,9 @@ function createF1Car(
         opacity: ghost ? 0.76 : 1,
       });
       if (ghost) {
-        setGridCarVisibility(
+        setReferenceCarVisibility(
           bandMaterial,
-          false,
-          OPPONENT_GRID_CAR_BAND_OPACITY,
+          REFERENCE_CAR_BAND_OPACITY,
         );
       }
       const band = new THREE.Mesh(
@@ -1802,6 +1809,59 @@ function addGridPart(
   return mesh;
 }
 
+function addDriverNumberDecal(
+  group: THREE.Group,
+  number: number,
+): void {
+  group.updateMatrixWorld(true);
+  const bounds = new THREE.Box3().setFromObject(group);
+  if (bounds.isEmpty()) return;
+  const size = bounds.getSize(new THREE.Vector3());
+  const canvas = document.createElement("canvas");
+  canvas.width = 128;
+  canvas.height = 64;
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.font = "900 50px Arial";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.lineWidth = 9;
+  context.strokeStyle = "rgba(0, 0, 0, .95)";
+  context.strokeText(String(number), 64, 33);
+  context.fillStyle = "#ffffff";
+  context.fillText(String(number), 64, 33);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  const decal = new THREE.Mesh(
+    new THREE.PlaneGeometry(
+      THREE.MathUtils.clamp(size.x * 0.34, 0.5, 0.72),
+      THREE.MathUtils.clamp(size.z * 0.12, 0.28, 0.42),
+    ),
+    new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      alphaTest: 0.12,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+    }),
+  );
+  decal.name = `driver-number-${number}`;
+  decal.rotation.x = -Math.PI / 2;
+  decal.position.set(
+    0,
+    bounds.max.y + 0.018,
+    bounds.getCenter(new THREE.Vector3()).z + size.z * 0.16,
+  );
+  decal.renderOrder = 3;
+  decal.castShadow = false;
+  decal.userData.ownedTextures = [texture];
+  group.add(decal);
+}
+
 function createGridCar(
   visual: RaceSceneGridVisual,
   geometries: GridCarGeometries,
@@ -1835,42 +1895,42 @@ function createGridCar(
     geometries.chassis,
     bodyMaterial,
     [0, 0.54, 0],
-    visual.isPlayer,
+    true,
   );
   addGridPart(
     group,
     geometries.nose,
     bodyMaterial,
     [0, 0.46, 2.42],
-    visual.isPlayer,
+    true,
   );
   addGridPart(
     group,
     geometries.sidepods,
     secondaryMaterial,
     [-0.72, 0.5, -0.22],
-    visual.isPlayer,
+    true,
   );
   addGridPart(
     group,
     geometries.sidepods,
     secondaryMaterial,
     [0.72, 0.5, -0.22],
-    visual.isPlayer,
+    true,
   );
   addGridPart(
     group,
     geometries.frontWing,
     carbonMaterial,
     [0, 0.3, 3.25],
-    visual.isPlayer,
+    true,
   );
   addGridPart(
     group,
     geometries.rearWing,
     carbonMaterial,
     [0, 1.08, -1.72],
-    visual.isPlayer,
+    true,
   );
 
   const cockpit = addGridPart(
@@ -1878,7 +1938,7 @@ function createGridCar(
     geometries.cockpit,
     carbonMaterial,
     [0, 0.86, 0.12],
-    visual.isPlayer,
+    true,
   );
   cockpit.scale.set(0.76, 0.62, 1.2);
 
@@ -1892,23 +1952,11 @@ function createGridCar(
     emissiveIntensity: visual.isPlayer ? 0.2 : 0.1,
     roughness: 0.66,
   });
-  setGridCarVisibility(bodyMaterial, visual.isPlayer);
-  setGridCarVisibility(secondaryMaterial, visual.isPlayer);
-  setGridCarVisibility(
-    carbonMaterial,
-    visual.isPlayer,
-    OPPONENT_GRID_CAR_DETAIL_OPACITY,
-  );
-  setGridCarVisibility(
-    tyreMaterial,
-    visual.isPlayer,
-    OPPONENT_GRID_CAR_TYRE_OPACITY,
-  );
-  setGridCarVisibility(
-    bandMaterial,
-    visual.isPlayer,
-    OPPONENT_GRID_CAR_BAND_OPACITY,
-  );
+  setGridCarVisibility(bodyMaterial);
+  setGridCarVisibility(secondaryMaterial);
+  setGridCarVisibility(carbonMaterial);
+  setGridCarVisibility(tyreMaterial);
+  setGridCarVisibility(bandMaterial);
   const wheelRigs: FormulaWheelRig[] = [];
   let wheelIndex = 0;
   for (const z of [-1.08, 1.25]) {
@@ -1927,9 +1975,9 @@ function createGridCar(
         tyreMaterial,
       );
       wheel.rotation.z = Math.PI / 2;
-      wheel.castShadow = visual.isPlayer;
+      wheel.castShadow = true;
       wheel.receiveShadow = true;
-      wheel.userData.desktopShadow = visual.isPlayer;
+      wheel.userData.desktopShadow = true;
       spinPivot.add(wheel);
 
       const band = new THREE.Mesh(
@@ -1953,6 +2001,8 @@ function createGridCar(
       wheelIndex += 1;
     }
   }
+
+  addDriverNumberDecal(group, visual.number);
 
   const uniformScale = normalizeCarFootprint(
     group,
@@ -2021,7 +2071,7 @@ function cloneAndPrepareFormulaMaterials(
       ? nextMaterials
       : nextMaterials[0];
     object.receiveShadow = true;
-    const desktopShadow = options.isPlayer;
+    const desktopShadow = true;
     object.castShadow = desktopShadow;
     object.userData.desktopShadow = desktopShadow;
 
@@ -2086,18 +2136,7 @@ function cloneAndPrepareFormulaMaterials(
   if (!options.ghost) {
     for (const material of allMaterials) {
       if (material instanceof THREE.MeshStandardMaterial) {
-        const opponentOpacity = compoundMaterials.has(material)
-          ? OPPONENT_GRID_CAR_BAND_OPACITY
-          : primaryMaterials.has(material) ||
-              secondaryMaterials.has(material) ||
-              fallbackColorMaterials.has(material)
-            ? OPPONENT_GRID_CAR_OPACITY
-            : OPPONENT_GRID_CAR_DETAIL_OPACITY;
-        setGridCarVisibility(
-          material,
-          options.isPlayer,
-          opponentOpacity,
-        );
+        setGridCarVisibility(material);
       }
     }
   }
@@ -2192,7 +2231,9 @@ function addFormulaCompoundBands(
     premultipliedAlpha: options.ghost === true,
   });
   if (!options.ghost) {
-    setGridCarVisibility(material, options.isPlayer);
+    setGridCarVisibility(material);
+  } else {
+    setReferenceCarVisibility(material, REFERENCE_CAR_BAND_OPACITY);
   }
   const bands = new THREE.InstancedMesh(
     options.compoundBandGeometry,
@@ -2284,16 +2325,8 @@ function addFormulaWheelCovers(
     metalness: 0.72,
   });
   if (!detailed) {
-    setGridCarVisibility(
-      tyreMaterial,
-      false,
-      OPPONENT_GRID_CAR_TYRE_OPACITY,
-    );
-    setGridCarVisibility(
-      rimMaterial,
-      false,
-      OPPONENT_GRID_CAR_DETAIL_OPACITY,
-    );
+    setGridCarVisibility(tyreMaterial);
+    setGridCarVisibility(rimMaterial);
   }
   const rigs: FormulaWheelRig[] = [];
 
@@ -2482,6 +2515,7 @@ function createFormulaGridCar(
     targetWidthMeters: FORMULA_CAR_MODEL_ASSET.targetWidthMeters,
     addWheelCovers,
   });
+  addDriverNumberDecal(car.group, visual.number);
   return {
     ...car,
     id: visual.id,
