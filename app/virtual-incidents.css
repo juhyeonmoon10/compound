@@ -36,4 +36,11 @@
 .incident-log__events { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 6px; max-height: 420px; overflow-y: auto; }
 .incident-log__events button { display: flex; gap: 12px; align-items: baseline; text-align: left; width: 100%; background: #161f28; border: 1px solid #ffffff15; border-radius: 4px; color: #dbe1e7; padding: 10px; font-size: 11px; line-height: 1.6; cursor: pointer; }
 .incident-log__events time { color: #f9d364; font-family: monospace; flex-shrink: 0; }
-@media (max-width: 640px) { .race-control-banner { top: 62px; left: auto; right: 8px; transform: none; max-width: 57%; padding: 7px 9px; } .race-control-banner strong { font-size: 11px; } .race-control-banner span { font-size: 10px; } }
+@media (max-width: 640px) {
+  .race-control-banner { top: 185px; left: 8px; right: 8px; transform: none; width: auto; max-width: none; padding: 7px 9px; }
+  .race-control-banner strong { font-size: 11px; }
+  .race-control-banner span { font-size: 10px; }
+  .race-replay__screen:has(.race-control-banner) .replay-pause-notice { top: 12px; bottom: auto; left: 50%; right: auto; transform: translateX(-50%); width: max-content; max-width: calc(100% - 180px); font-size: 10px; }
+  .race-replay__screen:has(.race-control-banner) .replay-pause-notice span:last-child { display: none; }
+  .race-replay__screen:has(.race-control-banner) .replay-pause-notice::after { content: "일시정지"; }
+}

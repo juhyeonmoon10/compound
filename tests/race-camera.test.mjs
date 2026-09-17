@@ -116,7 +116,7 @@ test("chase and cockpit stay with the selected car at every playback speed and f
 test("the previous world-space damping reproduces the high-speed lag, and the fix removes it", async (context) => {
   let now = 0;
   context.mock.method(performance, "now", () => now);
-  const carryBlock = /  if \(!modeChanged && cameraMode !== "broadcast"\) \{[\s\S]*?\n  \}\n  runtime\.cameraAnchorPosition\.copy\(primaryPose\.position\);/;
+  const carryBlock = /  if \(!modeChanged && cameraMode !== "broadcast"\) \{[\s\S]*?\r?\n  \}\r?\n  runtime\.cameraAnchorPosition\.copy\(primaryPose\.position\);/;
   assert.match(source, carryBlock);
   const { renderFrame: oldRender } = await loadRenderer(source.replace(carryBlock, ""));
   const oldRuntime = makeRuntime(), fixedRuntime = makeRuntime();
