@@ -8,6 +8,7 @@ import { TYRE_COLORS, TYRE_LABELS } from "./model/params";
 interface Props {
   phase: ReplayPhase; ready: boolean; rate: number; camera: ReplayCamera; reducedMotion: boolean;
   fullscreen: boolean; elapsed: number; lap: number; car: RaceGridCar;
+  durationSeconds?: number; timeAt?: (modelSeconds: number) => number | null;
   onPlay: () => void; onRate: (rate: number) => void; onCamera: (camera: ReplayCamera) => void;
   onFullscreen: () => void; onReset: () => void; onLap: (direction: -1 | 1) => void;
   onSeek: (seconds: number) => void;
@@ -15,6 +16,8 @@ interface Props {
 
 export default function RaceReplayControls(props: Props) {
   const { phase, ready, rate, camera, reducedMotion, fullscreen, elapsed, lap, car } = props;
+  const duration = props.durationSeconds ?? car.totalSeconds;
+  const timeAt = props.timeAt ?? ((seconds: number) => seconds);
   const totalLaps = car.strategy.lapCosts.length;
   const active = phase === "running" || phase === "countdown";
   return <div className="replay-controls" aria-label="시뮬레이션 조작">
@@ -23,7 +26,7 @@ export default function RaceReplayControls(props: Props) {
         <button type="button" onClick={() => props.onLap(-1)} disabled={!ready || elapsed <= 0} aria-label="이전 랩 시작">−1랩</button>
         <button type="button" className="replay-controls__play" onClick={props.onPlay} disabled={!ready && !active}
           aria-keyshortcuts="Space"><span aria-hidden="true">{active ? "Ⅱ" : "▶"}</span>{ready || active ? replayActionLabel(phase) : "준비 중"}</button>
-        <button type="button" onClick={() => props.onLap(1)} disabled={!ready || elapsed >= car.totalSeconds} aria-label="다음 랩 시작">+1랩</button>
+        <button type="button" onClick={() => props.onLap(1)} disabled={!ready || elapsed >= duration} aria-label="다음 랩 시작">+1랩</button>
       </div>
       <div className="replay-controls__rates" role="group" aria-label="재생 배속">
         {PLAYBACK_RATES.map(value => <button key={value} type="button" aria-pressed={rate === value}
@@ -45,18 +48,22 @@ export default function RaceReplayControls(props: Props) {
       </div>
       <div className="replay-controls__track">
         <div className="replay-controls__stints" aria-hidden="true">{car.strategy.stints.map(stint => {
-          const start = car.lapTimings[stint.startLap - 2]?.cumulativeSeconds ?? 0;
-          const end = car.lapTimings[stint.endLap - 1].cumulativeSeconds;
-          return <span key={stint.startLap} style={{ width: `${(end - start) / car.totalSeconds * 100}%`, background: TYRE_COLORS[stint.compound], color: stint.compound === "S" || stint.compound === "WET" ? "white" : "#101215" }}
+          const start = timeAt(car.lapTimings[stint.startLap - 2]?.cumulativeSeconds ?? 0);
+          if (start === null || start >= duration) return null;
+          const end = Math.min(duration, timeAt(car.lapTimings[stint.endLap - 1].cumulativeSeconds) ?? duration);
+          return <span key={stint.startLap} style={{ width: `${(end - start) / duration * 100}%`, background: TYRE_COLORS[stint.compound], color: stint.compound === "S" || stint.compound === "WET" ? "white" : "#101215" }}
             title={`${TYRE_LABELS[stint.compound]} · ${stint.startLap}–${stint.endLap}랩`}>{stint.compound === "INTER" ? "I" : stint.compound === "WET" ? "W" : stint.compound}</span>;
         })}</div>
-        <input type="range" min={0} max={car.totalSeconds} step="any" value={Math.min(elapsed, car.totalSeconds)} disabled={!ready}
+        <input type="range" min={0} max={duration} step="any" value={Math.min(elapsed, duration)} disabled={!ready}
           aria-label="전략 레이스 모델 시간 탐색" aria-valuetext={`${lap}랩 / ${totalLaps}랩, ${Math.floor(elapsed)}초`}
           onChange={event => props.onSeek(Number(event.target.value))} />
-        <div className="replay-controls__pits">{car.replay.segments.filter(segment => segment.kind === "pit-loss").map(segment =>
-          <button type="button" key={segment.pitAfterLap} disabled={!ready} style={{ "--pit-position": `${segment.startSeconds / car.totalSeconds * 100}%` } as CSSProperties}
+        <div className="replay-controls__pits">{car.replay.segments.filter(segment => segment.kind === "pit-loss").map(segment => {
+          const seconds = timeAt(segment.startSeconds);
+          if (seconds === null || seconds > duration) return null;
+          return <button type="button" key={segment.pitAfterLap} disabled={!ready} style={{ "--pit-position": `${seconds / duration * 100}%` } as CSSProperties}
             aria-label={`${segment.pitAfterLap}랩 종료 후 피트로 이동`} title={`${segment.pitAfterLap}랩 종료 후 피트 · ${TYRE_LABELS[segment.toCompound]}`}
-            onClick={() => props.onSeek(segment.startSeconds)}>◆ <span>L{segment.pitAfterLap}</span></button>)}</div>
+            onClick={() => props.onSeek(seconds)}>◆ <span>L{segment.pitAfterLap}</span></button>;
+        })}</div>
       </div>
     </div>
     <p className="replay-controls__help"><span><kbd>Space</kbd> 재생·정지 <kbd>C</kbd> 카메라 <kbd>F</kbd> 전체화면</span><span>막대·피트 표식을 선택하면 해당 시점에서 일시정지</span></p>

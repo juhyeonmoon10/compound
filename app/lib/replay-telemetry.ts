@@ -31,7 +31,7 @@ export interface ReplayTimingRow {
   readonly tyreAgeLaps: number;
   readonly leaderGapSeconds: number;
   readonly intervalSeconds: number | null;
-  readonly state: "track" | "pit" | "finished";
+  readonly state: "track" | "pit" | "finished" | "retired";
   readonly isPlayer: boolean;
 }
 

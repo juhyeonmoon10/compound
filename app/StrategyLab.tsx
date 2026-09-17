@@ -36,6 +36,7 @@ import { applyEntryPerformance, resolveEntryPerformance } from "./lib/entry-perf
 import { TYRE_COLORS, TYRE_LABELS, RAIN_LABELS, MODEL_PARAMS } from "./model/params";
 import { calculatedCrossovers, type WeatherInput } from "./lib/weather";
 import type { RaceTrafficLevel } from "./RaceReplay";
+import { DEFAULT_INCIDENT_SETTINGS, type IncidentSettings } from "./lib/virtual-incidents";
 const RaceReplay = lazy(() => import("./RaceReplay"));
 import {
   PLAYER_RACE_CAR_ASSET,
@@ -821,6 +822,7 @@ export default function StrategyLab({
   );
   const [draft, setDraft] = useState<RunConfig>(initialConfig);
   const [applied, setApplied] = useState<RunConfig>(initialConfig);
+  const [incidentSettings, setIncidentSettings] = useState<IncidentSettings>(DEFAULT_INCIDENT_SETTINGS);
   const [teamId, setTeamId] = useState<TeamId>(DEFAULT_TEAM_ID);
   const [driverId, setDriverId] = useState(
     findTeamProfile(DEFAULT_TEAM_ID).drivers[0].id,
@@ -2541,6 +2543,8 @@ export default function StrategyLab({
               </section>
 
               {pageView === "strategy" && workspace === "replay" && <Suspense fallback={<div className="replay-loading" role="status">3D 리플레이를 준비하고 있습니다…</div>}><RaceReplay
+                incidentSettings={incidentSettings}
+                onIncidentSettings={setIncidentSettings}
                 key={`race-${calculationRevision}-${applied.trackId}-${stintSignature(
                   replayStrategy.stints,
                 )}-${stintSignature(replayReference.stints)}`}
@@ -3039,7 +3043,7 @@ export default function StrategyLab({
               <h3>이번 버전에서 제외</h3>
               <ul>
                 <li>실측 강수량·수막 깊이, 실제 타이어 센서 온도·압력</li>
-                <li>SC/VSC 실제 대열 압축·주행 지연, 적기, 사고와 차량 고장</li>
+                <li>실측 사고 확률·충돌 물리·차량 고장·적기 중 피트 집결 및 타이어 교체. 가상 주행의 사고·옐로우·VSC·SC·레드는 별도 교육용 가정이며, 실제 관측 검증이나 기본 최적화에는 포함하지 않음.</li>
                 <li>실제 추월·충돌·더티에어 물리</li>
                 <li>팀 내부의 실제 차량 셋업과 드라이버 주행 입력</li>
                 <li>상대 팀의 실시간 대응 전략</li>

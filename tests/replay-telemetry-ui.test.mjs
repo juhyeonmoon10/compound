@@ -146,8 +146,10 @@ test("ReplayTelemetry remains outside the fullscreen viewport in the information
   visit(ast);
   assert.equal(telemetry.length, 1);
   assert.equal(viewports.length, 1);
-  assert.equal(telemetry[0].parent.openingElement.tagName.getText(ast), "div");
-  assert.match(telemetry[0].parent.openingElement.getText(ast), /hidden=\{panel !== "data"\}/);
+  let dataPanel = telemetry[0].parent;
+  while (dataPanel && !ts.isJsxElement(dataPanel)) dataPanel = dataPanel.parent;
+  assert.equal(dataPanel.openingElement.tagName.getText(ast), "div");
+  assert.match(dataPanel.openingElement.getText(ast), /hidden=\{panel !== "data"\}/);
   assert.ok(telemetry[0].getStart(ast) > viewports[0].end);
   const props = new Map(telemetry[0].attributes.properties.map((attribute) => [attribute.name.getText(ast), attribute.initializer?.getText(ast)]));
   assert.equal(props.get("grid"), "{raceGridData.grid}");

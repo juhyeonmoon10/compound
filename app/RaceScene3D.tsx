@@ -2627,7 +2627,7 @@ function positionGridCar(
     startLane,
     startGridBlend,
   );
-  const laneOffset = onPitLane
+  const laneOffset = frame.retired || frame.incidentStopped ? roadHalfWidth + 1.8 : onPitLane
     ? -roadHalfWidth - 3.15
     : gridLane;
   const visualProgress =
@@ -2679,15 +2679,15 @@ function updateGridCars(
     const carFrame = framesById.get(id);
     car.group.visible = carFrame !== undefined;
     if (!carFrame) continue;
-    const displaySpeedKph =
+    const displaySpeedKph = carFrame.retired || carFrame.incidentStopped || carFrame.completed ? 0 :
       id === runtime.playerGridCarId || car.isPlayer
         ? playerDisplaySpeedKph
         : carFrame.isPitting
-          ? 80
+          ? 80 * (carFrame.speedFactor ?? 1)
           : fallbackTelemetryAt(
               runtime.worldPoints,
               carFrame.progressLaps,
-            ).speedKph;
+            ).speedKph * (carFrame.speedFactor ?? 1);
 
     const pose = positionGridCar(
       car,

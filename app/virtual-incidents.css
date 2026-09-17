@@ -1,0 +1,39 @@
+.incident-settings { display: grid; gap: 18px; color: #e9eeee; }
+.incident-settings__intro > span { font: 700 10px/1.4 monospace; letter-spacing: .12em; color: #f9d364; }
+.incident-settings h4 { font-size: 20px; margin: 8px 0; }
+.incident-settings p,.incident-log > p { color: #a5afb7; font-size: 12px; line-height: 1.7; margin: 4px 0; }
+.incident-settings small { display: block; color: #a5afb7; font-size: 11px; line-height: 1.65; }
+.incident-settings__toggle { display: flex; align-items: center; gap: 10px; background: #20262d; padding: 14px; border-radius: 6px; font-weight: 700; }
+.incident-settings input[type=checkbox] { accent-color: #f9d364; width: 18px; height: 18px; }
+.incident-settings fieldset { display: grid; gap: 20px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.incident-settings fieldset:disabled { opacity: .5; }
+.incident-settings__probability label { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; }
+.incident-settings__probability strong { color: #f9d364; font: 700 24px monospace; }
+.incident-settings input[type=range] { width: 100%; margin: 14px 0 8px; accent-color: #f9d364; }
+.incident-settings__aggregate { padding: 12px; border-left: 2px solid #f9d364; background: #1e2328; }
+.incident-settings__aggregate strong { color: #f9d364; }
+.incident-settings__field { display: grid; gap: 8px; font-size: 12px; }
+.incident-settings__field input,.incident-settings__field select { width: 100%; min-height: 40px; padding: 8px 10px; background: #10151b; color: #eee; border: 1px solid #46515a; border-radius: 4px; }
+.incident-settings__seed,.incident-settings__apply { min-height: 40px; padding: 10px 14px; border: 1px solid #56606c; color: #eee; background: #202933; border-radius: 4px; cursor: pointer; }
+.incident-settings__apply { background: #f9d364; color: #10151b; font-weight: 800; border-color: #f9d364; }
+.incident-settings__apply:disabled { opacity: .4; cursor: not-allowed; }
+.incident-settings__rules { border-top: 1px solid #343d46; padding-top: 15px; font-size: 12px; line-height: 1.7; }
+.incident-settings__rules summary { cursor: pointer; font-weight: 700; }
+.incident-settings__rules dl { display: grid; grid-template-columns: 55px 1fr; gap: 10px; }
+.incident-settings__rules dt { color: #f9d364; }.incident-settings__rules dd { margin: 0; color: #bec6ce; }
+.incident-settings__rules a { display: block; margin: 14px 0; color: #b7d9ff; }
+.race-control-banner { --flag: #55e3a0; position: absolute; z-index: 9; top: 14px; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(48%, 430px); display: grid; gap: 4px; padding: 10px 16px; background: #0b1118ec; border: 1px solid #ffffff26; border-left: 4px solid var(--flag); border-radius: 5px; pointer-events: none; box-shadow: 0 4px 20px #0003; }
+.race-control-banner[data-flag=YELLOW],.race-control-banner[data-flag=VSC],.race-control-banner[data-flag=SC] { --flag: #ffdc3c; }
+.race-control-banner[data-flag=RED] { --flag: #ff5353; }
+.race-control-banner strong { color: var(--flag); font-size: 13px; line-height: 1.4; }
+.race-control-banner span { color: #e2e8ed; font-size: 11px; line-height: 1.5; }
+.race-control-banner small { color: #9ba7af; font-size: 9px; }
+.race-replay__screen:has(.race-control-banner) .replay-pause-notice { top: auto; bottom: 85px; }
+.incident-log__table { overflow-x: auto; margin: 16px 0; }.incident-log table { width: 100%; border-collapse: collapse; font-size: 11px; white-space: nowrap; }
+.incident-log caption { text-align: left; padding: 12px 0; font-weight: 700; }
+.incident-log th,.incident-log td { text-align: left; padding: 9px 7px; border-bottom: 1px solid #ffffff15; }
+.incident-log tr[data-player=true] { background: #f9d36415; }.incident-log h4 { font-size: 14px; }
+.incident-log__events { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 6px; max-height: 420px; overflow-y: auto; }
+.incident-log__events button { display: flex; gap: 12px; align-items: baseline; text-align: left; width: 100%; background: #161f28; border: 1px solid #ffffff15; border-radius: 4px; color: #dbe1e7; padding: 10px; font-size: 11px; line-height: 1.6; cursor: pointer; }
+.incident-log__events time { color: #f9d364; font-family: monospace; flex-shrink: 0; }
+@media (max-width: 640px) { .race-control-banner { top: 62px; left: auto; right: 8px; transform: none; max-width: 57%; padding: 7px 9px; } .race-control-banner strong { font-size: 11px; } .race-control-banner span { font-size: 10px; } }

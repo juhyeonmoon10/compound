@@ -20,6 +20,8 @@ import { resolveEntryPerformance } from "./lib/entry-performance";
 import { buildSharedRaceGrid, sharedRaceParticipants } from "./lib/shared-race-grid";
 import ReplayTelemetry from "./ReplayTelemetry";
 import RaceReplayControls from "./RaceReplayControls";
+import VirtualIncidentPanel, { VirtualIncidentLog } from "./VirtualIncidentPanel";
+import { createVirtualRace, DEFAULT_INCIDENT_SETTINGS, FLAG_LABELS, virtualModelSecondsAt, virtualPlayerEndSeconds, virtualRaceControlAt, virtualRaceFrameAt, virtualWallSecondsAt, type IncidentSettings } from "./lib/virtual-incidents";
 import { CAMERA_MODES, canHideReplayControls, clampReplaySeconds, nearbyReplayCars, nextReplayCamera, phaseAfterResetCancel, replayLapSeconds, replayShortcut, type ReplayPhase } from "./lib/replay-controls";
 import "./race-replay-workbench.css";
 import type { RaceExperimentTimeline } from "./lib/race-experiments";
@@ -42,7 +44,6 @@ import {
 import {
   createRaceGrid,
   raceGridCar,
-  raceGridFrameAt,
   type RaceGrid,
   type RaceGridCarFrame,
   type RaceGridEntry,
@@ -103,6 +104,8 @@ function activeFullscreenElement(): Element | null {
 }
 
 interface RaceReplayProps {
+  readonly incidentSettings?: IncidentSettings;
+  readonly onIncidentSettings?: (settings: IncidentSettings) => void;
   readonly trackId: TrackPresetId;
   readonly track: TrackPreset;
   readonly strategy: StrategyEvaluation;
@@ -244,6 +247,8 @@ function makeRaceGrid(
 }
 
 function formatRaceGap(car: RaceGridCarFrame): string {
+  if (car.retired) return "DNF";
+  if (car.incidentStopped) return "정차";
   if (car.position === 1) return "선두";
   if (car.completed) return "완주";
   if (car.isPitting) return "피트";
@@ -334,7 +339,7 @@ function visualTelemetryAt(
 ): RaceSceneTelemetry {
   if (
     samples.length < 8 ||
-    frame.completed ||
+    frame.completed || frame.retired || frame.incidentStopped || frame.speedFactor === 0 ||
     frame.elapsedSeconds <= 0
   ) {
     return {
@@ -382,7 +387,7 @@ function visualTelemetryAt(
       330,
     ),
   );
-  const speedKph = frame.isPitting ? 80 : onTrackSpeedKph;
+  const speedKph = Math.round((frame.isPitting ? 80 : onTrackSpeedKph) * (frame.speedFactor ?? 1));
 
   return {
     speedKph,
@@ -740,6 +745,8 @@ export default function RaceReplay({
   trafficLevel,
   entryContext,
   experimentTimeline,
+  incidentSettings = DEFAULT_INCIDENT_SETTINGS,
+  onIncidentSettings,
   scenarioSummary,
   onOpenSetup,
   onEditStrategy,
@@ -796,9 +803,21 @@ export default function RaceReplay({
     () => raceGridCar(raceGridData.grid, driver.id),
     [driver.id, raceGridData.grid],
   );
+  const [localIncidentSettings, setLocalIncidentSettings] = useState(incidentSettings);
+  const appliedIncidents = onIncidentSettings ? incidentSettings : localIncidentSettings;
+  const virtualRace = useMemo(() => createVirtualRace(raceGridData.grid, driver.id, appliedIncidents),
+    [raceGridData.grid, driver.id, appliedIncidents]);
+  const replayEndSeconds = virtualPlayerEndSeconds(virtualRace);
+  const sampleGrid = useCallback((seconds: number) => virtualRaceFrameAt(virtualRace, seconds), [virtualRace]);
+  const sampleRace = useCallback((seconds: number) => {
+    if (!appliedIncidents.enabled) return strategyRaceFrameAt(primaryReplay, referenceReplay, seconds);
+    const modelSeconds = virtualModelSecondsAt(virtualRace, driver.id, seconds);
+    return { ...strategyRaceFrameAt(playerGridCar.replay, referenceReplay, modelSeconds), elapsedSeconds: seconds, durationSeconds: replayEndSeconds };
+  }, [appliedIncidents.enabled, primaryReplay, referenceReplay, virtualRace, driver.id, playerGridCar.replay, replayEndSeconds]);
+  const controlTimeAt = useCallback((seconds: number) => virtualWallSecondsAt(virtualRace, driver.id, seconds), [virtualRace, driver.id]);
   const initialGridFrame = useMemo(
-    () => raceGridFrameAt(raceGridData.grid, 0),
-    [raceGridData.grid],
+    () => sampleGrid(0),
+    [sampleGrid],
   );
   const strategyComparison = useMemo(
     () => evaluateStrategyComparison(strategy, optimalStrategy),
@@ -826,7 +845,7 @@ export default function RaceReplay({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [controlsHeight, setControlsHeight] = useState(180);
-  const [panel, setPanel] = useState<"method" | "metrics" | "data" | null>(null);
+  const [panel, setPanel] = useState<"method" | "metrics" | "data" | "incidents" | null>(null);
   const [towerExpanded, setTowerExpanded] = useState(true);
   const [pauseReason, setPauseReason] = useState("");
   const [confirmRestart, setConfirmRestart] = useState(false);
@@ -922,7 +941,7 @@ export default function RaceReplay({
     panelTriggerRef.current?.focus({ preventScroll: true });
   }, []);
 
-  const openPanel = (next: "method" | "metrics" | "data") => {
+  const openPanel = (next: "method" | "metrics" | "data" | "incidents") => {
     if (panel === next) { closePanel(); return; }
     panelTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setPanel(next);
@@ -1336,7 +1355,7 @@ export default function RaceReplay({
         Math.max(0, (timestamp - previousTick) / 1000),
       );
       const nextElapsed = Math.min(
-        playerGridCar.totalSeconds,
+        replayEndSeconds,
         elapsedRef.current +
           Math.min(
             realDeltaSeconds * playbackRate,
@@ -1344,15 +1363,8 @@ export default function RaceReplay({
           ),
       );
       elapsedRef.current = nextElapsed;
-      const nextRaceFrame = strategyRaceFrameAt(
-        primaryReplay,
-        referenceReplay,
-        nextElapsed,
-      );
-      const nextGridFrame = raceGridFrameAt(
-        raceGridData.grid,
-        nextElapsed,
-      );
+      const nextRaceFrame = sampleRace(nextElapsed);
+      const nextGridFrame = sampleGrid(nextElapsed);
       const nextPlayerFrame = nextGridFrame.cars.find(
         (car) => car.id === driver.id,
       );
@@ -1379,11 +1391,11 @@ export default function RaceReplay({
         );
       }
 
-      if (nextPlayerFrame?.completed) {
+      if (nextElapsed >= replayEndSeconds) {
         setRaceFrame(nextRaceFrame);
         setGridFrame(nextGridFrame);
         setPhase("finished");
-        setLiveMessage(`${track.koreanName} 전략 레이스 완주`);
+        setLiveMessage(nextPlayerFrame?.retired ? `${driver.code} 사고로 리타이어 · DNF` : `${track.koreanName} 전략 레이스 완주`);
         resultsTimerRef.current = window.setTimeout(() => {
           setPhase("results");
           resultsTimerRef.current = null;
@@ -1401,7 +1413,10 @@ export default function RaceReplay({
     renderingEnabled,
     playbackRate,
     driver.id,
-    playerGridCar.totalSeconds,
+    replayEndSeconds,
+    sampleRace,
+    sampleGrid,
+    driver.code,
     primaryReplay,
     raceGridData.grid,
     referenceReplay,
@@ -1411,23 +1426,16 @@ export default function RaceReplay({
 
   const seekTo = useCallback(
     (seconds: number) => {
-      seconds = clampReplaySeconds(seconds, playerGridCar.totalSeconds);
+      seconds = clampReplaySeconds(seconds, replayEndSeconds);
       if (resultsTimerRef.current !== null) {
         window.clearTimeout(resultsTimerRef.current);
         resultsTimerRef.current = null;
       }
-      const nextRaceFrame = strategyRaceFrameAt(
-        primaryReplay,
-        referenceReplay,
-        seconds,
-      );
-      const nextGridFrame = raceGridFrameAt(
-        raceGridData.grid,
-        seconds,
-      );
+      const nextRaceFrame = sampleRace(seconds);
+      const nextGridFrame = sampleGrid(seconds);
       elapsedRef.current = Math.min(
         seconds,
-        playerGridCar.totalSeconds,
+        replayEndSeconds,
       );
       raceFrameRef.current = nextRaceFrame;
       gridFrameRef.current = nextGridFrame;
@@ -1440,10 +1448,9 @@ export default function RaceReplay({
     },
     [
       driver.id,
-      playerGridCar.totalSeconds,
-      primaryReplay,
-      raceGridData.grid,
-      referenceReplay,
+      replayEndSeconds,
+      sampleRace,
+      sampleGrid,
       updateVisuals,
     ],
   );
@@ -1530,12 +1537,12 @@ export default function RaceReplay({
     gridFrame.cars[0];
   const finalGridFrame = useMemo(
     () =>
-      raceGridFrameAt(
-        raceGridData.grid,
-        raceGridData.grid.durationSeconds,
-      ),
-    [raceGridData.grid],
+      sampleGrid(virtualRace.durationSeconds),
+    [sampleGrid, virtualRace.durationSeconds],
   );
+  const raceControl = virtualRaceControlAt(virtualRace, gridFrame.elapsedSeconds);
+  const recentIncident = raceControl.incidents.filter(event =>
+    (event.flag === "RED" && gridFrame.elapsedSeconds >= event.endSeconds ? "SC" : event.flag) === raceControl.flag).at(-1);
   const finalPlayerFrame =
     finalGridFrame.cars.find((car) => car.id === driver.id) ??
     finalGridFrame.cars[0];
@@ -1757,7 +1764,7 @@ export default function RaceReplay({
       direction < 0
         ? Math.max(1, displayLap - 1)
         : Math.min(frame.totalLaps + 1, displayLap + 1);
-    seekAndPause(replayLapSeconds(playerGridCar, targetLap));
+    seekAndPause(controlTimeAt(replayLapSeconds(playerGridCar, targetLap)) ?? replayEndSeconds);
     setLiveMessage(
       targetLap > frame.totalLaps
         ? "결승선으로 이동"
@@ -1774,13 +1781,13 @@ export default function RaceReplay({
   const activePitSegment = playerGridCar.replay.segments.find(
     (segment) =>
       segment.kind === "pit-loss" &&
-      raceFrame.elapsedSeconds >= segment.startSeconds &&
-      raceFrame.elapsedSeconds <= segment.endSeconds,
+      (playerFrame.modelElapsedSeconds ?? raceFrame.elapsedSeconds) >= segment.startSeconds &&
+      (playerFrame.modelElapsedSeconds ?? raceFrame.elapsedSeconds) <= segment.endSeconds,
   );
   const pitProgress =
     activePitSegment?.kind === "pit-loss"
       ? clamp(
-          (raceFrame.elapsedSeconds -
+          ((playerFrame.modelElapsedSeconds ?? raceFrame.elapsedSeconds) -
             activePitSegment.startSeconds) /
             activePitSegment.modelSeconds,
           0,
@@ -1812,11 +1819,15 @@ export default function RaceReplay({
       style={replayTheme}
     >
       <header className="replay-workbench-heading">
-        <div><span>자동 주행 · 20대 · 프로젝트 추정</span>
+        <div><span>자동 주행 · 20대 · {appliedIncidents.enabled ? "가상 사고 조건 적용" : "프로젝트 추정"}</span>
           <h3 id="race-replay-title">{track.koreanName}</h3>
           <p>{driver.code} · {strategyLabel} · {compactStrategy(strategy)} · 출발 P{playerGridCar.gridPosition}</p>
         </div>
         <div className="replay-workbench-heading__actions" role="group" aria-label="리플레이 정보">
+          <button type="button" onClick={() => {
+            if (phase === "running" || phase === "countdown") handlePlayPause();
+            openPanel("incidents");
+          }} aria-expanded={panel === "incidents"} aria-controls="replay-details">사고·깃발 {appliedIncidents.enabled ? "ON" : "OFF"}</button>
           {onOpenSetup && <button type="button" onClick={() => {
             if (phase === "running" || phase === "countdown") handlePlayPause();
             onOpenSetup();
@@ -1850,6 +1861,12 @@ export default function RaceReplay({
             style={telemetryStyle}
           >
             <div className="race-replay__screen">
+            {appliedIncidents.enabled && phase !== "ready" && phase !== "countdown" && phase !== "results" &&
+              <div className="race-control-banner" data-flag={raceControl.flag} role="status" aria-live="polite">
+                <strong>{playerFrame.retired ? "내 차 리타이어 · DNF" : FLAG_LABELS[raceControl.flag]}</strong>
+                <span>{raceControl.flag === "GREEN" ? "가상 사고 실험 · 정상 주행" : `${raceControl.restart ? "SC 재출발" : FLAG_LABELS[raceControl.flag]} · ${Math.ceil(raceControl.remainingSeconds)}초 남음`}</span>
+                {recentIncident && raceControl.flag !== "GREEN" && <small>{recentIncident.label} · L{recentIncident.lap} / S{recentIncident.sector} 사고 · 프로젝트 가정</small>}
+              </div>}
             {!layout && !layoutError && (
               <div className="race-replay__loading" role="status">
                 실제 서킷 경로를 불러오는 중…
@@ -2053,7 +2070,7 @@ export default function RaceReplay({
                   </div>
                   <div className="race-replay__hud-delta">
                     <span>추정 순위</span>
-                    <strong>P{playerFrame.position}</strong>
+                    <strong>{playerFrame.retired ? "DNF" : `P${playerFrame.position}`}</strong>
                   </div>
                   <div
                     className="race-replay__hud-tyre"
@@ -2080,7 +2097,7 @@ export default function RaceReplay({
                   <div className="race-replay__hud-pace">
                     <span>다음 교체</span>
                     <strong>
-                      {nextPitAfterLap === undefined
+                      {playerFrame.retired ? "리타이어" : nextPitAfterLap === undefined
                         ? "완주"
                         : `L${nextPitAfterLap} 종료 후`}
                     </strong>
@@ -2240,9 +2257,9 @@ export default function RaceReplay({
                 {phase === "finished" && (
                   <div className="race-replay__race-overlay is-finished">
                     <span>레이스 종료</span>
-                    <strong>P{finalPlayerFrame.position}</strong>
+                    <strong>{finalPlayerFrame.retired ? "DNF" : `P${finalPlayerFrame.position}`}</strong>
                     <small>
-                      {referenceLabel} 대비 최종 {finalDeltaText}
+                      {finalPlayerFrame.retired ? `L${finalPlayerFrame.lap} 사고로 주행 종료` : appliedIncidents.enabled ? "가상 사고가 반영된 주행 결과" : `${referenceLabel} 대비 최종 ${finalDeltaText}`}
                     </small>
                   </div>
                 )}
@@ -2251,12 +2268,12 @@ export default function RaceReplay({
                     <div className="race-replay__result-heading">
                       <span>시뮬레이션 결과</span>
                       <strong>
-                        P{finalPlayerFrame.position}
+                        {finalPlayerFrame.retired ? "DNF" : `P${finalPlayerFrame.position}`}
                         <small>/ 20</small>
                       </strong>
                     </div>
                     <div className="race-replay__result-score">
-                      <span>전략 평가 · 추정</span>
+                      <span>전략 평가 · 사고 제외 기준</span>
                       <strong>
                         {resultScore ?? "—"}
                         <small>/ 100</small>
@@ -2298,6 +2315,7 @@ export default function RaceReplay({
                     <p>
                       점수는 운전 실력 없이 타이어 전략의 모델 시간만
                       동적계획법의 1위 전략과 비교합니다.
+                      {appliedIncidents.enabled && " 위 순위·DNF에는 사고가 반영되지만, 점수는 사고 운을 제외한 기본 전략 평가입니다."}
                     </p>
                   </div>
                 )}
@@ -2315,6 +2333,7 @@ export default function RaceReplay({
               <RaceReplayControls phase={phase} ready={replayReady} rate={playbackRate}
                 camera={cameraMode} reducedMotion={reducedMotion} fullscreen={isFullscreen}
                 elapsed={gridFrame.elapsedSeconds} lap={displayLap} car={playerGridCar}
+                durationSeconds={replayEndSeconds} timeAt={controlTimeAt}
                 onPlay={handlePlayPause} onRate={(rate) => { setPlaybackRate(rate); setLiveMessage(`${rate}배 모델 시간으로 설정`); }}
                 onCamera={selectCamera} onFullscreen={() => void toggleFullscreen()}
                 onReset={requestReset} onLap={seekToAdjacentLap} onSeek={seekAndPause} />
@@ -2327,9 +2346,19 @@ export default function RaceReplay({
             </dialog>
           </div>
           <aside id="replay-details" className="replay-drawer" hidden={!panel} aria-labelledby="replay-details-title">
-            <header><h3 id="replay-details-title">{panel === "method" ? "계산 기준·출처" : panel === "metrics" ? "차량 상세 · 추정" : "레이스 기록"}</h3>
+            <header><h3 id="replay-details-title">{panel === "incidents" ? "가상 레이스 · 사고와 깃발" : panel === "method" ? "계산 기준·출처" : panel === "metrics" ? "차량 상세 · 추정" : "레이스 기록"}</h3>
               <button ref={panelCloseRef} type="button" onClick={closePanel} aria-label="리플레이 정보 닫기">닫기 ×</button></header>
             <div className="replay-drawer__body">
+              {panel === "incidents" && <VirtualIncidentPanel settings={appliedIncidents} driverLabel={driver.code}
+                othersCount={raceGridData.grid.cars.length - 1} onApply={settings => {
+                  cancelCountdown();
+                  phaseRef.current = "ready";
+                  setPhase("ready");
+                  setPauseReason("");
+                  if (onIncidentSettings) onIncidentSettings(settings); else setLocalIncidentSettings(settings);
+                  setLiveMessage(settings.enabled ? "가상 사고 조건을 적용했습니다. 출발 전으로 초기화합니다." : "사고 없는 기본 주행으로 돌아갑니다.");
+                  closePanel();
+                }} />}
               <div hidden={panel !== "method"}>
                 {scenarioSummary && <p>{scenarioSummary}</p>}
                 <p>
@@ -2533,7 +2562,7 @@ export default function RaceReplay({
             <div>
               <span>다음 피트</span>
               <strong>
-                {nextPitAfterLap === undefined
+                {playerFrame.retired ? "리타이어" : nextPitAfterLap === undefined
                   ? "결승선"
                   : `L${nextPitAfterLap} 종료 후`}
               </strong>
@@ -2556,6 +2585,7 @@ export default function RaceReplay({
             <strong>
               {playerFrame.isPitting
                 ? `자동 피트 스톱 진행`
+                : playerFrame.retired ? "사고로 리타이어 · DNF"
                 : playerFrame.completed
                   ? `최종 ${finalDeltaText}`
                   : `P${playerFrame.position} · ${COMPOUND_NAMES[playerFrame.compound]} 스틴트`}
@@ -2565,6 +2595,7 @@ export default function RaceReplay({
                 ? `L${Math.max(1, displayLap - 1)} 종료 후 새 ${
                     COMPOUND_NAMES[playerFrame.compound]
                   } 타이어로 교체합니다.`
+                : appliedIncidents.enabled ? "가상 사고 조건을 적용한 주행입니다. 원래 전략 모델의 비용·타이어 상태와 사고로 늘어난 경과 시간은 별개입니다."
                 : `기준 전략은 L${referenceFrame.lap} · ${
                     COMPOUND_NAMES[referenceFrame.compound]
                   }, 두 차량은 같은 자동주행 조건입니다.`}
@@ -2572,9 +2603,10 @@ export default function RaceReplay({
           </div>
         </aside></div>
               <div hidden={panel !== "data"}>
-                <ReplayTelemetry grid={raceGridData.grid} frame={gridFrame} playerId={driver.id}
+                {appliedIncidents.enabled ? <VirtualIncidentLog race={virtualRace} frame={gridFrame} onSeek={seekAndPause}
+                  hasStarted={phase !== "ready" && phase !== "countdown"} /> : <ReplayTelemetry grid={raceGridData.grid} frame={gridFrame} playerId={driver.id}
                   hasStarted={phase !== "ready" && phase !== "countdown"} experimentTimeline={experimentTimeline}
-                  onSeek={seekAndPause} />
+                  onSeek={seekAndPause} />}
                 <details className="replay-strategy-comparison"><summary>내 전략·기준 전략 비교 · {finalDeltaText}</summary>
                   <StrategyTimelineRow label={strategyLabel} strategy={strategy} />
                   <StrategyTimelineRow label={referenceLabel} strategy={referenceStrategy} isReference />

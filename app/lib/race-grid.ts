@@ -130,9 +130,14 @@ export interface RaceGrid {
   readonly cars: readonly RaceGridCar[];
 }
 
-export type RaceGridPitState = "track" | "pit" | "finished";
+export type RaceGridPitState = "track" | "pit" | "finished" | "retired";
 
 export interface RaceGridCarFrame {
+  /** Present only in the user-configured virtual incident replay. */
+  readonly retired?: boolean;
+  readonly incidentStopped?: boolean;
+  readonly speedFactor?: number;
+  readonly modelElapsedSeconds?: number;
   readonly id: string;
   readonly label: string;
   readonly gridPosition: number;

@@ -75,6 +75,15 @@ test("loading guard disables start and seek, while rate/camera choice remains av
   }
 });
 
+test("incident clock extends seek duration and removes unreachable pit markers after retirement", () => {
+  const html = renderToStaticMarkup(createElement(Controls, props({ durationSeconds: 900,
+    timeAt: seconds => seconds === 0 ? 0 : seconds > 800 ? null : seconds + 90,
+  })));
+  assert.match(html, /max="900"/);
+  assert.doesNotMatch(html, /12랩 종료 후 피트로 이동/);
+  assert.match(html, /width:100%/);
+});
+
 test("canceling reset restores running or results, but does not restart canceled countdown timers", () => {
   for (const phase of ["ready", "paused", "results"]) {
     assert.equal(phaseAfterResetCancel(phase, true), phase);
