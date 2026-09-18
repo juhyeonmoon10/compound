@@ -2663,7 +2663,7 @@ function positionGridCar(
   );
   const laneOffset = frame.retired || frame.incidentStopped ? roadHalfWidth + 1.8 : onPitLane
     ? -roadHalfWidth - 3.15
-    : gridLane;
+    : frame.lateralOffsetMeters ?? gridLane;
   const visualProgress =
     frame.progressLaps -
     startGridOffset / circuitLengthMeters;

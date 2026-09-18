@@ -132,7 +132,8 @@ test("controls only hide while running, without focus or reset confirmation", ()
   assert.match(css, /data-controls-visible="false"[^}]+visibility: hidden; pointer-events: none/s);
   assert.match(css, /--replay-controls-height/);
   assert.match(css, /timing-heading button[^}]+pointer-events: auto/s);
-  assert.match(css, /race-overlay.is-results[^}]+max-height:[^;]+;[^}]+overflow: auto/s);
+  const resultsCss = readFileSync(new URL("../app/race-results.css", import.meta.url), "utf8");
+  assert.match(resultsCss, /race-results__body[^}]+min-height: 0; overflow: auto/s);
   assert.match(css, /@container replay-screen \(max-height: 480px\)/);
 });
 

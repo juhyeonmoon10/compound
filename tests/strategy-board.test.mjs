@@ -17,6 +17,7 @@ import { TEAM_PROFILES } from "../app/lib/participants.ts";
 const cache = new Map();
 function loadComponent(filename) {
   if (filename.endsWith(".css")) return {};
+  if (filename.endsWith(".json")) return JSON.parse(readFileSync(filename, "utf8"));
   if (cache.has(filename)) return cache.get(filename).exports;
   const source = readFileSync(filename, "utf8");
   const compiled = ts.transpileModule(source, { fileName: filename, compilerOptions: {
@@ -56,6 +57,20 @@ test("strategy board places pit wheels at window midpoints on the shared race ax
   assert.notEqual(result.pits[0].x, board.lineStart + 24 / 58 * (board.lineEnd - board.lineStart));
   assert.equal(result.pits[0].labelX, result.pits[0].x - board.pitWheel / 2 - board.windowGap);
   assert.equal(result.finishX, board.finishX);
+});
+
+test("historical recommendation renders actual provenance and condition differences, not fabricated times", () => {
+  const { default: Historical } = loadComponent(fileURLToPath(new URL("../app/HistoricalStrategyRecommendations.tsx", import.meta.url)));
+  const markup = renderToStaticMarkup(React.createElement(Historical, {
+    conditions: { trackId: "melbourne", startingGridPosition: 10, trackTemperatureC: 34, airTemperatureC: 23, humidityPercent: 58, maxStops: 2, laps: 58, weather: { preset: "none" } },
+    onUseStrategy() {}, onChangeConditions() {},
+  }));
+  assert.match(markup, /실제 경기 전략/);
+  assert.match(markup, /2024/);
+  assert.match(markup, /F1 원본 타이밍 자료/);
+  assert.match(markup, /실제 평균 노면 온도/);
+  assert.match(markup, /실제 전략 불러와 편집/);
+  assert.doesNotMatch(markup, /예상 완주시간|민감도 추정치/);
 });
 
 test("all rows share exact prescribed spacing and contiguous line endpoints", () => {

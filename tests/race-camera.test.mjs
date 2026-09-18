@@ -82,6 +82,19 @@ function draw(runtime, elapsed, mode, render = renderFrame, withGrid = true) {
   return gridFrame;
 }
 
+test("the 3D car and tracking camera use the collision model's lateral position", () => {
+  const positions = [];
+  for (const lateralOffsetMeters of [-3.3, 3.3]) {
+    const runtime = makeRuntime(), frame = raceGridFrameAt(grid, 100);
+    const collisionFrame = { ...frame, cars: frame.cars.map(car => car.id === playerId ? { ...car, lateralOffsetMeters } : car) };
+    renderFrame(runtime, strategyRaceFrameAt(replay, replay, 100), "chase", collisionFrame, telemetry);
+    const position = runtime.gridCars.get(playerId).group.position.clone();
+    positions.push(position);
+    assert.ok(runtime.cameraAnchorPosition.clone().setY(position.y).distanceTo(position) < 1e-9);
+  }
+  assert.ok(Math.abs(positions[0].distanceTo(positions[1]) - 6.6) < 1e-7);
+});
+
 test("chase and cockpit stay with the selected car at every playback speed and frame rate", (context) => {
   let now = 0;
   context.mock.method(performance, "now", () => now);

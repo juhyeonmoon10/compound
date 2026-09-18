@@ -138,6 +138,9 @@ export interface RaceGridCarFrame {
   readonly incidentStopped?: boolean;
   readonly speedFactor?: number;
   readonly modelElapsedSeconds?: number;
+  /** Shared by collision detection and the 3D pose, measured from the track centre. */
+  readonly lateralOffsetMeters?: number;
+  readonly contactPulse?: number;
   readonly id: string;
   readonly label: string;
   readonly gridPosition: number;

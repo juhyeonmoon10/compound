@@ -16,9 +16,9 @@ import {
 } from "react";
 const HistoricalEvidencePanel = lazy(() => import("./HistoricalEvidencePanel"));
 import { publicAsset } from "./lib/public-assets";
-import RaceBriefingOverview from "./RaceBriefingOverview";
+import HistoricalStrategyRecommendations from "./HistoricalStrategyRecommendations";
+import { importHistoricalStints, type HistoricalMatch } from "./lib/historical-recommendations";
 import type { StrategyWorkspace } from "./RaceBriefingOverview";
-import { calculatePitWindows } from "./lib/pit-windows";
 const StrategyBacktestPanel = lazy(() => import("./StrategyBacktestPanel"));
 import ExperimentNotebook from "./ExperimentNotebook";
 import { buildExperimentResearch } from "./lib/notebook-research";
@@ -295,9 +295,9 @@ function formatSignedSeconds(seconds: number) {
 
 function manualDeltaText(seconds: number) {
   if (Math.abs(seconds) < 0.0005) {
-    return "추천 1위와 동일 기록";
+    return "DP 기준과 동일 기록";
   }
-  return `추천 1위보다 ${formatDelta(seconds)}`;
+  return `DP 기준보다 ${formatDelta(seconds)}`;
 }
 
 function manualViolationText(violation: string) {
@@ -941,15 +941,7 @@ export default function StrategyLab({
   const entryProfile = useMemo(() => resolveEntryPerformance(applied.teamId, applied.driverId, applied.equalPerformance), [applied.teamId, applied.driverId, applied.equalPerformance]);
   const neutralisationPrior = useMemo(() => getNeutralisationPrior(applied.trackId), [applied.trackId]);
   const sharedExperimentGrid = useMemo(() => results[0] ? buildSharedRaceGrid({ teamId: applied.teamId, driverId: applied.driverId, playerStrategy: results[0], strategyPool: results, startingGridPosition: applied.startingGridPosition, equalPerformance: applied.equalPerformance }) : null, [applied.teamId, applied.driverId, applied.startingGridPosition, applied.equalPerformance, results]);
-  const strategyPitWindows = useMemo(
-    () =>
-      results
-        .slice(0, 3)
-        .map((strategy) =>
-          calculatePitWindows(strategy, optimizerInput, appliedTrack.laps),
-        ),
-    [appliedTrack.laps, optimizerInput, results],
-  );
+  const recommendationConditions = useMemo(() => ({ ...applied, laps: appliedTrack.laps }), [applied, appliedTrack.laps]);
   const selectedTopThree = results[selectedRank] ?? results[0];
   const draftTrack = TRACK_PRESETS[draft.trackId];
   const draftNeutralisationPrior = useMemo(
@@ -1193,7 +1185,21 @@ export default function StrategyLab({
 
   const loadBestIntoManual = () => {
     applyManualEdit(manualPlanFromStrategy(best, appliedTrack.laps));
-    setAnnouncement("추천 1위 전략을 직접 전략 편집기에 불러왔습니다.");
+    setAnnouncement("실제 경기 기록이 아닌 DP 계산 기준 전략을 편집기에 불러왔습니다.");
+  };
+
+  const useHistoricalStrategy = (match: HistoricalMatch, mode: "manual" | "replay") => {
+    const stints = importHistoricalStints(match, appliedTrack.laps);
+    if (!stints || stints.length < 2 || stints.length > applied.maxStops + 1) return;
+    const evaluation = evaluateStrategy({ ...optimizerInput, stints });
+    const plan = manualPlanFromStrategy(evaluation, appliedTrack.laps);
+    applyManualEdit(plan);
+    setCommittedManualPlan(mode === "replay" && evaluation.isLegal ? plan : null);
+    setAnalysisMode("manual");
+    setWorkspace(mode === "replay" && evaluation.isLegal ? "replay" : "manual");
+    setRaceExperiment(null);
+    setCalculationRevision(current => current + 1);
+    setAnnouncement(`${match.event.season} ${appliedTrack.koreanName} ${match.driver.name}의 실제 전략을 불러왔습니다. ${match.adaptation ?? "실제 교체 랩을 유지합니다."} ${evaluation.isLegal ? "현재 조건에서의 결과는 가상 계산입니다." : `현재 모델 제약과 다른 부분을 편집기에서 확인하세요: ${evaluation.violations.join(" · ")}`}`);
   };
 
   const resetManualPlan = () => {
@@ -1257,17 +1263,6 @@ export default function StrategyLab({
       driver: scenarioReady,
     });
     setRaceSetupOpen(true);
-  };
-
-  const openRaceSimulation = () => {
-    setPageView("strategy");
-    setWorkspace("replay");
-    setAnnouncement("선택한 전략의 레이스 시뮬레이션으로 이동했습니다.");
-    window.requestAnimationFrame(() => {
-      document
-        .getElementById("strategy-replay")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
   };
 
   const handleResultDetailTabKeyDown = (
@@ -1423,43 +1418,10 @@ export default function StrategyLab({
             </header>
           )}
 
-          {scenarioReady && workspace === "board" && <RaceBriefingOverview
-            track={appliedTrack}
-            team={selectedTeam}
-            driver={selectedDriver}
-            trackTemperatureC={applied.trackTemperatureC}
-            startingGridPosition={applied.startingGridPosition}
-            trafficLevel={applied.trafficLevel}
-            maxStops={applied.maxStops}
-            pitLossSeconds={applied.pitLossSeconds}
-            pitSource={Math.abs(applied.pitLossSeconds - (getHistoricalCalibration(applied.trackId).pitLossSeconds ?? Infinity)) < MODEL_PARAMS.validation.toleranceSeconds ? "실측 기반 추정" : "프로젝트 추정"}
-            results={results}
-            pitWindows={strategyPitWindows}
-            selectedRank={selectedRank}
-            topThreeActive={analysisMode === "top3"}
-            workspace={workspace}
-            onWorkspaceChange={(view) => {
-              if (view === "manual") {
-                setAnalysisMode("manual");
-              }
-              setWorkspace(view);
-              if (view === "replay") setAnnouncement("선택 전략의 3D 리플레이를 준비합니다.");
-            }}
-            onOpenSetup={openScenarioSetup}
-            onSelectStrategy={(index) => {
-              setSelectedRank(index);
-              setAnalysisMode("top3");
-              setResultDetailTab("chart");
-            }}
-            onOpenManual={() => {
-              setManualPlan(manualPlanFromStrategy(selectedTopThree, appliedTrack.laps));
-              setWorkspace("manual");
-              setAnnouncement(`후보 ${selectedTopThree.rank}을 편집기에 불러왔습니다.`);
-            }}
-            onOpenReplay={() => {
-              setAnalysisMode("top3");
-              openRaceSimulation();
-            }}
+          {scenarioReady && workspace === "board" && <HistoricalStrategyRecommendations
+            conditions={recommendationConditions}
+            onUseStrategy={useHistoricalStrategy}
+            onChangeConditions={openScenarioSetup}
           />}
 
           {scenarioReady && <RaceExperimentPanel hidden={pageView !== "strategy" || workspace !== "replay"} candidates={raceExperimentCandidates} seed={experimentSeed} onSeedChange={setExperimentSeed} result={raceExperiment} onResult={setRaceExperiment} racecraft={entryProfile.racecraft} startingGridPosition={applied.startingGridPosition} pitLossSeconds={applied.pitLossSeconds} trialIndex={experimentTrial} onTrialChange={setExperimentTrial} fixedRivals={sharedExperimentGrid?.fixedRivals} playerId={sharedExperimentGrid?.playerId} gridSlotOffsetSeconds={sharedExperimentGrid?.gridSlotOffsetSeconds} eventPrior={neutralisationPrior} />}
@@ -1873,11 +1835,11 @@ export default function StrategyLab({
               <div className="flow-section-heading" id="recommendation">
                 <div>
                   <span>
-                    추천 전략 · {appliedTrack.koreanName}
+                    모델 계산 후보 · {appliedTrack.koreanName}
                   </span>
                   <h3>레이스를 완주하는 세 가지 전략.</h3>
                 </div>
-                <p>현재 적용된 조건에서 예상 총시간이 가장 짧은 전략입니다.</p>
+                <p>DP가 계산한 가상 비교 기준입니다. 실제 경기에서 사용된 전략 추천과 별개입니다.</p>
               </div>
               <div className="result-status">
                 <div>
@@ -1893,7 +1855,7 @@ export default function StrategyLab({
               <article className="winner-card">
                 <div className="winner-card__top">
                   <div>
-                    <span className="rank-label">추천 · 1위</span>
+                    <span className="rank-label">DP 계산 · 1위</span>
                     <div className="compound-sequence">
                       {best.stints.map((stint, index) => (
                         <span key={`${stint.compound}-${stint.startLap}`}>
@@ -1964,7 +1926,7 @@ export default function StrategyLab({
                           ? "is-selected"
                           : ""
                       }`}
-                      aria-label={`추천 ${strategy.rank}위, ${strategySequence(
+                      aria-label={`모델 계산 ${strategy.rank}위, ${strategySequence(
                         strategy,
                       )}, 예상 완주시간 ${strategy.formattedTime}, 피트랩 ${strategy.pitAfterLaps
                         .map((lap) => `L${lap}`)
@@ -2050,7 +2012,7 @@ export default function StrategyLab({
                         다시 실행
                       </button>
                       <button type="button" onClick={loadBestIntoManual}>
-                        추천 1위 불러오기
+                        DP 계산 기준 불러오기
                       </button>
                       <button type="button" onClick={resetManualPlan}>
                         초기화
@@ -2259,7 +2221,7 @@ export default function StrategyLab({
                         : "규칙을 고치면 상위 3개와 공정하게 비교할 수 있습니다."}
                     </p>
 
-                    {manualStrategy.isLegal && <div className="manual-impact" aria-label="추천 최단 전략 대비 시간 차이 원인">
+                    {manualStrategy.isLegal && <div className="manual-impact" aria-label="DP 계산 기준 대비 시간 차이 원인">
                       <span>최단 전략과 무엇이 다른가?</span>
                       <dl>
                         <div><dt>타이어 사용 비용</dt><dd>{formatSignedSeconds(manualTyreDelta)}</dd></div>
@@ -2524,7 +2486,7 @@ export default function StrategyLab({
                 degradationPercent: 100,
                 trackTemperatureC: applied.trackTemperatureC,
                 maxStops: applied.maxStops,
-                modeLabel: analysisMode === "manual" ? "직접 설계" : `추천 후보 ${selectedTopThree.rank}`,
+                modeLabel: analysisMode === "manual" ? "직접 설계" : `모델 계산 후보 ${selectedTopThree.rank}`,
                 strategy: analysisStrategy,
               } : null} />}
 

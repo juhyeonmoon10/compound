@@ -12,6 +12,7 @@ import type {
 } from "./lib/participants";
 import type {
   StrategyResult,
+  StrategyStintInput,
   TrackPreset,
 } from "./lib/strategy";
 import type { RaceTrafficLevel } from "./RaceReplay";
@@ -42,7 +43,7 @@ const BOARD_TYRE_ASSETS: Readonly<Record<BoardCompound, string>> = {
   WET: "/ui/tyres/wet.webp",
 };
 
-function strategySequence(strategy: StrategyResult): string {
+function strategySequence(strategy: { stints: readonly StrategyStintInput[] }): string {
   return strategy.stints.map((stint) => TYRE_LABELS[stint.compound]).join(" → ");
 }
 
@@ -52,7 +53,7 @@ function formatDelta(seconds: number): string {
 
 /** Pixel geometry is expressed in the user's 1500 × 844 reference coordinates. */
 export function strategyBoardRowGeometry(
-  strategy: Pick<StrategyResult, "stints">,
+  strategy: { stints: readonly StrategyStintInput[] },
   pitWindows: readonly StrategyPitWindow[],
   totalLaps: number,
   rowIndex: number,
@@ -114,15 +115,16 @@ function BoardTyre({ compound, x, y, size }: {
   </g>;
 }
 
-function StrategyBoardGraphic({ track, results, pitWindows, selectedRank, topThreeActive, pitLossSeconds, pitSource, onSelectStrategy }: {
-  track: TrackPreset; results: readonly StrategyResult[]; pitWindows: readonly (readonly StrategyPitWindow[])[];
+export function StrategyBoardGraphic({ track, results, pitWindows, selectedRank, topThreeActive, pitLossSeconds, pitSource, onSelectStrategy, observedLabels, observedLaps }: {
+  track: TrackPreset; results: readonly { stints: readonly StrategyStintInput[]; stopCount: number; signature: string }[]; pitWindows: readonly (readonly StrategyPitWindow[])[];
   selectedRank: number; topThreeActive: boolean; pitLossSeconds: number; onSelectStrategy: (index: number) => void;
   pitSource: string;
+  observedLabels?: readonly string[]; observedLaps?: readonly number[];
 }) {
   const id = useId().replaceAll(":", "");
   const board = MODEL_PARAMS.board;
   const rows = results.slice(0, 3).map((strategy, index) => ({
-    strategy, geometry: strategyBoardRowGeometry(strategy, pitWindows[index] ?? [], track.laps, index),
+    strategy, geometry: strategyBoardRowGeometry(strategy, pitWindows[index] ?? [], observedLaps?.[index] ?? track.laps, index),
   }));
   const legend: readonly BoardCompound[] = ["H", "M", "S", "INTER", "WET"];
   return <section className="strategy-board" aria-labelledby="briefing-board-title">
@@ -146,10 +148,11 @@ function StrategyBoardGraphic({ track, results, pitWindows, selectedRank, topThr
             )))}
           </defs>
           <text x={board.lineStart} y={board.headerY} fontSize={board.headerFont} className="strategy-board__eyebrow"><tspan fontWeight="800">{uiLabel(track.country)}</tspan> | F1 그랑프리 · {track.koreanName} · {track.laps}랩</text>
-          <text x={board.lineStart} y={board.titleY} fontSize={board.titleFont} className="strategy-board__title">{track.koreanName} | 추천 타이어 전략</text>
+          <text x={board.lineStart} y={board.titleY} fontSize={board.titleFont} className="strategy-board__title">{track.koreanName} | {observedLabels ? "실제 경기 전략" : "추천 타이어 전략"}</text>
           <text x={board.width - board.lineStart} y={board.titleY} textAnchor="end" fontSize={board.brandFont} className="strategy-board__brand">compound</text>
           <line x1={board.lineStart} x2={board.width - board.lineStart} y1={board.headerRuleY} y2={board.headerRuleY} className="strategy-board__rule" />
           {rows.map(({ strategy, geometry }, rowIndex) => <g key={strategy.signature} data-strategy-index={rowIndex}>
+            {observedLabels && <text x={board.lineStart} y={geometry.y - 55} fontSize={24} fill="#dce3eb">{observedLabels[rowIndex]}</text>}
             {geometry.segments.map((segment, index) => <line key={index} x1={segment.startX} x2={segment.endX} y1={geometry.y} y2={geometry.y} stroke={segment.color} strokeWidth={board.lineWidth} />)}
             {geometry.pits.map((pit, pitIndex) => <g key={pitIndex}>
               <line x1={Math.max(board.lineStart, pit.x - board.fadeWidth / 2)} x2={Math.min(board.lineEnd, pit.x + board.fadeWidth / 2)}
@@ -157,10 +160,10 @@ function StrategyBoardGraphic({ track, results, pitWindows, selectedRank, topThr
               <text x={pit.labelX} y={pit.labelY} textAnchor={pit.labelAnchor} fontSize={board.windowFont} className="strategy-board__window"><tspan fontWeight="800">{pit.startLap}</tspan>{pit.startLap !== pit.endLap && <> ~ <tspan fontWeight="800">{pit.endLap}</tspan></>}랩</text>
               <BoardTyre compound={pit.compound} x={pit.x} y={geometry.y} size={board.pitWheel} />
             </g>)}
-            <text x={board.finishX - board.pitWheel / 2 - board.stopLabelGap} y={geometry.y - board.windowGap} textAnchor="end" fontSize={board.windowFont} className="strategy-board__stop-label">{strategy.stopCount}스톱</text>
+            <text x={board.finishX - board.pitWheel / 2 - board.stopLabelGap} y={geometry.y - board.windowGap} textAnchor="end" fontSize={board.windowFont} className="strategy-board__stop-label">{strategy.stopCount}{observedLabels ? "회 교체" : "스톱"}</text>
             <BoardTyre compound={geometry.finalCompound} x={board.finishX} y={geometry.y} size={board.pitWheel} />
           </g>)}
-          <text x={board.lineStart} y={board.dividerY - board.windowGap} fontSize={board.footerFont} className="strategy-board__note">교체 구간은 각 전략의 민감도 추정치이며, 실제 경기 예보가 아닙니다.</text>
+          <text x={board.lineStart} y={board.dividerY - board.windowGap} fontSize={board.footerFont} className="strategy-board__note">{observedLabels ? "각 선은 해당 경기의 실제 랩 수와 타이어 교체 기록입니다. 조건 유사도 순이며 최적 전략을 보장하지 않습니다." : "교체 구간은 각 전략의 민감도 추정치이며, 실제 경기 예보가 아닙니다."}</text>
           <line x1={board.lineStart} x2={board.width - board.lineStart} y1={board.dividerY} y2={board.dividerY} className="strategy-board__rule" />
           {legend.map((compound, index) => {
             const x = board.legendStart + index * board.legendStep;
@@ -171,15 +174,15 @@ function StrategyBoardGraphic({ track, results, pitWindows, selectedRank, topThr
               <text x={labelX} y={board.legendY + board.windowFont} fontSize={board.windowFont} fill={TYRE_COLORS[compound]} className="strategy-board__legend-code">{compound === "INTER" ? "I" : compound === "WET" ? "W" : compound}</text>
             </g>;
           })}
-          <text x={board.factsX} y={board.legendY - board.windowGap} fontSize={board.footerFont} className="strategy-board__fact-label">피트 손실 · {pitSource}</text>
-          <text x={board.factsX} y={board.legendY + board.windowFont} fontSize={board.brandFont} className="strategy-board__fact-value">{pitLossSeconds.toFixed(1)}초</text>
+          <text x={board.factsX} y={board.legendY - board.windowGap} fontSize={board.footerFont} className="strategy-board__fact-label">{observedLabels ? "데이터 출처" : `피트 손실 · ${pitSource}`}</text>
+          <text x={board.factsX} y={board.legendY + board.windowFont} fontSize={board.brandFont} className="strategy-board__fact-value">{observedLabels ? "F1 / FastF1" : `${pitLossSeconds.toFixed(1)}초`}</text>
           <image href={circuitLayoutUrl(track.id)} x={board.trackFactX} y={board.legendY - board.legendWheel / 2}
             width={board.width - board.lineStart - board.trackFactX - board.legendWheel} height={board.legendWheel} className="strategy-board__track-map" />
           <text x={board.width - board.lineStart} y={board.legendY + board.windowFont} textAnchor="end" fontSize={board.legendLabelFont} className="strategy-board__fact-value">{track.laps}랩</text>
         </svg>
         {rows.map(({ strategy, geometry }, index) => <button type="button" key={strategy.signature}
           className="strategy-board__row-hit" aria-pressed={topThreeActive && selectedRank === index}
-          aria-label={`전략 ${index + 1}, ${strategySequence(strategy)}, ${strategy.stopCount}회 교체, 피트 ${geometry.pits.map((pit) => `${pit.startLap}랩부터 ${pit.endLap}랩`).join(', ') || '없음'}`}
+          aria-label={`${observedLabels?.[index] ?? `전략 ${index + 1}`}, ${strategySequence(strategy)}, ${strategy.stopCount}회 교체, 피트 ${geometry.pits.map((pit) => `${pit.startLap}랩부터 ${pit.endLap}랩`).join(', ') || '없음'}`}
           style={{ left: `${(board.lineStart - board.selectionPadding) / board.width * 100}%`,
             right: `${(board.width - board.finishX - board.pitWheel / 2 - board.selectionPadding) / board.width * 100}%`,
             top: `${(geometry.y - board.rowGap / 2) / board.height * 100}%`,

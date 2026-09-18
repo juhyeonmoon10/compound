@@ -1,0 +1,132 @@
+/* Broadcast-inspired results: one classification sheet, not a stack of score cards. */
+.race-replay--workbench[data-phase="results"] .race-replay__screen { height: clamp(640px, calc(100dvh - 200px), 860px); }
+.replay-control-dock[hidden] { display: none; }
+.race-results { position: absolute; inset: 0; z-index: 11; display: flex; flex-direction: column; min-width: 0; color: #f4f4f7; background: #14151e; text-align: left; font-family: Arial, "Noto Sans KR", sans-serif; font-variant-numeric: tabular-nums; }
+.race-results * { box-sizing: border-box; }
+.race-results h3, .race-results h4, .race-results p, .race-results dl { margin: 0; }
+.race-results button { min-height: 40px; padding: 8px 12px; border: 1px solid #454653; border-radius: 3px; background: transparent; color: #f4f4f7; font: inherit; font-size: .875rem; cursor: pointer; }
+.race-results button:hover { background: #30323e; }
+.race-results button:focus-visible, .race-results a:focus-visible, .race-results summary:focus-visible, .race-results__table-wrap:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+.race-results__header { display: flex; gap: 24px; align-items: center; flex: 0 0 auto; padding: 20px 24px 18px; border-top: 4px solid #ed242b; border-bottom: 1px solid #747580; background: #101118; }
+.race-results__brand { font-size: 1.125rem; font-weight: 900; font-style: italic; letter-spacing: -.04em; }
+.race-results__brand span { display: block; margin-top: 4px; color: #b6b6c1; font-size: .75rem; font-weight: 400; letter-spacing: .14em; font-style: normal; }
+.race-results__title { flex: 1; min-width: 0; padding-left: 22px; border-left: 1px solid #4f505d; }
+.race-results__title p { margin-bottom: 5px; color: #b9b9c4; font-size: .8125rem; }
+.race-results__title h3 { color: #ff3e45; font-size: clamp(1.25rem, 2vw, 1.75rem); font-style: italic; font-weight: 900; line-height: 1.15; letter-spacing: -.03em; }
+.race-results__title h3:focus { outline: none; }
+.race-results__session { text-align: right; white-space: nowrap; }
+.race-results__session > span { display: block; font-size: .75rem; color: #bcbcc8; }
+.race-results__session strong { font-size: 1.45rem; font-style: italic; }
+.race-results__session small { font-size: .875rem; font-style: normal; }
+.race-results .race-results__expand { padding: 8px; font-size: .75rem; color: #c3c3ce; }
+.race-results__body { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(270px, 1fr); gap: 28px; padding: 18px 24px 20px; flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.race-results__classification, .race-results__summary { min-width: 0; }
+.race-results__toolbar { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.race-results__tabs, .race-results__pages { display: flex; gap: 3px; }
+.race-results__tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: #b2b3be; }
+.race-results__tabs button[aria-pressed="true"] { color: #fff; border-bottom-color: #ef353d; }
+.race-results__pages button { font-size: .8125rem; min-width: 48px; }
+.race-results__pages button[aria-pressed="true"] { color: #14151e; background: #ececf0; border-color: #ececf0; font-weight: 700; }
+.race-results__table-wrap { overflow-x: auto; overscroll-behavior-x: contain; }
+.race-results__table { width: 100%; min-width: 420px; border-collapse: collapse; table-layout: auto; }
+.race-results__table thead th { padding: 8px 10px 12px; text-align: left; color: #f25359; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+.race-results__table thead small { display: block; margin-top: 3px; font-size: .75rem; color: #9d9dab; font-weight: 400; }
+.race-results__table tbody tr { background: #1a1b26; border-bottom: 3px solid #14151e; }
+.race-results__table tbody tr:nth-child(even) { background: #20212d; }
+.race-results__table tbody tr[data-player="true"] { background: color-mix(in srgb, var(--result-team) 22%, #1b1c28); outline: 1px solid color-mix(in srgb, var(--result-team) 80%, white); outline-offset: -1px; }
+.race-results__table td, .race-results__table tbody th { padding: 9px 10px; font-size: .9375rem; font-weight: 500; text-align: left; }
+.race-results__table .race-results__position { width: 46px; color: #c1c2cf; font-size: 1.125rem; font-style: italic; text-align: center; }
+.race-results__table .race-results__driver { padding-left: 13px; position: relative; }
+.race-results__driver::before { content: ""; position: absolute; top: 10px; bottom: 10px; left: 0; width: 3px; background: var(--result-team); }
+.race-results__driver > span { display: flex; align-items: center; gap: 8px; font-style: italic; font-weight: 800; text-transform: uppercase; }
+.race-results__driver i { font-size: .75rem; color: #d1d1dd; font-weight: 400; font-style: normal; }
+.race-results__table small { display: block; margin-top: 3px; font-size: .75rem; color: #a5a5b5; font-weight: 400; }
+.race-results__table .race-results__gap { font-family: "SFMono-Regular", Consolas, monospace; font-weight: 700; white-space: nowrap; text-align: right; }
+.race-results__table th:nth-last-child(-n+2), .race-results__table td:nth-last-child(-n+2) { text-align: center; }
+.race-results__table .race-results__change { font-size: .8125rem; }
+.race-results__change[data-direction="up"] { color: #64ddb4; }
+.race-results__change[data-direction="down"] { color: #ff8d91; }
+.race-results__table tr[data-retired="true"] .race-results__gap { color: #a8a8b6; }
+.race-results__table-note { display: flex; flex-wrap: wrap; gap: 18px; padding: 12px 2px; color: #a5a6b6; font-size: .8125rem; border-bottom: 1px solid #3c3d4c; }
+.race-results .race-results__find-me { margin-top: 12px; width: 100%; color: #e1e1ec; text-align: left; }
+.race-results__stint-bar { display: flex; min-width: 155px; width: 100%; height: 22px; background: #0d0e15; }
+.race-results__stint-bar span { display: flex; align-items: center; justify-content: center; min-width: 1px; overflow: hidden; border-right: 2px solid #14151e; font-size: .75rem; font-weight: 800; }
+.race-results__summary { border-left: 1px solid #42434f; padding-left: 24px; }
+.race-results__podium h4 { display: flex; justify-content: space-between; color: #eeeef5; font-size: .875rem; font-style: italic; letter-spacing: .08em; }
+.race-results__podium h4 span { font-size: .75rem; color: #a4a4b2; font-style: normal; letter-spacing: 0; font-weight: 400; }
+.race-results__podium-drivers { display: flex; align-items: flex-end; gap: 3px; padding-top: 8px; }
+.race-results__podium-driver { position: relative; flex: 1; min-width: 0; isolation: isolate; border-bottom: 3px solid var(--result-team); background: linear-gradient(0deg, color-mix(in srgb, var(--result-team) 24%, #161721), transparent 75%); }
+.race-results__podium-driver[data-position="2"] { order: -1; }
+.race-results__podium-driver img { display: block; width: 100%; height: 118px; object-fit: cover; object-position: center top; position: relative; z-index: -1; }
+.race-results__podium-driver[data-position="1"] img { height: 144px; }
+.race-results__podium-number { position: absolute; top: 12px; left: 5px; font-size: 2.6rem; font-weight: 900; font-style: italic; color: #fff2; z-index: -2; }
+.race-results__podium-driver strong { display: block; padding: 5px 3px 0; font-size: .8125rem; text-transform: uppercase; font-style: italic; overflow-wrap: anywhere; }
+.race-results__podium-driver small { display: block; padding: 3px 3px 9px; color: #c0c0cf; font-size: .75rem; overflow-wrap: anywhere; }
+.race-results__no-finisher { padding: 24px 0; color: #bfc0cc; font-size: 1rem; }
+.race-results__personal { margin-top: 18px; border-bottom: 1px solid #3e3f4d; padding: 0 0 15px; }
+.race-results__personal-heading { display: flex; align-items: center; justify-content: space-between; }
+.race-results__personal-heading > span { font-size: .8125rem; letter-spacing: .08em; color: #bdbdcb; }
+.race-results__personal-heading small { display: block; margin-top: 3px; letter-spacing: 0; font-size: .75rem; }
+.race-results__personal-heading > strong { font-size: 2.6rem; font-weight: 900; font-style: italic; line-height: 1; border-left: 3px solid var(--result-team); padding-left: 10px; }
+.race-results__personal > p { margin: 10px 0; font-size: 1rem; font-weight: 700; }
+.race-results__personal > p span { display: inline-block; margin-left: 6px; color: #9d9dac; font-size: .75rem; font-weight: 400; }
+.race-results__personal dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 6px 0; }
+.race-results__personal dt { color: #a9a9b9; font-size: .8125rem; }
+.race-results__personal dd { margin: 0; font-size: .9375rem; font-family: Consolas, monospace; }
+.race-results__tyres { display: inline-flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+.race-results__tyres > span { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--result-tyre); color: var(--result-tyre); border-radius: 50%; font-weight: 800; font-size: .75rem; }
+.race-results__pit-laps { display: block; margin-top: 7px; color: #a9a9b9; font-size: .75rem; }
+.race-results__fastest { position: relative; padding: 14px 0 14px 12px; border-bottom: 1px solid #3e3f4d; }
+.race-results__fastest::before { content: ""; position: absolute; top: 16px; bottom: 16px; left: 0; width: 3px; background: #b77bf7; }
+.race-results__fastest > span { display: block; color: #c69afd; font-size: .8125rem; font-weight: 700; font-style: italic; }
+.race-results__fastest small { font-weight: 400; font-size: .75rem; color: #aba7b7; font-style: normal; margin-left: 6px; }
+.race-results__fastest > strong { display: block; margin-top: 6px; font-size: 1.4rem; font-family: Consolas, monospace; }
+.race-results__fastest p { margin-top: 3px; color: #b0a9bb; font-size: .8125rem; }
+.race-results__model { padding-top: 12px; }
+.race-results__model summary { cursor: pointer; color: #d1d1df; font-size: .875rem; }
+.race-results__model summary span { margin-left: 5px; color: #9595a8; font-size: .75rem; }
+.race-results__model p { margin-top: 10px; color: #b6b6c5; font-size: .875rem; line-height: 1.7; }
+.race-results__footer { flex: 0 0 auto; padding: 12px 24px; border-top: 1px solid #525361; background: #101118; }
+.race-results__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.race-results__actions .is-primary { background: #e52430; border-color: #e52430; font-weight: 700; color: white; }
+.race-results__actions .is-primary:hover { background: #f63844; }
+.race-results__footer > p { margin-top: 9px; color: #9d9eae; font-size: .75rem; line-height: 1.5; }
+.race-results__sources { margin-top: 5px; color: #9d9eae; font-size: .75rem; }
+.race-results__sources summary { cursor: pointer; }
+.race-results__sources p { margin: 6px 0; line-height: 1.6; }
+.race-results__sources a { color: #c4c4d5; text-underline-offset: 3px; }
+@media (max-width: 1000px) {
+  .race-results__header { gap: 12px; padding: 15px 16px; }
+  .race-results__brand { display: none; }
+  .race-results__title { border: 0; padding: 0; }
+  .race-results__body { gap: 18px; padding: 12px 16px 18px; grid-template-columns: minmax(0, 1.7fr) minmax(225px, 1fr); }
+  .race-results__summary { padding-left: 16px; }
+  .race-results__table td, .race-results__table tbody th { padding: 9px 6px; }
+}
+@media (max-width: 760px) {
+  .race-replay--workbench[data-phase="results"] .race-replay__screen { height: clamp(620px, 85dvh, 820px); }
+  .race-results__header { flex-wrap: wrap; gap: 8px; padding: 12px; }
+  .race-results__title { flex-basis: 64%; }
+  .race-results__title h3 { font-size: 1.15rem; }
+  .race-results__title p { font-size: .75rem; }
+  .race-results__session strong { font-size: 1.125rem; }
+  .race-results .race-results__expand { min-height: 32px; padding: 4px 8px; margin-left: auto; }
+  .race-results__body { display: block; padding: 8px 12px 16px; }
+  .race-results__toolbar { flex-wrap: wrap; }
+  .race-results__tabs button { padding: 8px; }
+  .race-results__table { min-width: 370px; }
+  .race-results__table td, .race-results__table tbody th { font-size: .875rem; padding: 8px 5px; }
+  .race-results__table .race-results__position { font-size: 1rem; width: 34px; }
+  .race-results__driver > span { gap: 4px; }
+  .race-results__summary { border: 0; border-top: 1px solid #464754; padding: 20px 0 0; margin-top: 16px; }
+  .race-results__podium-driver img { height: 130px; object-fit: contain; }
+  .race-results__podium-driver[data-position="1"] img { height: 160px; }
+  .race-results__podium-driver strong, .race-results__podium-driver small { text-align: center; }
+  .race-results__footer { padding: 10px 12px; }
+  .race-results__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .race-results__actions button { font-size: .8125rem; padding: 8px 6px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .race-results { animation: result-reveal 220ms ease-out both; }
+  @keyframes result-reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+}

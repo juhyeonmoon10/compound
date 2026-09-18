@@ -58,17 +58,6 @@
 .race-replay--workbench .race-replay__race-overlay.is-countdown { width: min(340px, 75%); min-height: 0; padding: 12px; }
 .race-replay--workbench .race-replay__race-overlay.is-pit { top: 78px; left: 50%; width: 210px; min-height: 0; padding: 10px; transform: translateX(-50%); }
 .race-replay--workbench .race-replay__race-overlay.is-pit > strong { font-size: 1.4rem; }
-.race-replay--workbench .race-replay__race-overlay.is-results { top: 12px; transform: translateX(-50%); width: min(650px, calc(100% - 24px)); min-height: 0; max-height: calc(100% - 24px); overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 14px; gap: 10px; place-items: stretch; }
-.race-replay--workbench .race-replay__result-heading,
-.race-replay--workbench .race-replay__result-score,
-.race-replay--workbench .race-replay__result-plan { padding: 10px; }
-.race-replay--workbench .race-replay__result-heading > span,
-.race-replay--workbench .race-replay__result-score > span,
-.race-replay--workbench .race-replay__result-plan > span { font-size: .75rem; letter-spacing: .02em; }
-.race-replay--workbench .race-replay__result-actions button,
-.race-replay--workbench .race-replay__result-score p,
-.race-replay--workbench .race-replay__result-plan small,
-.race-replay--workbench .race-replay__race-overlay.is-results > p { font-size: .8125rem; line-height: 1.5; }
 .replay-control-dock { position: relative; z-index: 12; background: #0c131b; }
 .replay-controls { padding: 10px 12px 8px; color: #e8eef5; }
 .replay-controls__bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -132,7 +121,6 @@
 .race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view)[data-controls-visible="true"] .race-replay__hud-tyre,
 .race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view)[data-controls-visible="true"] .race-replay__hud-pace,
 .race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view)[data-controls-visible="true"] .race-replay__hud-speed { bottom: calc(var(--replay-controls-height, 180px) + 28px); }
-.race-replay--workbench .race-replay__viewport:is(:fullscreen, .is-fullscreen-view)[data-controls-visible="true"] .race-replay__race-overlay.is-results { max-height: calc(100% - var(--replay-controls-height, 180px) - 40px); }
 @container replay-screen (max-height: 480px) {
   .race-replay--workbench .race-replay__timing-tower li:not(.is-nearby) { display: none; }
   .race-replay--workbench .race-replay__timing-tower li.is-nearby { display: grid; }

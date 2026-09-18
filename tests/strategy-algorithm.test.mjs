@@ -1407,7 +1407,7 @@ test("the direct strategy workspace is the empty main view and connects to resea
     "utf8",
   );
 
-  const briefingOverview = component.indexOf("<RaceBriefingOverview");
+  const briefingOverview = component.indexOf("<HistoricalStrategyRecommendations");
   const setupColumn = component.indexOf('className="setup-column"');
   const raceReplay = component.indexOf("<RaceReplay");
   const manualBuilder = component.indexOf(
@@ -1467,33 +1467,26 @@ test("the direct strategy workspace is the empty main view and connects to resea
   assert.ok(!component.includes('type="range"'));
   assert.ok(!component.includes('{pageView === "verification"'));
 
-  // The Option 3 briefing owns the visible Top 3 board and wires every
-  // high-level action back to StrategyLab state or the existing tools.
+  // The recommendation board retrieves observed strategies; model candidates
+  // remain separate. Import actions must preserve the observed pit boundaries.
   assert.ok(
     component.includes(
-      'import RaceBriefingOverview from "./RaceBriefingOverview";',
+      'import HistoricalStrategyRecommendations from "./HistoricalStrategyRecommendations";',
     ),
   );
   for (const prop of [
-    "track={appliedTrack}",
-    "team={selectedTeam}",
-    "driver={selectedDriver}",
-    "results={results}",
-    "pitWindows={strategyPitWindows}",
-    "selectedRank={selectedRank}",
-    'topThreeActive={analysisMode === "top3"}',
-    "onOpenSetup={openScenarioSetup}",
+    "conditions={recommendationConditions}",
+    "onUseStrategy={useHistoricalStrategy}",
+    "onChangeConditions={openScenarioSetup}",
   ]) {
     assert.ok(component.includes(prop), prop);
   }
   const briefingUsageEnd = component.indexOf("\n          />", briefingOverview);
   assert.ok(briefingUsageEnd > briefingOverview);
   const briefingUsage = component.slice(briefingOverview, briefingUsageEnd);
-  assert.ok(briefingUsage.includes("onOpenReplay={() => {"));
-  const activateTopThree = briefingUsage.indexOf('setAnalysisMode("top3")');
-  const openReplay = briefingUsage.indexOf("openRaceSimulation()", activateTopThree);
-  assert.ok(activateTopThree >= 0);
-  assert.ok(openReplay > activateTopThree);
+  assert.ok(briefingUsage.includes("onUseStrategy={useHistoricalStrategy}"));
+  assert.ok(component.includes("importHistoricalStints(match, appliedTrack.laps)"));
+  assert.ok(component.includes('setWorkspace(mode === "replay" && evaluation.isLegal ? "replay" : "manual")'));
   assert.ok(component.includes("setSelectedRank(index)"));
 
   // Board geometry, incoming order, five semantic tyre colours, accessible
@@ -1502,7 +1495,7 @@ test("the direct strategy workspace is the empty main view and connects to resea
   assert.ok(briefing.includes('className={`race-briefing${workspace === "replay" ? " is-replay-workspace" : ""}`}'));
   assert.ok(briefing.includes('aria-labelledby="briefing-title"'));
   assert.ok(briefing.includes('aria-labelledby="briefing-board-title"'));
-  assert.ok(component.includes("calculatePitWindows("));
+  assert.ok(briefing.includes("observedLaps?.[index] ?? track.laps"));
   assert.ok(briefing.includes("onClick={() => onSelectStrategy(index)}"));
   assert.ok(briefing.includes("aria-pressed={topThreeActive && selectedRank === index}"));
   assert.equal(briefing.match(/onClick=\{onOpenSetup\}/g)?.length, 1);
@@ -1568,7 +1561,7 @@ test("the direct strategy workspace is the empty main view and connects to resea
   assert.ok(component.includes("optimalStrategy={best}"));
   assert.ok(component.includes("onOpenSetup={openScenarioSetup}"));
   assert.ok(component.includes("onEditStrategy={() =>"));
-  assert.ok(component.includes("openRaceSimulation"));
+  assert.ok(component.includes("useHistoricalStrategy"));
 
   const researchStart = component.indexOf('id="research"');
   const researchEnd = component.indexOf("</main>", researchStart);

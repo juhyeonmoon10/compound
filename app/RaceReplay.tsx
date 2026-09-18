@@ -20,6 +20,7 @@ import { resolveEntryPerformance } from "./lib/entry-performance";
 import { buildSharedRaceGrid, sharedRaceParticipants } from "./lib/shared-race-grid";
 import ReplayTelemetry from "./ReplayTelemetry";
 import RaceReplayControls from "./RaceReplayControls";
+import RaceResults from "./RaceResults";
 import VirtualIncidentPanel, { VirtualIncidentLog } from "./VirtualIncidentPanel";
 import { createVirtualRace, DEFAULT_INCIDENT_SETTINGS, FLAG_LABELS, virtualModelSecondsAt, virtualPlayerEndSeconds, virtualRaceControlAt, virtualRaceFrameAt, virtualWallSecondsAt, type IncidentSettings } from "./lib/virtual-incidents";
 import { CAMERA_MODES, canHideReplayControls, clampReplaySeconds, nearbyReplayCars, nextReplayCamera, phaseAfterResetCancel, replayLapSeconds, replayShortcut, type ReplayPhase } from "./lib/replay-controls";
@@ -805,15 +806,17 @@ export default function RaceReplay({
   );
   const [localIncidentSettings, setLocalIncidentSettings] = useState(incidentSettings);
   const appliedIncidents = onIncidentSettings ? incidentSettings : localIncidentSettings;
-  const virtualRace = useMemo(() => createVirtualRace(raceGridData.grid, driver.id, appliedIncidents),
-    [raceGridData.grid, driver.id, appliedIncidents]);
+  const virtualRace = useMemo(() => createVirtualRace(raceGridData.grid, driver.id, appliedIncidents,
+    { enabled: appliedIncidents.collisionsEnabled ?? true, circuitLengthMeters: track.circuitLengthKm * 1000 }),
+    [raceGridData.grid, driver.id, appliedIncidents, track.circuitLengthKm]);
+  const dynamicsEnabled = appliedIncidents.enabled || virtualRace.collisionsEnabled;
   const replayEndSeconds = virtualPlayerEndSeconds(virtualRace);
   const sampleGrid = useCallback((seconds: number) => virtualRaceFrameAt(virtualRace, seconds), [virtualRace]);
   const sampleRace = useCallback((seconds: number) => {
-    if (!appliedIncidents.enabled) return strategyRaceFrameAt(primaryReplay, referenceReplay, seconds);
+    if (!dynamicsEnabled) return strategyRaceFrameAt(primaryReplay, referenceReplay, seconds);
     const modelSeconds = virtualModelSecondsAt(virtualRace, driver.id, seconds);
     return { ...strategyRaceFrameAt(playerGridCar.replay, referenceReplay, modelSeconds), elapsedSeconds: seconds, durationSeconds: replayEndSeconds };
-  }, [appliedIncidents.enabled, primaryReplay, referenceReplay, virtualRace, driver.id, playerGridCar.replay, replayEndSeconds]);
+  }, [dynamicsEnabled, primaryReplay, referenceReplay, virtualRace, driver.id, playerGridCar.replay, replayEndSeconds]);
   const controlTimeAt = useCallback((seconds: number) => virtualWallSecondsAt(virtualRace, driver.id, seconds), [virtualRace, driver.id]);
   const initialGridFrame = useMemo(
     () => sampleGrid(0),
@@ -1819,7 +1822,7 @@ export default function RaceReplay({
       style={replayTheme}
     >
       <header className="replay-workbench-heading">
-        <div><span>자동 주행 · 20대 · {appliedIncidents.enabled ? "가상 사고 조건 적용" : "프로젝트 추정"}</span>
+        <div><span>자동 주행 · 20대 · {virtualRace.collisionsEnabled ? "차량 충돌 처리 ON" : appliedIncidents.enabled ? "가상 사고 조건 적용" : "프로젝트 추정"}</span>
           <h3 id="race-replay-title">{track.koreanName}</h3>
           <p>{driver.code} · {strategyLabel} · {compactStrategy(strategy)} · 출발 P{playerGridCar.gridPosition}</p>
         </div>
@@ -1827,7 +1830,7 @@ export default function RaceReplay({
           <button type="button" onClick={() => {
             if (phase === "running" || phase === "countdown") handlePlayPause();
             openPanel("incidents");
-          }} aria-expanded={panel === "incidents"} aria-controls="replay-details">사고·깃발 {appliedIncidents.enabled ? "ON" : "OFF"}</button>
+          }} aria-expanded={panel === "incidents"} aria-controls="replay-details">충돌·사고 설정</button>
           {onOpenSetup && <button type="button" onClick={() => {
             if (phase === "running" || phase === "countdown") handlePlayPause();
             onOpenSetup();
@@ -1861,11 +1864,11 @@ export default function RaceReplay({
             style={telemetryStyle}
           >
             <div className="race-replay__screen">
-            {appliedIncidents.enabled && phase !== "ready" && phase !== "countdown" && phase !== "results" &&
+            {dynamicsEnabled && phase !== "ready" && phase !== "countdown" && phase !== "results" &&
               <div className="race-control-banner" data-flag={raceControl.flag} role="status" aria-live="polite">
                 <strong>{playerFrame.retired ? "내 차 리타이어 · DNF" : FLAG_LABELS[raceControl.flag]}</strong>
-                <span>{raceControl.flag === "GREEN" ? "가상 사고 실험 · 정상 주행" : `${raceControl.restart ? "SC 재출발" : FLAG_LABELS[raceControl.flag]} · ${Math.ceil(raceControl.remainingSeconds)}초 남음`}</span>
-                {recentIncident && raceControl.flag !== "GREEN" && <small>{recentIncident.label} · L{recentIncident.lap} / S{recentIncident.sector} 사고 · 프로젝트 가정</small>}
+                <span>{raceControl.flag === "GREEN" ? "가상 레이스 · 정상 주행" : `${raceControl.restart ? "SC 재출발" : FLAG_LABELS[raceControl.flag]} · ${Math.ceil(raceControl.remainingSeconds)}초 남음`}</span>
+                {recentIncident && raceControl.flag !== "GREEN" && <small>{recentIncident.label} · L{recentIncident.lap} / S{recentIncident.sector} {recentIncident.kind === "collision" ? "차량 접촉" : "사고"} · 프로젝트 가정</small>}
               </div>}
             {!layout && !layoutError && (
               <div className="race-replay__loading" role="status">
@@ -2259,70 +2262,21 @@ export default function RaceReplay({
                     <span>레이스 종료</span>
                     <strong>{finalPlayerFrame.retired ? "DNF" : `P${finalPlayerFrame.position}`}</strong>
                     <small>
-                      {finalPlayerFrame.retired ? `L${finalPlayerFrame.lap} 사고로 주행 종료` : appliedIncidents.enabled ? "가상 사고가 반영된 주행 결과" : `${referenceLabel} 대비 최종 ${finalDeltaText}`}
+                      {finalPlayerFrame.retired ? `L${finalPlayerFrame.lap} 사고로 주행 종료` : dynamicsEnabled ? "교통·충돌·사고가 반영된 가상 주행 결과" : `${referenceLabel} 대비 최종 ${finalDeltaText}`}
                     </small>
                   </div>
                 )}
                 {phase === "results" && (
-                  <div className="race-replay__race-overlay is-results">
-                    <div className="race-replay__result-heading">
-                      <span>시뮬레이션 결과</span>
-                      <strong>
-                        {finalPlayerFrame.retired ? "DNF" : `P${finalPlayerFrame.position}`}
-                        <small>/ 20</small>
-                      </strong>
-                    </div>
-                    <div className="race-replay__result-score">
-                      <span>전략 평가 · 사고 제외 기준</span>
-                      <strong>
-                        {resultScore ?? "—"}
-                        <small>/ 100</small>
-                      </strong>
-                      <p>
-                        DP 최적해 대비{" "}
-                        {strategyComparison.eligible
-                          ? `${strategyComparison.deltaSeconds.toFixed(
-                              3,
-                            )}초`
-                          : "비교 불가"}
-                      </p>
-                    </div>
-                    <div className="race-replay__result-plan">
-                      <span>{strategyLabel}</span>
-                      <strong>{compactStrategy(strategy)}</strong>
-                      <small>
-                        피트{" "}
-                        {strategy.pitAfterLaps
-                          .map((lap) => `L${lap}`)
-                          .join(" · ")}
-                      </small>
-                    </div>
-                    <div className="race-replay__result-actions">
-                      <button type="button" onClick={startCountdown}>
-                        같은 전략 재도전
-                      </button>
-                      {onEditStrategy && (
-                        <button type="button" onClick={onEditStrategy}>
-                          전략 수정
-                        </button>
-                      )}
-                      {onOpenAnalysis && (
-                        <button type="button" onClick={onOpenAnalysis}>
-                          데이터 분석
-                        </button>
-                      )}
-                    </div>
-                    <p>
-                      점수는 운전 실력 없이 타이어 전략의 모델 시간만
-                      동적계획법의 1위 전략과 비교합니다.
-                      {appliedIncidents.enabled && " 위 순위·DNF에는 사고가 반영되지만, 점수는 사고 운을 제외한 기본 전략 평가입니다."}
-                    </p>
-                  </div>
+                  <RaceResults race={virtualRace} track={track} score={resultScore}
+                    strategyDelta={strategyComparison.eligible ? strategyComparison.deltaSeconds : null}
+                    onReplay={startCountdown} onEditStrategy={onEditStrategy} onOpenAnalysis={onOpenAnalysis}
+                    onReturnToTrack={() => seekAndPause(Math.max(0, replayEndSeconds - 10))}
+                    fullscreen={isFullscreen} onFullscreen={() => void toggleFullscreen()} />
                 )}
               </>
             )}
             </div>
-            <div ref={controlsRef} className="replay-control-dock" onClick={(event) => {
+            <div ref={controlsRef} className="replay-control-dock" hidden={phase === "results"} onClick={(event) => {
               // Pointer-activated buttons return focus to the track so the dock can fade.
               // Keyboard focus, an open camera select, and seek dragging remain untouched.
               if (event.detail > 0 && event.target instanceof Element && event.target.closest("button:not(.replay-controls__reset)")) {
@@ -2346,7 +2300,7 @@ export default function RaceReplay({
             </dialog>
           </div>
           <aside id="replay-details" className="replay-drawer" hidden={!panel} aria-labelledby="replay-details-title">
-            <header><h3 id="replay-details-title">{panel === "incidents" ? "가상 레이스 · 사고와 깃발" : panel === "method" ? "계산 기준·출처" : panel === "metrics" ? "차량 상세 · 추정" : "레이스 기록"}</h3>
+            <header><h3 id="replay-details-title">{panel === "incidents" ? "가상 레이스 · 충돌·사고·깃발" : panel === "method" ? "계산 기준·출처" : panel === "metrics" ? "차량 상세 · 추정" : "레이스 기록"}</h3>
               <button ref={panelCloseRef} type="button" onClick={closePanel} aria-label="리플레이 정보 닫기">닫기 ×</button></header>
             <div className="replay-drawer__body">
               {panel === "incidents" && <VirtualIncidentPanel settings={appliedIncidents} driverLabel={driver.code}
@@ -2595,7 +2549,7 @@ export default function RaceReplay({
                 ? `L${Math.max(1, displayLap - 1)} 종료 후 새 ${
                     COMPOUND_NAMES[playerFrame.compound]
                   } 타이어로 교체합니다.`
-                : appliedIncidents.enabled ? "가상 사고 조건을 적용한 주행입니다. 원래 전략 모델의 비용·타이어 상태와 사고로 늘어난 경과 시간은 별개입니다."
+                : dynamicsEnabled ? "교통·충돌·사고 조건을 적용한 가상 주행입니다. 원래 전략 모델의 비용·타이어 상태와 접촉·사고로 늘어난 경과 시간은 별개입니다."
                 : `기준 전략은 L${referenceFrame.lap} · ${
                     COMPOUND_NAMES[referenceFrame.compound]
                   }, 두 차량은 같은 자동주행 조건입니다.`}
@@ -2603,7 +2557,7 @@ export default function RaceReplay({
           </div>
         </aside></div>
               <div hidden={panel !== "data"}>
-                {appliedIncidents.enabled ? <VirtualIncidentLog race={virtualRace} frame={gridFrame} onSeek={seekAndPause}
+                {dynamicsEnabled ? <VirtualIncidentLog race={virtualRace} frame={gridFrame} onSeek={seekAndPause}
                   hasStarted={phase !== "ready" && phase !== "countdown"} /> : <ReplayTelemetry grid={raceGridData.grid} frame={gridFrame} playerId={driver.id}
                   hasStarted={phase !== "ready" && phase !== "countdown"} experimentTimeline={experimentTimeline}
                   onSeek={seekAndPause} />}

@@ -24,6 +24,7 @@ const race = createVirtualRace(grid, "car-9", { ...DEFAULT_INCIDENT_SETTINGS, en
 test("settings expose separate per-race rates, a seed, explicit opt-in and assumed provenance", () => {
   const html = renderToStaticMarkup(createElement(Panel, { settings: DEFAULT_INCIDENT_SETTINGS, onApply() {}, driverLabel: "VER", othersCount: 19 }));
   assert.match(html, /가상 사고 켜기/); assert.match(html, /실측 데이터가 아닌/);
+  assert.match(html, /checked=""\/>차량 충돌 처리/);
   assert.match(html, /선택한 선수 · VER/); assert.match(html, /다른 선수 · 19명 각각/);
   assert.match(html, /43\.9/); assert.match(html, /fieldset disabled/);
   for (const flag of ["YELLOW", "VSC", "SC", "RED"]) assert.match(html, new RegExp(`value="${flag}"`));
@@ -44,7 +45,20 @@ test("only the virtual replay owns accident settings, not historical evidence or
   const source = readFileSync(new URL("../app/StrategyLab.tsx", import.meta.url), "utf8");
   assert.match(source, /incidentSettings=\{incidentSettings\}/);
   const replay = readFileSync(new URL("../app/RaceReplay.tsx", import.meta.url), "utf8");
-  assert.match(replay, /appliedIncidents.enabled \? <VirtualIncidentLog/);
-  assert.match(replay, /점수는 사고 운을 제외한 기본 전략 평가/);
+  assert.match(replay, /dynamicsEnabled \? <VirtualIncidentLog/);
+  const results = readFileSync(new URL("../app/RaceResults.tsx", import.meta.url), "utf8");
+  assert.match(results, /점수는 사고 운을 제외한 기본 전략 평가/);
   assert.match(replay, /virtualPlayerEndSeconds\(virtualRace\)/);
+});
+
+test("contact log labels both cars and does not invent a spin recovery or reveal future contacts", () => {
+  const contactRace = createVirtualRace(grid, "car-9", DEFAULT_INCIDENT_SETTINGS, { enabled: true, circuitLengthMeters: 5300 });
+  const event = contactRace.incidents.find(item => item.kind === "collision");
+  assert.ok(event);
+  const render = time => renderToStaticMarkup(createElement(Log, { race: contactRace, frame: virtualRaceFrameAt(contactRace, time), onSeek() {} }));
+  assert.doesNotMatch(render(0), /차량 접촉 · 감속/);
+  const during = render(event.startSeconds);
+  assert.ok(during.includes(event.label));
+  assert.match(during, /차량 접촉 · 감속/);
+  assert.doesNotMatch(render(contactRace.durationSeconds), /스핀 후/);
 });

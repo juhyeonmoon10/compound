@@ -1,10 +1,14 @@
 import { raceGridFrameAt, type RaceGrid, type RaceGridCar, type RaceGridFrame, type RaceGridCarFrame } from "./race-grid.ts";
 import { replayFrameAt, type ReplaySegment } from "./race-replay.ts";
 import { elapsedAtRaceDistance, raceDistanceAtFrame } from "./strategy-race.ts";
+import { COLLISION_MODEL, collisionRaceDistance, collisionTrackMeters, initialCollisionLane, solveCollisionStep, sweptCarContact,
+  type CollisionBody, type CollisionOptions, type RaceCollision } from "./race-collisions.ts";
 
 export type IncidentFlag = "YELLOW" | "VSC" | "SC" | "RED";
 export interface IncidentSettings {
   readonly enabled: boolean;
+  /** Independent from the random accident probabilities. Enabled by default in the replay UI. */
+  readonly collisionsEnabled?: boolean;
   /** Probability per driver per race, NOT per lap or animation frame. */
   readonly playerPercent: number;
   readonly othersPercent: number;
@@ -12,7 +16,7 @@ export interface IncidentSettings {
   readonly response: "auto" | IncidentFlag;
 }
 export const DEFAULT_INCIDENT_SETTINGS: IncidentSettings = Object.freeze({
-  enabled: false, playerPercent: 5, othersPercent: 3, seed: 20260918, response: "auto",
+  enabled: false, collisionsEnabled: true, playerPercent: 5, othersPercent: 3, seed: 20260918, response: "auto",
 });
 export const INCIDENT_RULES_SOURCE = "https://www.fia.com/system/files/documents/fia_2026_f1_regulations_-_section_b_sporting_-_iss_08_-_2026-08-05_7.pdf";
 export const FLAG_LABELS = { GREEN: "그린 · 정상 주행", YELLOW: "옐로우 · 구간 감속", VSC: "VSC · 전 구간 감속", SC: "SC · 세이프티 카", RED: "레드 · 레이스 중단" } as const;
@@ -25,6 +29,7 @@ export interface VirtualIncident {
   readonly flag: IncidentFlag; readonly startSeconds: number; readonly endSeconds: number;
   readonly restartEndSeconds: number; readonly distance: number; readonly lap: number;
   readonly sector: number; readonly retired: boolean;
+  readonly kind?: "collision";
 }
 export interface VirtualRaceControl {
   readonly flag: IncidentFlag | "GREEN";
@@ -37,11 +42,15 @@ interface CarClock {
   readonly samples: Float64Array;
   readonly finishSeconds: number | null;
   readonly incident?: VirtualIncident;
+  readonly lanes?: Float32Array;
 }
 export interface VirtualRace {
   readonly grid: RaceGrid; readonly settings: IncidentSettings; readonly playerId: string;
   readonly durationSeconds: number; readonly incidents: readonly VirtualIncident[];
   readonly clocks: readonly CarClock[];
+  readonly collisionsEnabled: boolean;
+  readonly collisionCircuitLengthMeters?: number;
+  readonly collisions: readonly RaceCollision[];
 }
 function random(seed: number, key: string): number {
   let hash = seed >>> 0;
@@ -51,7 +60,7 @@ function random(seed: number, key: string): number {
   return ((hash ^ (hash >>> 15)) >>> 0) / 4294967296;
 }
 export function validateIncidentSettings(settings: IncidentSettings): void {
-  if (typeof settings.enabled !== "boolean" || !Number.isInteger(settings.seed) || settings.seed < 0 || settings.seed > 0xffffffff ||
+  if (typeof settings.enabled !== "boolean" || (settings.collisionsEnabled !== undefined && typeof settings.collisionsEnabled !== "boolean") || !Number.isInteger(settings.seed) || settings.seed < 0 || settings.seed > 0xffffffff ||
       !["auto", "YELLOW", "VSC", "SC", "RED"].includes(settings.response) ||
       [settings.playerPercent, settings.othersPercent].some(p => !Number.isFinite(p) || p < 0 || p > 100)) {
     throw new RangeError("Accident settings require 0–100% per-race probabilities and an unsigned 32-bit seed.");
@@ -85,9 +94,12 @@ export function virtualRaceControlAt(race: Pick<VirtualRace, "incidents">, secon
 }
 
 /** Precompute once, independently of rendering, seeking and playback speed. Never changes the DP or historical data. */
-export function createVirtualRace(grid: RaceGrid, playerId: string, settings: IncidentSettings): VirtualRace {
+export function createVirtualRace(grid: RaceGrid, playerId: string, settings: IncidentSettings, collisionOptions?: CollisionOptions): VirtualRace {
   validateIncidentSettings(settings);
   if (!grid.cars.some(car => car.id === playerId)) throw new RangeError("Unknown selected driver.");
+  const collisionsEnabled = !!collisionOptions?.enabled;
+  const length = collisionOptions?.circuitLengthMeters ?? 0;
+  if (collisionsEnabled && (!Number.isFinite(length) || length <= 100)) throw new RangeError("Collision replay requires a valid circuit length.");
   const plans = new Map(grid.cars.flatMap(car => {
     const probability = (car.id === playerId ? settings.playerPercent : settings.othersPercent) / 100;
     if (!settings.enabled || random(settings.seed, `${car.id}:occurrence`) >= probability) return [];
@@ -97,10 +109,13 @@ export function createVirtualRace(grid: RaceGrid, playerId: string, settings: In
     return [[car.id, { flag, modelSeconds: elapsedAtRaceDistance(car.replay.strategy, distance) }] as const];
   }));
   // Exact compatibility, no discretisation when no incidents were drawn.
-  if (plans.size === 0) return { grid, playerId, settings: { ...settings }, durationSeconds: grid.durationSeconds, incidents: [], clocks: [] };
-  const cars = grid.cars.map(car => ({ car, time: 0, samples: [0], finishSeconds: null as number | null,
+  if (plans.size === 0 && !collisionsEnabled) return { grid, playerId, settings: { ...settings }, durationSeconds: grid.durationSeconds, incidents: [], clocks: [], collisionsEnabled, collisions: [] };
+  const cars = grid.cars.map(car => ({ car, time: 0, previousTime: 0, samples: [0], finishSeconds: null as number | null,
+    lane: initialCollisionLane(car.gridPosition), lanes: [initialCollisionLane(car.gridPosition)], brakingUntil: 0, rejoining: false,
     incident: undefined as VirtualIncident | undefined }));
   const incidents: VirtualIncident[] = [];
+  const collisions: RaceCollision[] = [];
+  const lastContact = new Map<string, number>();
   const dt = INCIDENT_MODEL.stepSeconds;
   // Bounded even at 100% risk: one incident per car, finite suspensions and min SC pace.
   const limit = Math.ceil(grid.durationSeconds / INCIDENT_MODEL.scLeaderFactor + cars.length * 400 + 100);
@@ -122,6 +137,7 @@ export function createVirtualRace(grid: RaceGrid, playerId: string, settings: In
       }
     }
     const control = virtualRaceControlAt({ incidents }, wall);
+    for (const state of cars) state.previousTime = state.time;
     const order = [...cars].sort((a, b) => distanceAt(b.car, b.time) - distanceAt(a.car, a.time) || a.car.gridPosition - b.car.gridPosition);
     let ahead: { distance: number; sector: number } | undefined;
     for (const state of order) {
@@ -131,8 +147,9 @@ export function createVirtualRace(grid: RaceGrid, playerId: string, settings: In
       const sector = sectorAt(previousDistance);
       const pit = segmentAt(state.car, state.time).kind === "pit-loss";
       const yellow = control.incidents.some(event => event.flag === "YELLOW" && event.sector === sector && wall < event.endSeconds);
-      const factor = control.flag === "RED" ? 0 : pit ? 1 : control.flag === "SC" ? (ahead ? INCIDENT_MODEL.scCatchupFactor : INCIDENT_MODEL.scLeaderFactor)
+      const flagFactor = control.flag === "RED" ? 0 : pit ? 1 : control.flag === "SC" ? (ahead ? INCIDENT_MODEL.scCatchupFactor : INCIDENT_MODEL.scLeaderFactor)
         : control.flag === "VSC" ? INCIDENT_MODEL.vscFactor : yellow ? INCIDENT_MODEL.yellowFactor : 1;
+      const factor = !pit && wall < state.brakingUntil ? Math.min(flagFactor, COLLISION_MODEL.brakingFactor) : flagFactor;
       let next = Math.min(state.car.totalSeconds, state.time + dt * factor);
       const nextPit = segmentAt(state.car, next).kind === "pit-loss";
       const noOvertake = control.flag === "SC" || control.flag === "VSC" || (yellow && ahead?.sector === sector);
@@ -148,13 +165,76 @@ export function createVirtualRace(grid: RaceGrid, playerId: string, settings: In
       state.time = next;
       if (!pit && !nextPit) ahead = { distance: distanceAt(state.car, next), sector };
     }
+    if (collisionsEnabled && control.flag !== "RED") {
+      const bodies: CollisionBody[] = cars.map(state => {
+        const previous = distanceAt(state.car, state.previousTime), next = distanceAt(state.car, state.time);
+        const wasPit = segmentAt(state.car, state.previousTime).kind === "pit-loss";
+        const pit = segmentAt(state.car, state.time).kind === "pit-loss";
+        const stopped = !!state.incident && (state.incident.retired || wall < state.incident.startSeconds + INCIDENT_MODEL.recoverySeconds);
+        const recovering = !!state.incident && !state.incident.retired && wall === state.incident.startSeconds + INCIDENT_MODEL.recoverySeconds;
+        if ((wasPit && !pit) || recovering) state.rejoining = true;
+        if (wasPit) state.lane = -3.3;
+        if (stopped) state.lane = COLLISION_MODEL.laneLimit + 3.3;
+        const yellow = control.incidents.some(event => event.flag === "YELLOW" && event.sector === sectorAt(previous) && wall < event.endSeconds);
+        return { id: state.car.id, previous: collisionTrackMeters(state.car.gridPosition, previous, length),
+          next: collisionTrackMeters(state.car.gridPosition, next, length), lane: state.lane, nextLane: state.lane,
+          // Keep the entry step collidable until the car has actually left the racing surface.
+          active: (!wasPit || !pit) && !stopped && state.previousTime < state.car.totalSeconds && !state.rejoining,
+          canChangeLane: control.flag === "GREEN" || (control.flag === "YELLOW" && !yellow) };
+      });
+      // A pit exit or spin recovery must yield to on-track traffic. Do not spawn a collider inside another car.
+      for (const state of [...cars].sort((a, b) => a.car.id.localeCompare(b.car.id))) {
+        if (!state.rejoining) continue;
+        const body = bodies.find(item => item.id === state.car.id)!;
+        const target = state.incident && !state.incident.retired ? 3.3 : -3.3;
+        const candidate = { ...body, lane: target, nextLane: target, active: true };
+        if (bodies.some(other => other.id !== body.id && sweptCarContact(candidate, other, length) !== null)) {
+          state.time = state.previousTime;
+          body.next = body.previous;
+          // Pit exit remains in the pit segment; recovering cars wait visibly on the shoulder.
+          if (segmentAt(state.car, state.previousTime).kind !== "pit-loss") state.lane = COLLISION_MODEL.laneLimit + 3.3;
+          state.finishSeconds = null;
+        } else {
+          state.rejoining = false;
+          Object.assign(body, candidate);
+        }
+      }
+      const solved = solveCollisionStep(bodies, length, dt);
+      for (const body of solved.bodies) {
+        const state = cars.find(item => item.car.id === body.id)!;
+        if (!body.active) continue;
+        state.lane = body.nextLane;
+        const proposed = collisionTrackMeters(state.car.gridPosition, distanceAt(state.car, state.time), length);
+        if (body.next < proposed - 1e-7) {
+          const distance = collisionRaceDistance(state.car.gridPosition, body.next, length,
+            distanceAt(state.car, state.previousTime), distanceAt(state.car, state.time));
+          state.time = Math.max(state.previousTime, Math.min(state.time, elapsedAtRaceDistance(state.car.replay.strategy, distance)));
+          if (state.time < state.car.totalSeconds) state.finishSeconds = null;
+        }
+      }
+      for (const contact of solved.contacts) {
+        const key = [contact.rearId, contact.frontId].sort().join(":");
+        if (wall - (lastContact.get(key) ?? -Infinity) < COLLISION_MODEL.cooldownSeconds) continue;
+        const rear = cars.find(state => state.car.id === contact.rearId)!, front = cars.find(state => state.car.id === contact.frontId)!;
+        const time = wall + dt, distance = distanceAt(rear.car, rear.time);
+        const event: RaceCollision = { ...contact, id: `contact:${collisions.length}`, time, lap: Math.min(grid.totalLaps, Math.floor(distance) + 1), sector: sectorAt(distance) };
+        collisions.push(event);
+        lastContact.set(key, time);
+        rear.brakingUntil = front.brakingUntil = time + COLLISION_MODEL.brakingSeconds;
+        incidents.push({ id: event.id, kind: "collision", driverId: rear.car.id, label: `${rear.car.label} × ${front.car.label}`,
+          flag: "YELLOW", startSeconds: time, endSeconds: time + COLLISION_MODEL.yellowSeconds, restartEndSeconds: time + COLLISION_MODEL.yellowSeconds,
+          distance, lap: event.lap, sector: event.sector, retired: false });
+      }
+    }
     wall += dt;
-    for (const state of cars) state.samples.push(state.time);
+    for (const state of cars) { state.samples.push(state.time); if (collisionsEnabled) state.lanes.push(state.lane); }
     if (cars.every(state => state.finishSeconds !== null || state.incident?.retired)) break;
   }
   if (wall >= limit) throw new Error("Virtual race exceeded the bounded simulation horizon.");
-  return { grid, playerId, settings: { ...settings }, durationSeconds: wall, incidents,
-    clocks: cars.map(state => ({ car: state.car, samples: Float64Array.from(state.samples), finishSeconds: state.finishSeconds, incident: state.incident })) };
+  return { grid, playerId, settings: { ...settings }, durationSeconds: wall, incidents, collisionsEnabled, collisions,
+    ...(collisionsEnabled ? { collisionCircuitLengthMeters: length } : {}),
+    clocks: cars.map(state => ({ car: state.car, samples: Float64Array.from(state.samples), finishSeconds: state.finishSeconds, incident: state.incident,
+      ...(collisionsEnabled ? { lanes: Float32Array.from(state.lanes) } : {}) })) };
 }
 
 export function virtualModelSecondsAt(race: VirtualRace, carId: string, seconds: number): number {
@@ -197,12 +277,25 @@ export function virtualRaceFrameAt(race: VirtualRace, requestedSeconds: number):
     const sampleIndex = Math.min(Math.floor(seconds / INCIDENT_MODEL.stepSeconds), clock.samples.length - 2);
     const speedFactor = retired || incidentStopped || frame.completed ? 0
       : (clock.samples[sampleIndex + 1] - clock.samples[sampleIndex]) / INCIDENT_MODEL.stepSeconds;
+    const blend = Math.min(1, seconds / INCIDENT_MODEL.stepSeconds - sampleIndex);
+    const lateralOffsetMeters = clock.lanes ? clock.lanes[sampleIndex] + (clock.lanes[sampleIndex + 1] - clock.lanes[sampleIndex]) * blend : undefined;
+    let progressLaps = raceDistanceAtFrame(frame);
+    if (race.collisionCircuitLengthMeters && !frame.completed) {
+      // Interpolate in the very same track-space swept by the collision solver. Model-time interpolation
+      // alone is nonlinear across grid release / lap boundaries and can visually reintroduce overlaps.
+      const length = race.collisionCircuitLengthMeters, position = clock.car.gridPosition;
+      const low = distanceAt(clock.car, clock.samples[sampleIndex]), high = distanceAt(clock.car, clock.samples[sampleIndex + 1]);
+      const start = collisionTrackMeters(position, low, length), end = collisionTrackMeters(position, high, length);
+      progressLaps = collisionRaceDistance(position, start + (end - start) * blend, length, low, high);
+    }
+    const contact = race.collisions.findLast(event => event.time <= seconds && seconds - event.time < COLLISION_MODEL.brakingSeconds &&
+      (event.rearId === clock.car.id || event.frontId === clock.car.id));
     return { id: clock.car.id, label: clock.car.label, gridPosition: clock.car.gridPosition, position: 0, gapToLeaderSeconds: 0,
-      elapsedSeconds: seconds, totalSeconds: clock.finishSeconds ?? race.durationSeconds, progressLaps: raceDistanceAtFrame(frame),
-      lap: frame.lap, lapProgress: frame.lapProgress, compound: frame.compound, tyreAge: frame.tyreAge,
+      elapsedSeconds: seconds, totalSeconds: clock.finishSeconds ?? race.durationSeconds, progressLaps,
+      lap: frame.lap, lapProgress: frame.isPitting || frame.completed ? frame.lapProgress : progressLaps % 1, compound: frame.compound, tyreAge: frame.tyreAge,
       pitState: retired ? "retired" : frame.completed ? "finished" : frame.isPitting ? "pit" : "track",
       isPitting: !retired && frame.isPitting, completed: frame.completed && !retired, retired, incidentStopped,
-      modelElapsedSeconds: modelSeconds, speedFactor };
+      modelElapsedSeconds: modelSeconds, speedFactor, ...(clock.lanes ? { lateralOffsetMeters, contactPulse: contact ? 1 - (seconds - contact.time) / COLLISION_MODEL.brakingSeconds : 0 } : {}) };
   });
   cars.sort((a, b) => Number(!!a.retired) - Number(!!b.retired) || b.progressLaps - a.progressLaps ||
     (a.completed && b.completed ? a.totalSeconds - b.totalSeconds : 0) || a.gridPosition - b.gridPosition);
