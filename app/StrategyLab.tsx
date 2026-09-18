@@ -2110,7 +2110,7 @@ export default function StrategyLab({
                                       aria-hidden="true"
                                     >
                                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img src={COMPOUND_IMAGES[compound]} alt="" />
+                                      <img src={publicAsset(COMPOUND_IMAGES[compound])} alt="" />
                                       <small>{COMPOUND_NAMES[compound]}</small>
                                     </span>
                                   </label>
