@@ -16,6 +16,7 @@ import {
 } from "react";
 const HistoricalEvidencePanel = lazy(() => import("./HistoricalEvidencePanel"));
 import { publicAsset } from "./lib/public-assets";
+import PanelErrorBoundary from "./PanelErrorBoundary";
 import HistoricalStrategyRecommendations from "./HistoricalStrategyRecommendations";
 import { importHistoricalStints, type HistoricalMatch } from "./lib/historical-recommendations";
 import type { StrategyWorkspace } from "./RaceBriefingOverview";
@@ -869,6 +870,8 @@ export default function StrategyLab({
     `${TRACK_PRESETS[initialConfig.trackId].koreanName} 직접 전략 설계를 열었습니다.`,
   );
   const [raceSetupOpen, setRaceSetupOpen] = useState(true);
+  // Keep the draft when browsing other pages, but never cover those pages.
+  const raceSetupVisible = raceSetupOpen && pageView === "strategy";
   const setupPanelRef = useRef<HTMLElement>(null);
   const setupTriggerRef = useRef<HTMLElement | null>(null);
   const closeScenarioSetup = useCallback(() => {
@@ -880,7 +883,7 @@ export default function StrategyLab({
   }, [applied, scenarioReady, teamId, driverId]);
 
   useEffect(() => {
-    if (!raceSetupOpen) return;
+    if (!raceSetupVisible) return;
     const previousOverflow = document.body.style.overflow;
     const panel = setupPanelRef.current;
     const focusableSelector =
@@ -910,9 +913,12 @@ export default function StrategyLab({
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleModalKeydown);
-      setupTriggerRef.current?.focus();
+      // A top-navigation click already put focus in the right place.
+      if (!document.activeElement?.closest(".topnav, .brand")) {
+        setupTriggerRef.current?.focus();
+      }
     };
-  }, [raceSetupOpen, closeScenarioSetup]);
+  }, [raceSetupVisible, closeScenarioSetup]);
 
   const selectedTeam = findTeamProfile(teamId);
   const selectedDriver =
@@ -2430,7 +2436,7 @@ export default function StrategyLab({
                 </p>
               </section>
 
-              {pageView === "strategy" && workspace === "replay" && <Suspense fallback={<div className="replay-loading" role="status">3D 리플레이를 준비하고 있습니다…</div>}><RaceReplay
+              {pageView === "strategy" && workspace === "replay" && <PanelErrorBoundary label="3D 레이스"><Suspense fallback={<div className="replay-loading" role="status">3D 리플레이를 준비하고 있습니다…</div>}><RaceReplay
                 incidentSettings={incidentSettings}
                 onIncidentSettings={setIncidentSettings}
                 key={`race-${calculationRevision}-${applied.trackId}-${stintSignature(
@@ -2470,7 +2476,7 @@ export default function StrategyLab({
                       block: "start",
                     });
                 }}
-              /></Suspense>}
+              /></Suspense></PanelErrorBoundary>}
               {pageView === "strategy" && workspace === "replay" && <details className="panel replay-lap-details"><summary>자세히 보기 · 선택 전략 랩타임</summary><LapTimeChart strategy={replayStrategy} /></details>}
 
               {workspace === "notebook" && <ExperimentNotebook research={buildExperimentResearch({
@@ -2502,7 +2508,7 @@ export default function StrategyLab({
         >
           <PerformanceEvidencePanel selectedDriverId={applied.driverId} equalPerformance={applied.equalPerformance} />
           <WetEvidencePanel />
-          {pageView === "data" && <Suspense fallback={<p role="status">관측 자료를 불러오는 중…</p>}><HistoricalEvidencePanel appliedTrackId={applied.trackId} onApply={applyHistoricalCalibration} /></Suspense>}
+          {pageView === "data" && <PanelErrorBoundary label="데이터"><Suspense fallback={<p role="status">관측 자료를 불러오는 중…</p>}><HistoricalEvidencePanel appliedTrackId={applied.trackId} onApply={applyHistoricalCalibration} /></Suspense></PanelErrorBoundary>}
         </section>
 
         <section
@@ -2655,7 +2661,7 @@ export default function StrategyLab({
           {pageView === "method" && (
             <>
               <ValidationPanel input={optimizerInput} results={results} />
-              <Suspense fallback={<p role="status">실제 경기 비교 자료를 불러오는 중…</p>}><StrategyBacktestPanel /></Suspense>
+              <PanelErrorBoundary label="계산·검증"><Suspense fallback={<p role="status">실제 경기 비교 자료를 불러오는 중…</p>}><StrategyBacktestPanel /></Suspense></PanelErrorBoundary>
             </>
           )}
 
@@ -2922,7 +2928,7 @@ export default function StrategyLab({
         </section>
       </main>
 
-      {raceSetupOpen && (
+      {raceSetupVisible && (
         <div
           className="race-setup-modal"
           role="dialog"

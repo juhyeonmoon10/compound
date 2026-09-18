@@ -1,0 +1,36 @@
+.panel-load-error {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  max-width: 100%;
+  margin: 16px 0;
+  padding: 24px;
+  border: 1px solid #875f37;
+  border-left: 4px solid #e5ad62;
+  border-radius: 8px;
+  background: #1c1916;
+  color: #f2f4f7;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.panel-load-error > strong { font-size: 18px; line-height: 1.5; }
+.panel-load-error p { margin: 0; color: #bcc2cc; font-size: 13px; line-height: 1.7; }
+.panel-load-error p.panel-load-error__warning { color: #e7bd88; }
+.panel-load-error button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #d8dce2;
+  border-radius: 4px;
+  background: #e7ebef;
+  color: #11151a;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.panel-load-error button:hover { background: #fff; }
+.panel-load-error button:focus-visible { outline: 3px solid #e5ad62; outline-offset: 4px; }
+@media (max-width: 560px) {
+  .panel-load-error { padding: 18px; }
+  .panel-load-error > strong { font-size: 16px; }
+}

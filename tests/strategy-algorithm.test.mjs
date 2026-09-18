@@ -1509,7 +1509,8 @@ test("the direct strategy workspace is the empty main view and connects to resea
   assert.ok(component.includes("const openScenarioSetup = () =>"));
   assert.ok(component.includes("setDraft({ ...applied })"));
   assert.ok(component.includes("setRaceSetupOpen(true)"));
-  assert.ok(component.includes("raceSetupOpen &&"));
+  assert.ok(component.includes('raceSetupOpen && pageView === "strategy"'));
+  assert.ok(component.includes("raceSetupVisible &&"));
   assert.ok(component.includes('role="dialog"'));
   assert.ok(component.includes('aria-modal="true"'));
   assert.ok(component.includes("const setupPanelRef = useRef<HTMLElement>(null)"));
