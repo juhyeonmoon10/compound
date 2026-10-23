@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { calculateGroupFormulaLap, DEFAULT_GROUP_FORMULA_PARAMETERS, validateGroupFormulaParameters, type GroupFormulaParameters, type GroupCompoundParameters } from "./lib/group-formula";
 import { evaluateStrategy, TRACK_PRESETS, type StrategyOptimizerInput, type StrategyStintInput } from "./lib/strategy";
 import "./group-formula.css";
+import ModelDifferenceGuide from "./ModelDifferenceGuide";
 
 type Props = {
   active: boolean;
@@ -67,6 +68,7 @@ export default function GroupFormulaPanel({ active, parameters, legacyInput, gro
     {active && <p className="formula-scope">PDF 예시 + 명시된 가정값을 사용하는 실험 모델입니다. S·M·H에 적용하며, INTER·WET·수막·교통·사고는 기존 모델을 유지합니다.</p>}
     {error && <p className="formula-error" role="alert">{error}</p>}
     <p className="sr-only" role="status">{notice}</p>
+    <ModelDifferenceGuide />
     <details className="formula-details">
       <summary>같은 전략으로 두 모델 비교 · 수식과 계수 설정</summary>
       <div className="formula-details__body">
