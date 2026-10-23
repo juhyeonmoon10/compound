@@ -682,7 +682,11 @@ export function createRaceGrid(
             normalizedRating(car.performance.pitCrew)
           : 0;
       const entryAdjustment = car.entry.entryModelAdjustment;
-      const entryPaceAdjustmentSeconds = entryAdjustment?.paceDeltaSeconds ?? 0;
+      // PDF baseline is B × paceRatio, including the reference driver's pace.
+      // Apply the rival's relative pace inside that same multiplication once.
+      const entryPaceRatio = lapCost.tyreState.modelKind === "group-formula" && lapCost.baselineSeconds > 0
+        ? 1 + (lapCost.compoundOffsetSeconds - (lapCost.wetPenaltySeconds ?? 0)) / lapCost.baselineSeconds : 1;
+      const entryPaceAdjustmentSeconds = (entryAdjustment?.paceDeltaSeconds ?? 0) * entryPaceRatio;
       const entryWearDelta = (entryAdjustment?.wearMultiplierRatio ?? 1) - 1;
       const entryLinearWearAdjustmentSeconds = lapCost.linearDegradationSeconds * entryWearDelta;
       const entryQuadraticWearAdjustmentSeconds = lapCost.quadraticDegradationSeconds * entryWearDelta;

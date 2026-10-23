@@ -29,5 +29,5 @@ export function applyEntryPerformance(input: StrategyOptimizerInput, teamId: Tea
     const parameters = { ...track.compounds[compound], ...input.compoundModels?.[compound] };
     compoundModels[compound] = { ...parameters, alpha: parameters.alpha * profile.wearMultiplier, beta: parameters.beta * profile.wearMultiplier };
   }
-  return { ...input, baseLapTimeSeconds: (input.baseLapTimeSeconds ?? track.baseLapTimeSeconds) + profile.paceSeconds, wetPenaltyMultiplier: profile.wetPenaltyMultiplier, compoundModels };
+  return { ...input, ...((input.groupFormula ?? track.groupFormula) ? { groupWearMultiplier: (input.groupWearMultiplier ?? track.groupWearMultiplier ?? 1) * profile.wearMultiplier } : {}), baseLapTimeSeconds: (input.baseLapTimeSeconds ?? track.baseLapTimeSeconds) + profile.paceSeconds, wetPenaltyMultiplier: profile.wetPenaltyMultiplier, compoundModels };
 }

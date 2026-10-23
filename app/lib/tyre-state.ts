@@ -22,7 +22,7 @@ export type TyreCondition =
 
 export interface TyreStateSnapshot {
   /** All state values are project proxies, never measured tyre telemetry. */
-  readonly modelKind: "dry-state-proxy" | "wet-heat-only";
+  readonly modelKind: "dry-state-proxy" | "wet-heat-only" | "group-formula";
   /** null explicitly means this model does not estimate the metric. */
   readonly temperatureC: number | null;
   readonly optimalMinC: number | null;

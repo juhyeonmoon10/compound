@@ -1,0 +1,47 @@
+.formula-lab { max-width:1180px; margin:12px auto 0; color:#e7ebef; border:1px solid #303740; border-radius:10px; background:#11161b; overflow:hidden; }
+.formula-lab__bar { display:flex; align-items:center; gap:20px; padding:14px 18px; flex-wrap:wrap; }
+.formula-kicker { font-size:9px; color:#8e9eae; letter-spacing:.12em; }
+.formula-lab h2 { font-size:15px; margin:3px 0 0; }
+.formula-lab p { color:#a8b6c5; font-size:12px; line-height:1.75; margin:8px 0; }
+.formula-lab__bar > p { margin-left:auto; font-size:11px; }
+.formula-toggle { display:flex; gap:4px; border:1px solid #3c4652; padding:3px; border-radius:7px; }
+.formula-toggle button { border:0; background:transparent; color:#b4bfcb; padding:9px 13px; border-radius:4px; font-size:12px; cursor:pointer; }
+.formula-toggle button[aria-pressed=true] { background:var(--apex,#4289fa); color:var(--team-on-primary,#fff); font-weight:700; }
+.formula-toggle small { font-size:10px; opacity:.8; }
+.formula-lab .formula-scope { margin:0; padding:0 18px 12px; font-size:11px; }
+.formula-details { border-top:1px solid #303740; }
+.formula-lab summary { padding:12px 18px; font-size:12px; cursor:pointer; color:#d4dce7; }
+.formula-details__body { padding:0 18px 20px; }
+.formula-lab h3 { margin:22px 0 8px; font-size:15px; }
+.formula-lab h3 small { font-size:11px; font-weight:400; color:#a6b5c5; margin-left:6px; }
+.formula-comparison { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:16px 0; }
+.formula-comparison article { display:flex; flex-direction:column; gap:7px; background:#0a0e12; border:1px solid #333d48; border-radius:6px; padding:16px; min-width:0; }
+.formula-comparison span { font-size:12px; color:#b3c2d2; }
+.formula-comparison strong { font-size:clamp(16px,2.3vw,26px); font-variant-numeric:tabular-nums; }
+.formula-comparison small { font-size:10px; color:#98a7b6; }
+.formula-table-wrap { overflow:auto; margin:12px 0; }
+.formula-table-wrap--laps { max-height:340px; }
+.formula-lab table { border-collapse:collapse; width:100%; font-size:12px; white-space:nowrap; }
+.formula-lab caption { text-align:left; padding:8px 0; color:#afbfce; }
+.formula-lab th,.formula-lab td { padding:10px 12px; border-bottom:1px solid #2a333c; text-align:right; font-variant-numeric:tabular-nums; }
+.formula-lab th:first-child,.formula-lab td:first-child { text-align:left; }
+.formula-lab thead th { color:#a2b4c6; font-weight:500; }
+.formula-coefficients { border:1px solid #39434e; border-radius:6px; margin:18px 0; }
+.formula-coefficients form { padding:0 16px 18px; }
+.formula-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:14px 0; }
+.formula-number { display:flex; flex-direction:column; gap:6px; margin:10px 0; min-width:0; }
+.formula-number span,.formula-select { font-size:11px; color:#bac8d6; }
+.formula-number input,.formula-select select { width:100%; min-width:0; background:#090d11; color:#eef3f7; border:1px solid #45515f; border-radius:5px; padding:10px; font-size:13px; box-sizing:border-box; }
+.formula-select { display:grid; gap:8px; max-width:440px; }
+.formula-compounds { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin:18px 0; }
+.formula-compounds fieldset { min-width:0; padding:10px 14px; border:1px solid #3c4651; border-radius:6px; }
+.formula-compounds legend { font-weight:700; font-size:13px; padding:0 6px; }
+.formula-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+.formula-actions button { border:1px solid #536578; padding:11px 15px; border-radius:5px; color:#e8eff6; background:#202c38; cursor:pointer; font-size:12px; }
+.formula-actions button[type=submit] { background:var(--apex,#4289fa); color:var(--team-on-primary,#fff); border-color:transparent; }
+.formula-lab .formula-warning { border-left:3px solid #e6b958; padding:8px 12px; background:#242116; color:#e0c990; }
+.formula-lab .formula-error { margin:8px 18px; color:#ffb3ac; }
+.formula-source code { display:block; overflow:auto; color:#d4dfeb; font-size:12px; padding:12px; margin:10px 0; background:#080c10; line-height:1.8; }
+.formula-lab :focus-visible { outline:2px solid #7eb8ff; outline-offset:3px; }
+.formula-evidence-note { padding:16px; border:1px solid #6c5d36; color:#dfcc9b; background:#201d16; font-size:13px; line-height:1.7; }
+@media(max-width:700px) { .formula-lab__bar { gap:12px; } .formula-lab__bar > p { width:100%; margin:0; } .formula-comparison { grid-template-columns:1fr; } .formula-comparison article { padding:12px; } .formula-fields { grid-template-columns:repeat(2,minmax(0,1fr)); } .formula-compounds { grid-template-columns:1fr; } .formula-details__body { padding:0 12px 16px; } .formula-coefficients form { padding:0 10px 14px; } }

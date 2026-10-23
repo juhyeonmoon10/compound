@@ -1,6 +1,8 @@
 "use client";
 
 import { uiLabel } from "./ui-labels";
+import GroupFormulaPanel from "./GroupFormulaPanel";
+import { DEFAULT_GROUP_FORMULA_PARAMETERS, type GroupFormulaParameters } from "./lib/group-formula";
 
 import {
   lazy,
@@ -24,6 +26,7 @@ const StrategyBacktestPanel = lazy(() => import("./StrategyBacktestPanel"));
 import ExperimentNotebook from "./ExperimentNotebook";
 import { buildExperimentResearch } from "./lib/notebook-research";
 import "./experience.css";
+import "./strategy-home.css";
 import WeatherControls from "./WeatherControls";
 import WetEvidencePanel from "./WetEvidencePanel";
 import RaceExperimentPanel from "./RaceExperimentPanel";
@@ -89,6 +92,8 @@ type ModelSource = "project" | "fastf1-2025";
 type RunConfig = {
   trackId: TrackPresetId;
   modelSource: ModelSource;
+  calculationModel: "original" | "group-formula";
+  groupFormulaParameters: GroupFormulaParameters;
   maxStops: StopCount;
   pitLossSeconds: number;
   fuelGainSecondsPerLap: number;
@@ -163,6 +168,8 @@ const TRAFFIC_LEVELS: ReadonlyArray<{
 const INITIAL_CONFIG: RunConfig = {
   trackId: "melbourne",
   modelSource: "fastf1-2025",
+  calculationModel: "original",
+  groupFormulaParameters: DEFAULT_GROUP_FORMULA_PARAMETERS,
   maxStops: 2,
   pitLossSeconds: TRACK_PRESETS.melbourne.pitLossSeconds,
   fuelGainSecondsPerLap:
@@ -230,6 +237,11 @@ function makeOptimizerInput(config: RunConfig): StrategyOptimizerInput {
 
   return applyEntryPerformance({
     track: config.trackId,
+    ...(config.calculationModel === "group-formula" ? {
+      groupFormula: config.groupFormulaParameters,
+      airTemperatureC: config.airTemperatureC,
+      circuitLengthKm: preset.circuitLengthKm,
+    } : {}),
     pitLossSeconds: config.pitLossSeconds,
     fuelGainSecondsPerLap: config.fuelGainSecondsPerLap,
     trackTemperatureC: config.trackTemperatureC,
@@ -253,6 +265,8 @@ function sameConfig(left: RunConfig, right: RunConfig) {
   return (
     left.trackId === right.trackId &&
     left.modelSource === right.modelSource &&
+    left.calculationModel === right.calculationModel &&
+    JSON.stringify(left.groupFormulaParameters) === JSON.stringify(right.groupFormulaParameters) &&
     left.maxStops === right.maxStops &&
     left.pitLossSeconds === right.pitLossSeconds &&
     left.fuelGainSecondsPerLap === right.fuelGainSecondsPerLap &&
@@ -431,13 +445,15 @@ function getChartGeometry(strategy: StrategyEvaluation) {
 function StrategyTimeline({
   strategy,
   totalLaps,
+  showTyres = false,
 }: {
   strategy: StrategyEvaluation;
   totalLaps: number;
+  showTyres?: boolean;
 }) {
   return (
     <div
-      className="timeline"
+      className={`timeline${showTyres ? " timeline--tyres" : ""}`}
       role="img"
       aria-label={`${strategySequence(strategy)} 전략. ${strategy.stints
         .map(
@@ -448,11 +464,15 @@ function StrategyTimeline({
     >
       {strategy.stints.map((stint) => (
         <div
-          className={`timeline__stint timeline__stint--${stint.compound.toLowerCase()}`}
+          className={`timeline__stint timeline__stint--${stint.compound.toLowerCase()}${showTyres && stint.laps / totalLaps < 0.18 ? " timeline__stint--short" : ""}`}
           key={`${stint.compound}-${stint.startLap}`}
           style={{ width: `${(stint.laps / totalLaps) * 100}%` }}
           title={`${COMPOUND_NAMES[stint.compound]} · L${stint.startLap}–${stint.endLap}`}
         >
+          {showTyres && stint.laps / totalLaps >= 0.18 && (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img className="timeline__tyre-image" src={publicAsset(COMPOUND_IMAGES[stint.compound])} alt="" />
+          )}
           <strong>{stint.compound}</strong>
           <span>
             L{stint.startLap}–{stint.endLap}
@@ -626,6 +646,7 @@ function LapTimeChart({ strategy }: { strategy: StrategyEvaluation }) {
                   <td>
                     {TYRE_CONDITION_LABELS[lap.tyreState.condition]}
                     {lap.tyreState.modelKind === "wet-heat-only" && <small> · 이전 건조 {lap.tyreState.wetDryLaps}랩 · 프로젝트 비용 모델</small>}
+                    {lap.tyreState.modelKind === "group-formula" && <small> · 모둠 수식 · 대표 온도 고정</small>}
                   </td>
                   <td>{lap.lapTimeSeconds.toFixed(3)}초</td>
                   <td>
@@ -843,11 +864,12 @@ export default function StrategyLab({
     useState<AnalysisMode>("manual");
   const [pageView, setPageView] = useState<PageView>("strategy");
   const [workspace, setWorkspace] = useState<StrategyWorkspace>("manual");
-  const [scenarioReady, setScenarioReady] = useState(false);
+  const [scenarioReady, setScenarioReady] = useState(true);
+  const [isExampleScenario, setIsExampleScenario] = useState(true);
   const [draftSelections, setDraftSelections] = useState({
-    track: false,
-    team: false,
-    driver: false,
+    track: true,
+    team: true,
+    driver: true,
   });
   const [resultDetailTab, setResultDetailTab] =
     useState<ResultDetailTab>("chart");
@@ -867,9 +889,9 @@ export default function StrategyLab({
   const [committedManualPlan, setCommittedManualPlan] =
     useState<ManualStrategyPlan | null>(null);
   const [announcement, setAnnouncement] = useState(
-    `${TRACK_PRESETS[initialConfig.trackId].koreanName} 직접 전략 설계를 열었습니다.`,
+    `${TRACK_PRESETS[initialConfig.trackId].koreanName} 예시 조건의 전략 미리보기입니다. 타이어와 교체 시점을 바로 편집할 수 있습니다.`,
   );
-  const [raceSetupOpen, setRaceSetupOpen] = useState(true);
+  const [raceSetupOpen, setRaceSetupOpen] = useState(false);
   // Keep the draft when browsing other pages, but never cover those pages.
   const raceSetupVisible = raceSetupOpen && pageView === "strategy";
   const setupPanelRef = useRef<HTMLElement>(null);
@@ -943,6 +965,8 @@ export default function StrategyLab({
     () => makeOptimizerInput(applied),
     [applied],
   );
+  const originalComparisonInput = useMemo(() => makeOptimizerInput({ ...applied, calculationModel: "original" }), [applied]);
+  const groupComparisonInput = useMemo(() => makeOptimizerInput({ ...applied, calculationModel: "group-formula" }), [applied]);
   const appliedTrack = TRACK_PRESETS[applied.trackId];
   const entryProfile = useMemo(() => resolveEntryPerformance(applied.teamId, applied.driverId, applied.equalPerformance), [applied.teamId, applied.driverId, applied.equalPerformance]);
   const neutralisationPrior = useMemo(() => getNeutralisationPrior(applied.trackId), [applied.trackId]);
@@ -1028,10 +1052,14 @@ export default function StrategyLab({
     );
     const nextBest = nextResults[0];
 
+    if (!nextBest) throw new RangeError("현재 조건에서 완주 가능한 전략을 찾지 못했습니다. 교체 횟수와 스틴트 제한을 확인하세요.");
+
     setDraft({ ...nextConfig });
     setApplied({ ...nextConfig });
     setScenarioReady(true);
+    setIsExampleScenario(false);
     setResults(nextResults);
+    setRaceExperiment(null);
     setCalculationRevision((revision) => revision + 1);
     setSelectedRank(0);
     setWorkspace("board");
@@ -1060,6 +1088,14 @@ export default function StrategyLab({
 
   const runCalculation = () => {
     applyConfiguration(draft);
+  };
+
+  const applyCalculationModel = (active: boolean, parameters: GroupFormulaParameters) => {
+    const preservedPlan = cloneManualPlan(normalizedManualPlan);
+    applyConfiguration({ ...applied, calculationModel: active ? "group-formula" : "original", groupFormulaParameters: parameters });
+    setManualPlan(preservedPlan);
+    setAnalysisMode("manual");
+    setWorkspace("manual");
   };
 
   const handleQuickTrackChange = (trackId: TrackPresetId) => {
@@ -1360,69 +1396,49 @@ export default function StrategyLab({
           aria-label="전략 설계"
           hidden={pageView !== "strategy"}
         >
-          <nav className="manual-flow" aria-label="전략 작업 단계">
-            <button type="button" aria-current={!scenarioReady ? "step" : undefined} onClick={openScenarioSetup}>
-              <span>1</span>레이스 설정
-            </button>
-            <i aria-hidden="true" />
-            <button type="button" aria-current={scenarioReady && workspace !== "replay" ? "step" : undefined} disabled={!scenarioReady} onClick={() => {
+          <header className="strategy-home-header">
+            <div>
+              <span className="strategy-home-kicker">COMPOUND / STRATEGY LAB</span>
+              <h1>{workspace === "board" ? "실제 경기에서 찾는 전략" : workspace === "replay" ? "전략을 레이스로 확인하기" : workspace === "detail" ? "전략의 차이 분석하기" : workspace === "notebook" ? "나의 실험 노트" : "나의 레이스 전략"}</h1>
+              <p>{workspace === "board" ? "비슷한 조건의 실제 교체 기록을 살펴보고 내 전략으로 가져오세요." : workspace === "manual" ? "타이어와 교체 시점을 바꾸고, 예상 결과를 바로 비교하세요." : "같은 조건에서 전략에 따른 차이를 확인하세요."}</p>
+            </div>
+          </header>
+
+          <div className="strategy-context" aria-label="현재 레이스 조건">
+            <div className="strategy-context__identity">
+              {isExampleScenario && <span className="strategy-context__example">예시 조건</span>}
+              <strong>{appliedTrack.koreanName}</strong>
+              <span>{uiLabel(selectedTeam.name)} · {uiLabel(selectedDriver.firstName)} {uiLabel(selectedDriver.lastName)}</span>
+            </div>
+            <div className="strategy-context__facts">
+              <span>{appliedTrack.laps}랩</span>
+              <span>노면 {applied.trackTemperatureC}°C</span>
+              <span>출발 P{applied.startingGridPosition}</span>
+            </div>
+            <button type="button" onClick={openScenarioSetup}>조건 변경</button>
+          </div>
+
+          <GroupFormulaPanel
+            active={applied.calculationModel === "group-formula"}
+            parameters={applied.groupFormulaParameters}
+            legacyInput={originalComparisonInput}
+            groupInput={groupComparisonInput}
+            stints={manualStints}
+            onApply={applyCalculationModel}
+          />
+
+          <nav className="strategy-workspaces" aria-label="전략 작업 화면">
+            <button type="button" aria-pressed={workspace === "manual"} onClick={() => {
               setAnalysisMode("manual");
               setWorkspace("manual");
-            }}>
-              <span>2</span>직접 전략
-            </button>
-            <i aria-hidden="true" />
-            <button type="button" aria-current={scenarioReady && workspace === "replay" ? "step" : undefined} disabled={!scenarioReady || !manualStrategy.isLegal} onClick={() => {
-              commitManualStrategyForReplay();
-            }}>
-              <span>3</span>레이스
-            </button>
+            }}>직접 설계</button>
+            <button type="button" aria-pressed={workspace === "board"} onClick={() => {
+              setAnalysisMode("top3");
+              setWorkspace("board");
+            }}>실제 경기 전략</button>
+            <button type="button" aria-pressed={workspace === "replay"} disabled={!manualStrategy.isLegal} onClick={commitManualStrategyForReplay}>레이스</button>
+            {(workspace === "detail" || workspace === "notebook") && <span className="strategy-workspaces__current">{workspace === "detail" ? "시간 차이 분석" : "실험 노트"}</span>}
           </nav>
-
-          {!scenarioReady && (
-            <section className="manual-entry" aria-labelledby="manual-entry-title">
-              <div>
-                <span>새 전략</span>
-                <h1 id="manual-entry-title">직접 전략 만들기</h1>
-              </div>
-              <button type="button" onClick={openScenarioSetup}>
-                레이스 설정
-              </button>
-            </section>
-          )}
-
-          {scenarioReady && workspace === "manual" && (
-            <div className="manual-page-toolbar">
-              <div>
-                <strong>{appliedTrack.koreanName}</strong>
-                <span>{uiLabel(selectedDriver.firstName)} {uiLabel(selectedDriver.lastName)}</span>
-              </div>
-              <div>
-                <button type="button" onClick={openScenarioSetup}>조건 변경</button>
-                <button type="button" onClick={() => {
-                  setAnalysisMode("top3");
-                  setWorkspace("board");
-                }}>추천 전략 보기</button>
-              </div>
-            </div>
-          )}
-
-          {scenarioReady && workspace !== "manual" && (
-            <header className="workspace-context">
-              <div>
-                <span>{workspace === "board" ? "추천 전략" : workspace === "replay" ? "레이스 재생" : workspace === "detail" ? "전략 비교" : "실험 노트"}</span>
-                <h1>{appliedTrack.koreanName}</h1>
-                <p>{uiLabel(selectedTeam.name)} · {uiLabel(selectedDriver.firstName)} {uiLabel(selectedDriver.lastName)} · P{applied.startingGridPosition} · {applied.trackTemperatureC}°C</p>
-              </div>
-              <div>
-                <button type="button" onClick={() => {
-                  setAnalysisMode("manual");
-                  setWorkspace("manual");
-                }}>직접 전략</button>
-                <button type="button" onClick={openScenarioSetup}>조건 변경</button>
-              </div>
-            </header>
-          )}
 
           {scenarioReady && workspace === "board" && <HistoricalStrategyRecommendations
             conditions={recommendationConditions}
@@ -1999,10 +2015,139 @@ export default function StrategyLab({
                 id="manual-strategy"
                 aria-labelledby="manual-builder-title"
               >
+                <div className="manual-builder__grid">
+                  <div
+                    className={`manual-preview strategy-overview ${
+                      manualStrategy.isLegal ? "" : "is-invalid"
+                    }`}
+                    role="group"
+                    aria-labelledby="manual-preview-title"
+                    aria-live="polite"
+                    aria-describedby={
+                      manualStrategy.isLegal
+                        ? undefined
+                        : "manual-strategy-errors"
+                    }
+                  >
+                    <div className="manual-preview__top">
+                      <div>
+                        <span>STRATEGY PREVIEW</span>
+                        <h2 id="manual-preview-title">내 전략 한눈에</h2>
+                      </div>
+                      <b
+                        className={
+                          manualStrategy.isLegal
+                            ? "is-legal"
+                            : "is-invalid"
+                        }
+                      >
+                        {manualStrategy.isLegal
+                          ? "규칙 통과"
+                          : "수정 필요"}
+                      </b>
+                    </div>
+
+                    <div className="manual-preview__time">
+                      <span>예상 완주시간</span>
+                      <strong>{manualStrategy.formattedTime}</strong>
+                      <small>
+                        {manualStrategy.isLegal
+                          ? manualDeltaText(manualDelta)
+                          : "규칙 위반 · 순위 비교 제외"}
+                      </small>
+                    </div>
+
+                    <StrategyTimeline
+                      strategy={manualStrategy}
+                      totalLaps={appliedTrack.laps}
+                      showTyres
+                    />
+
+                    <dl className="manual-preview__facts">
+                      <div>
+                        <dt>피트</dt>
+                        <dd>
+                          {manualStrategy.pitAfterLaps
+                            .map((lap) => `L${lap}`)
+                            .join(" · ")}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>구성</dt>
+                        <dd>{strategySequence(manualStrategy)}</dd>
+                      </div>
+                    </dl>
+
+                    <button
+                      type="button"
+                      className="manual-analysis-button"
+                      disabled={!manualStrategy.isLegal}
+                      onClick={commitManualStrategyForReplay}
+                    >
+                      이 전략으로 레이스
+                    </button>
+                    <p className="strategy-overview__disclaimer">현재 조건의 모델 추정치 · 실제 경기 결과가 아닙니다.</p>
+                    {!manualStrategy.isLegal && (
+                      <ul
+                        className="manual-errors"
+                        id="manual-strategy-errors"
+                      >
+                        {manualStrategy.violations.map((violation) => (
+                          <li key={violation}>
+                            {manualViolationText(violation)}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+
+                    <details className="strategy-overview__details">
+                      <summary>시간 차이 · 분석 도구</summary>
+                    <p className="manual-preview__match">
+                      {manualStrategy.isLegal
+                        ? manualMatch
+                          ? `상위 3개 #${manualMatch.rank}와 같은 전략`
+                          : "직접 만든 고유 전략"
+                        : "규칙을 고치면 상위 3개와 공정하게 비교할 수 있습니다."}
+                    </p>
+
+                    {manualStrategy.isLegal && <div className="manual-impact" aria-label="DP 계산 기준 대비 시간 차이 원인">
+                      <span>최단 전략과 무엇이 다른가?</span>
+                      <dl>
+                        <div><dt>타이어 사용 비용</dt><dd>{formatSignedSeconds(manualTyreDelta)}</dd></div>
+                        <div><dt>피트스톱 비용</dt><dd>{formatSignedSeconds(manualPitDelta)}</dd></div>
+                      </dl>
+                      <small>기준 페이스와 연료 효과는 같은 조건으로 고정됩니다.</small>
+                    </div>}
+
+
+                    <button type="button" className="manual-inspect-button" disabled={!manualStrategy.isLegal}
+                      onClick={() => {
+                        setCommittedManualPlan(null);
+                        setAnalysisMode("manual");
+                        setWorkspace("detail");
+                      }}>시간 차이 분석하기</button>
+                    <button type="button" className="manual-inspect-button" disabled={!manualStrategy.isLegal}
+                      onClick={() => {
+                        setCommittedManualPlan(null);
+                        setAnalysisMode("manual");
+                        setWorkspace("notebook");
+                      }}>실험 노트에 기록하기</button>
+                    <p className="manual-preview__note">
+                      {!manualStrategy.isLegal
+                        ? "규칙 위반 전략은 상위 3개 순위 비교에서 제외합니다."
+                        : manualDraftDirty
+                          ? "편집 내용이 아직 주행에 반영되지 않았습니다. 다시 주행 버튼을 눌러 고정하세요."
+                          : "같은 랩타임·열화·피트 손실 모델로 계산하고 주행 전략을 고정합니다."}
+                    </p>
+
+                    </details>
+                  </div>
+                  <div className="manual-editor">
                 <div className="manual-builder__heading">
                   <div>
-                    <span>02 / 직접 전략 설계</span>
-                    <h3 id="manual-builder-title">직접 전략 만들기</h3>
+                    <span>EDIT STRATEGY</span>
+                    <h3 id="manual-builder-title">전략 편집</h3>
                   </div>
                   <div className="manual-builder__tools">
                     <span>
@@ -2027,8 +2172,6 @@ export default function StrategyLab({
                   </div>
                 </div>
 
-                <div className="manual-builder__grid">
-                  <div className="manual-editor">
                     <fieldset className="manual-stop-field">
                       <legend>정차 횟수</legend>
                       <div className="manual-stop-options">
@@ -2158,125 +2301,6 @@ export default function StrategyLab({
                     </div>
                   </div>
 
-                  <div
-                    className={`manual-preview ${
-                      manualStrategy.isLegal ? "" : "is-invalid"
-                    }`}
-                    role="group"
-                    aria-labelledby="manual-preview-title"
-                    aria-live="polite"
-                    aria-describedby={
-                      manualStrategy.isLegal
-                        ? undefined
-                        : "manual-strategy-errors"
-                    }
-                  >
-                    <div className="manual-preview__top">
-                      <div>
-                        <span>직접 설계한 전략</span>
-                        <h4 id="manual-preview-title">내 전략</h4>
-                      </div>
-                      <b
-                        className={
-                          manualStrategy.isLegal
-                            ? "is-legal"
-                            : "is-invalid"
-                        }
-                      >
-                        {manualStrategy.isLegal
-                          ? "규칙 통과"
-                          : "수정 필요"}
-                      </b>
-                    </div>
-
-                    <div className="manual-preview__time">
-                      <span>예상 완주시간</span>
-                      <strong>{manualStrategy.formattedTime}</strong>
-                      <small>
-                        {manualStrategy.isLegal
-                          ? manualDeltaText(manualDelta)
-                          : "규칙 위반 · 순위 비교 제외"}
-                      </small>
-                    </div>
-
-                    <StrategyTimeline
-                      strategy={manualStrategy}
-                      totalLaps={appliedTrack.laps}
-                    />
-
-                    <dl className="manual-preview__facts">
-                      <div>
-                        <dt>피트</dt>
-                        <dd>
-                          {manualStrategy.pitAfterLaps
-                            .map((lap) => `L${lap}`)
-                            .join(" · ")}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>구성</dt>
-                        <dd>{strategySequence(manualStrategy)}</dd>
-                      </div>
-                    </dl>
-
-                    <p className="manual-preview__match">
-                      {manualStrategy.isLegal
-                        ? manualMatch
-                          ? `상위 3개 #${manualMatch.rank}와 같은 전략`
-                          : "직접 만든 고유 전략"
-                        : "규칙을 고치면 상위 3개와 공정하게 비교할 수 있습니다."}
-                    </p>
-
-                    {manualStrategy.isLegal && <div className="manual-impact" aria-label="DP 계산 기준 대비 시간 차이 원인">
-                      <span>최단 전략과 무엇이 다른가?</span>
-                      <dl>
-                        <div><dt>타이어 사용 비용</dt><dd>{formatSignedSeconds(manualTyreDelta)}</dd></div>
-                        <div><dt>피트스톱 비용</dt><dd>{formatSignedSeconds(manualPitDelta)}</dd></div>
-                      </dl>
-                      <small>기준 페이스와 연료 효과는 같은 조건으로 고정됩니다.</small>
-                    </div>}
-
-                    {!manualStrategy.isLegal && (
-                      <ul
-                        className="manual-errors"
-                        id="manual-strategy-errors"
-                      >
-                        {manualStrategy.violations.map((violation) => (
-                          <li key={violation}>
-                            {manualViolationText(violation)}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-
-                    <button
-                      type="button"
-                      className="manual-analysis-button"
-                      disabled={!manualStrategy.isLegal}
-                      onClick={commitManualStrategyForReplay}
-                    >
-                      이 전략으로 3D 비교
-                    </button>
-                    <button type="button" className="manual-inspect-button" disabled={!manualStrategy.isLegal}
-                      onClick={() => {
-                        setCommittedManualPlan(null);
-                        setAnalysisMode("manual");
-                        setWorkspace("detail");
-                      }}>시간 차이 분석하기</button>
-                    <button type="button" className="manual-inspect-button" disabled={!manualStrategy.isLegal}
-                      onClick={() => {
-                        setCommittedManualPlan(null);
-                        setAnalysisMode("manual");
-                        setWorkspace("notebook");
-                      }}>실험 노트에 기록하기</button>
-                    <p className="manual-preview__note">
-                      {!manualStrategy.isLegal
-                        ? "규칙 위반 전략은 상위 3개 순위 비교에서 제외합니다."
-                        : manualDraftDirty
-                          ? "편집 내용이 아직 주행에 반영되지 않았습니다. 다시 주행 버튼을 눌러 고정하세요."
-                          : "같은 랩타임·열화·피트 손실 모델로 계산하고 주행 전략을 고정합니다."}
-                    </p>
-                  </div>
                 </div>
               </section>
 
@@ -2456,7 +2480,7 @@ export default function StrategyLab({
                 trafficLevel={applied.trafficLevel}
                 entryContext={{ teamId: applied.teamId, driverId: applied.driverId, equalPerformance: applied.equalPerformance }}
                 experimentTimeline={raceExperiment?.eventTimelines[experimentTrial] ?? null}
-                scenarioSummary={RAIN_LABELS[applied.weather.preset]}
+                scenarioSummary={`${applied.calculationModel === "group-formula" ? "모둠 수식 · " : "기존 모델 · "}${RAIN_LABELS[applied.weather.preset]}`}
                 onOpenSetup={openScenarioSetup}
                 onEditStrategy={() => {
                   setWorkspace("manual");
@@ -2487,7 +2511,7 @@ export default function StrategyLab({
                 trackId: applied.trackId,
                 trackName: appliedTrack.koreanName,
                 laps: appliedTrack.laps,
-                modelSource: applied.modelSource,
+                modelSource: applied.calculationModel === "group-formula" ? "모둠 PDF 수식 v1 (실험)" : applied.modelSource,
                 pitLossSeconds: applied.pitLossSeconds,
                 degradationPercent: 100,
                 trackTemperatureC: applied.trackTemperatureC,
@@ -2507,6 +2531,7 @@ export default function StrategyLab({
           hidden={pageView !== "data"}
         >
           <PerformanceEvidencePanel selectedDriverId={applied.driverId} equalPerformance={applied.equalPerformance} />
+          {applied.calculationModel === "group-formula" && <p className="formula-evidence-note">현재 모둠 수식 모델을 사용 중입니다. 아래 관측 보정 자료와 백테스트 결과는 기존 모델의 연구 자료이며, 모둠 수식의 예측 정확도는 별도로 검증해야 합니다.</p>}
           <WetEvidencePanel />
           {pageView === "data" && <PanelErrorBoundary label="데이터"><Suspense fallback={<p role="status">관측 자료를 불러오는 중…</p>}><HistoricalEvidencePanel appliedTrackId={applied.trackId} onApply={applyHistoricalCalibration} /></Suspense></PanelErrorBoundary>}
         </section>
@@ -2525,13 +2550,16 @@ export default function StrategyLab({
 
           <div className="formula-card">
             <div>
-              <span>한 랩의 예상시간 · 모델 추정</span>
+              <span>한 랩의 예상시간 · {applied.calculationModel === "group-formula" ? "모둠 PDF 수식 (건식)" : "기존 모델 추정"}</span>
               <code>
+                {applied.calculationModel === "group-formula" ? <>LapTime = B × k<sub>pace,c</sub> + β₁·age + β₂·max(0, age−τ) + Δt<sub>T</sub> + W − γ(l−1)</> : <>
                 LapTime(l,c,a) = B + Δ<sub>c</sub> + α<sub>c</sub>a + β
                 <sub>c</sub>a² + Θ(c,a,T<sub>s</sub>,v) + W(c,w,d) − γ(l−1)
+                </>}
               </code>
             </div>
             <p>
+              {applied.calculationModel === "group-formula" ? <>기준 페이스(B)에 문서의 평균 랩타임 비율을 곱하고, 선형·절벽 이후 열화와 온도 구간별 제곱 손실을 더합니다. 선수 열화 배율은 β₁·β₂에 적용합니다. 피트 손실은 교체 다음 랩에 별도 추가합니다. 권장 스틴트·거리 마모는 참고 진단이며, 우천 타이어는 기존 모델을 사용합니다. 모둠 수식의 계수와 두 모델 비교는 직접 설계 화면의 ‘계산 모델’에서 확인하세요.</> : <>
               기준 페이스(B)에 컴파운드 차이(Δ), 타이어 나이(a)에 따른
               1·2차 열화, 노면 온도(Ts)와 서킷 부담도(v)로 계산한
               워밍업·그레이닝·과열·성능 절벽 비용(Θ), 연료 감소
@@ -2540,7 +2568,7 @@ export default function StrategyLab({
               별도 평가합니다. W는 랩별 수막(w)과 현재 세트의 이전 건조 랩 수(d)에
               따른 우천 페널티입니다. INTER·WET에는 건식 상태 비용 Θ 대신 과열
               누적 비용을 사용합니다. 날씨 일정이 같으면 비용도 같으며 SC·교통의
-              확률 실험은 이 결정론 DP와 별도로 실행합니다.
+              확률 실험은 이 결정론 DP와 별도로 실행합니다.</>}
             </p>
           </div>
 
@@ -2661,6 +2689,7 @@ export default function StrategyLab({
           {pageView === "method" && (
             <>
               <ValidationPanel input={optimizerInput} results={results} />
+              {applied.calculationModel === "group-formula" && <p className="formula-evidence-note">위 DP·완전탐색 및 현재 조건 비용 합계는 선택한 모둠 모델을 검사합니다. 고정 통제 기준과 아래 실제 전략 백테스트는 기존 모델의 검증 자료입니다.</p>}
               <PanelErrorBoundary label="계산·검증"><Suspense fallback={<p role="status">실제 경기 비교 자료를 불러오는 중…</p>}><StrategyBacktestPanel /></Suspense></PanelErrorBoundary>
             </>
           )}
@@ -2958,7 +2987,7 @@ export default function StrategyLab({
           >
             <header>
               <div>
-                <span>1 / 3 · 레이스 설정</span>
+                <span>RACE SETTINGS</span>
                 <h2 id="race-setup-title">레이스 조건</h2>
               </div>
               <button
@@ -3006,7 +3035,7 @@ export default function StrategyLab({
                         const nextTeamId = event.target.value as TeamId;
                         setDraftTeamId(nextTeamId);
                         setDraftDriverId(findTeamProfile(nextTeamId).drivers[0].id);
-                        setDraftSelections((current) => ({ ...current, team: true, driver: false }));
+                        setDraftSelections((current) => ({ ...current, team: true, driver: true }));
                       }}
                     >
                       <option value="" disabled>팀 선택</option>
@@ -3039,7 +3068,10 @@ export default function StrategyLab({
                 </div>
 
                 {draftSelections.track && draftSelections.team && draftSelections.driver && <>
-                <WeatherControls value={draft.weather} laps={draftTrack.laps} temperatureC={draft.trackTemperatureC} onChange={weather => setDraft(current => ({ ...current, weather, maxStops: weather.preset === "none" && current.maxStops === MODEL_PARAMS.weather.maxStops ? 2 : current.maxStops }))} />
+                <details className="race-setup-modal__weather">
+                  <summary>강수·수막 설정</summary>
+                  <WeatherControls value={draft.weather} laps={draftTrack.laps} temperatureC={draft.trackTemperatureC} onChange={weather => setDraft(current => ({ ...current, weather, maxStops: weather.preset === "none" && current.maxStops === MODEL_PARAMS.weather.maxStops ? 2 : current.maxStops }))} />
+                </details>
                 <div className="race-setup-modal__conditions">
                   <label className="race-setup-modal__number-field">
                     <span>노면 온도</span>
@@ -3239,8 +3271,7 @@ export default function StrategyLab({
                 </div>
                 </>}
               </div>
-              <aside className="scenario-garage" aria-live="polite">
-                {draftSelections.team && draftSelections.driver ? (
+              {draftSelections.team && draftSelections.driver && <aside className="scenario-garage" aria-live="polite">
                   <>
                     <div className="scenario-garage__driver">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -3259,13 +3290,7 @@ export default function StrategyLab({
                       <div><dt>피트 손실</dt><dd>{draft.pitLossSeconds.toFixed(1)}초</dd></div>
                     </dl>}
                   </>
-                ) : (
-                  <div className="scenario-garage__empty">
-                    <span>레이스 참가자</span>
-                    <strong>팀과 드라이버를 선택하십시오.</strong>
-                  </div>
-                )}
-              </aside>
+              </aside>}
             </div>
 
             <footer>
@@ -3289,7 +3314,9 @@ export default function StrategyLab({
                     applyConfiguration(draft, draftDriver);
                     setTeamId(draftTeam.id);
                     setDriverId(draftDriver.id);
-                    setManualPlan(createDefaultManualPlan(draftTrack.laps));
+                    setManualPlan(draft.trackId === applied.trackId
+                      ? normalizeManualPlan(manualPlan, draftTrack.laps, draft.maxStops)
+                      : createDefaultManualPlan(draftTrack.laps));
                     setAnalysisMode("manual");
                     setWorkspace("manual");
                     setRaceSetupOpen(false);

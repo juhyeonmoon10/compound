@@ -21,11 +21,11 @@ export default function HistoricalStrategyRecommendations({ conditions, onUseStr
   const track = TRACK_PRESETS[conditions.trackId];
   return <section className="historical-recommendations" aria-labelledby="historical-recommendation-title">
     <header className="historical-recommendations__header">
-      <div><span>실제 사용 기록 · 조건 유사도 순</span><h2 id="historical-recommendation-title">이 조건에서 참고할 실제 전략</h2>
-        <p>{track.koreanName} · 출발 P{conditions.startingGridPosition} · 노면 {conditions.trackTemperatureC}°C · 기온 {conditions.airTemperatureC}°C · 습도 {conditions.humidityPercent}% · {WEATHER_KIND_LABELS[result.weatherKind]}</p></div>
-      <button type="button" onClick={onChangeConditions}>조건 변경</button>
+      <h2 id="historical-recommendation-title" className="sr-only">이 조건에서 참고할 실제 전략</h2>
+      <span>실제 사용 기록 · 조건 유사도 순 · {WEATHER_KIND_LABELS[result.weatherKind]}</span>
+      {!selected && <button type="button" onClick={onChangeConditions}>조건 변경</button>}
     </header>
-    <p className="historical-recommendations__summary">같은 서킷 {result.circuitEvents}경기에서 {result.candidateCount}개 조건 일치 사례를 찾았습니다. 서로 다른 교체 계획 최대 3개를 보여줍니다. 우승 확률이나 최단 시간 순위가 아닙니다.</p>
+    <p className="historical-recommendations__summary">같은 서킷 {result.circuitEvents}경기 · 조건 일치 {result.candidateCount}개 중 최대 3개 교체 계획. 빠른 순위가 아닌, 조건이 비슷한 순서입니다.</p>
     {result.reason && <p className="historical-recommendations__notice" role="status">{result.reason}</p>}
     {selected && <>
       <StrategyBoardGraphic track={track}
@@ -44,6 +44,14 @@ export default function HistoricalStrategyRecommendations({ conditions, onUseStr
       <article className="historical-recommendations__detail">
         <header><span>{selected.event.date} · {selected.event.name}</span><h3>{selected.driver.name} <small>{selected.driver.team}</small></h3>
           <p>실제 타이어 교체: {selected.driver.stints.slice(0, -1).map(stint => `L${stint.endLap} 종료 후`).join(" · ") || "없음"}</p></header>
+        {selected.adaptation && <p className="historical-recommendations__notice">{selected.adaptation}</p>}
+        <div className="historical-recommendations__actions">
+          <button type="button" disabled={!selected.importable} onClick={() => onUseStrategy(selected, "manual")}>{selected.adaptation ? "마지막 랩 보정 후 편집" : "실제 전략 불러와 편집"}</button>
+          <button type="button" disabled={!selected.importable} onClick={() => onUseStrategy(selected, "replay")}>{selected.adaptation ? "랩 보정 후 가상 레이스" : "이 전략으로 가상 레이스"}</button>
+        </div>
+        {!selected.importable && <p>실제 레이스와 랩 수 또는 교체 횟수 차이가 커서 기록 열람만 가능합니다.</p>}
+        <p>불러온 전략의 시간·순위는 현재 조건에서 다시 계산한 가상 결과입니다.</p>
+        <details className="historical-recommendations__evidence"><summary>실제 조건 · 출처와 재현 한계</summary>
         <dl>
           <div><dt>실제 출발 → 완주</dt><dd>P{selected.driver.gridPosition} → P{selected.driver.finishPosition}</dd><small>설정 출발 순위와 {selected.differences.grid}칸 차이</small></div>
           <div><dt>실제 평균 노면 온도</dt><dd>{number(selected.event.trackTemperatureC, "°C")}</dd><small>설정과 {selected.differences.trackC.toFixed(1)}°C 차이</small></div>
@@ -53,14 +61,9 @@ export default function HistoricalStrategyRecommendations({ conditions, onUseStr
           <div><dt>실제 경기 개입</dt><dd>{[selected.event.raceControl.sc && "SC", selected.event.raceControl.vsc && "VSC", selected.event.raceControl.red && "RED"].filter(Boolean).join(" · ") || "SC·VSC·RED 없음"}</dd><small>가상 사고 확률과 별개</small></div>
         </dl>
         <div className="historical-recommendations__sources"><a href={selected.event.timingUrl} target="_blank" rel="noreferrer">F1 원본 타이밍 자료 ↗</a><a href="https://docs.fastf1.dev/core.html" target="_blank" rel="noreferrer">수집 도구·항목 설명 ↗</a></div>
-        {selected.adaptation && <p className="historical-recommendations__notice">{selected.adaptation}</p>}
         {selected.event.raceControl.red && <p>이 경기에는 레드 플래그가 있었습니다. 교체 기록에 중단 중 교체가 포함될 수 있으며, 모두 피트 정차를 의미하지는 않습니다.</p>}
         <p>가져온 뒤의 시간·순위는 현재 조건에서 다시 계산한 가상 결과입니다. 당시 사용한 중고 타이어 수명·SC·교통·차량 성능을 그대로 재현하지 않습니다.</p>
-        <div className="historical-recommendations__actions">
-          <button type="button" disabled={!selected.importable} onClick={() => onUseStrategy(selected, "manual")}>{selected.adaptation ? "마지막 랩 보정 후 편집" : "실제 전략 불러와 편집"}</button>
-          <button type="button" disabled={!selected.importable} onClick={() => onUseStrategy(selected, "replay")}>{selected.adaptation ? "랩 보정 후 가상 레이스" : "이 전략으로 가상 레이스"}</button>
-        </div>
-        {!selected.importable && <p>실제 레이스와 랩 수 또는 교체 횟수 차이가 커서 기록 열람만 가능합니다.</p>}
+        </details>
       </article>
     </>}
     <details className="historical-recommendations__method"><summary>추천 기준·수집 범위·한계</summary>

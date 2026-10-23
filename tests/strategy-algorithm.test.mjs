@@ -1393,7 +1393,7 @@ test("manual two-stop selection follows a one-stop calculation limit", () => {
   assert.equal(buildManualStints(normalized, 57).length, 2);
 });
 
-test("the direct strategy workspace is the empty main view and connects to research tools", () => {
+test("the direct strategy workspace starts with an example and connects to research tools", () => {
   const component = readFileSync(
     new URL("../app/StrategyLab.tsx", import.meta.url),
     "utf8",
@@ -1419,7 +1419,7 @@ test("the direct strategy workspace is the empty main view and connects to resea
   assert.ok(manualBuilder > setupColumn);
   assert.ok(raceReplay > manualBuilder);
 
-  // Primary navigation is a five-view product contract, independent of
+  // Primary navigation is a four-view product contract, independent of
   // presentation dimensions or the exact layout used inside each view.
   assert.ok(component.includes("type PageView ="));
   const expectedViews = [
@@ -1444,11 +1444,13 @@ test("the direct strategy workspace is the empty main view and connects to resea
   assert.ok(component.includes('useState<AnalysisMode>("manual")'));
   assert.ok(component.includes('useState<PageView>("strategy")'));
   assert.ok(component.includes('useState<StrategyWorkspace>("manual")'));
-  assert.ok(component.includes('const [scenarioReady, setScenarioReady] = useState(false);'));
-  assert.ok(component.includes('className="manual-flow"'));
-  assert.ok(component.includes('레이스 설정'));
-  assert.ok(component.includes('직접 전략'));
-  assert.ok(component.includes('<span>3</span>레이스'));
+  assert.ok(component.includes('const [scenarioReady, setScenarioReady] = useState(true);'));
+  assert.ok(component.includes('className="strategy-home-header"'));
+  assert.ok(component.includes('className="strategy-context"'));
+  assert.ok(component.includes('className="strategy-workspaces"'));
+  assert.ok(component.includes('예시 조건'));
+  assert.ok(!component.includes('className="manual-flow"'));
+  assert.ok(!component.includes('className="manual-entry"'));
   assert.ok(component.includes('onClick={undoManualEdit}'));
   assert.ok(component.includes('onClick={redoManualEdit}'));
   assert.ok(component.includes('{PAGE_VIEWS.map((view) => ('));

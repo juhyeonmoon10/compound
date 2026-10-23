@@ -15,6 +15,7 @@ import {
   type TyreStateSnapshot,
 } from "./tyre-state.ts";
 import { MODEL_PARAMS, TYRE_COLORS, TYRE_LABELS } from "../model/params.ts";
+import { GROUP_FORMULA_VERSION, calculateGroupFormulaLap, groupFormulaSignatureParameters, validateGroupFormulaParameters, type GroupFormulaParameters } from "./group-formula.ts";
 import { buildWeatherTimeline, dryLapsOnSet, wetPenalty, type WeatherInput, type WeatherTimeline } from "./weather.ts";
 
 export const COMPOUNDS = ["S", "M", "H"] as const;
@@ -74,6 +75,10 @@ export interface CompoundModel {
 }
 
 export interface TrackModel {
+  readonly groupFormula?: GroupFormulaParameters;
+  readonly groupWearMultiplier?: number;
+  readonly airTemperatureC?: number;
+  readonly circuitLengthKm?: number;
   readonly id?: string;
   readonly name: string;
   readonly country?: string;
@@ -107,6 +112,11 @@ export interface TrackPreset extends TrackModel {
 }
 
 export interface RaceModelInput {
+  /** Omit to retain the original model exactly. PDF model replaces dry-tyre cost categories. */
+  readonly groupFormula?: GroupFormulaParameters;
+  readonly groupWearMultiplier?: number;
+  readonly airTemperatureC?: number;
+  readonly circuitLengthKm?: number;
   /** Defaults to Melbourne. A complete custom track model is also accepted. */
   readonly track?: TrackPresetId | TrackModel;
   readonly laps?: number;
@@ -842,6 +852,8 @@ function createScenarioSignature(
   return JSON.stringify({
     modelVersion: STRATEGY_MODEL_VERSION,
     tyreStateModelVersion: TYRE_STATE_MODEL_VERSION,
+    ...(model.groupFormula ? { groupFormula: { version: GROUP_FORMULA_VERSION, parameters: groupFormulaSignatureParameters(model.groupFormula),
+      airTemperatureC: model.airTemperatureC, circuitLengthKm: model.circuitLengthKm, wearMultiplier: model.groupWearMultiplier ?? 1 } } : {}),
     track: {
       id: model.id ?? null,
       name: model.name,
@@ -927,6 +939,10 @@ function resolveProblem(
 
   const model: TrackModel = {
     ...selectedTrack,
+    groupFormula: input.groupFormula ?? selectedTrack.groupFormula,
+    groupWearMultiplier: input.groupWearMultiplier ?? selectedTrack.groupWearMultiplier ?? 1,
+    airTemperatureC: input.airTemperatureC ?? selectedTrack.airTemperatureC ?? 23,
+    circuitLengthKm: input.circuitLengthKm ?? selectedTrack.circuitLengthKm,
     laps: input.laps ?? selectedTrack.laps,
     baseLapTimeSeconds:
       input.baseLapTimeSeconds ?? selectedTrack.baseLapTimeSeconds,
@@ -954,6 +970,16 @@ function resolveProblem(
 }
 
 function validateModel(model: TrackModel): void {
+  if (model.groupFormula) {
+    validateGroupFormulaParameters(model.groupFormula);
+    assertFiniteNumber(model.circuitLengthKm ?? NaN, "circuitLengthKm", .001);
+    assertFiniteNumber(model.airTemperatureC ?? NaN, "airTemperatureC", -100);
+    assertFiniteNumber(model.groupWearMultiplier ?? 1, "groupWearMultiplier", 0);
+    // Validate the forward temperature once before DP rather than deep inside a long search.
+    calculateGroupFormulaLap({ parameters: model.groupFormula, compound: "M", tyreAge: 0,
+      baseLapTimeSeconds: model.baseLapTimeSeconds, trackTemperatureC: model.trackTemperatureC ?? 34,
+      airTemperatureC: model.airTemperatureC ?? 23, circuitLengthKm: model.circuitLengthKm!, pitLossSeconds: model.pitLossSeconds });
+  }
   if (!Number.isInteger(model.laps) || model.laps < 1) {
     throw new RangeError("laps must be a positive integer.");
   }
@@ -1032,11 +1058,25 @@ function lapCost(
   const weather = weatherCache.get(model)!;
   const weatherLap = weather.laps[lap - 1];
   const dryAge = dryLapsOnSet(weather, compound, lap, tyreAge);
-  const linearDegradationSeconds = parameters.alpha * tyreAge + (compound === "INTER" ? (MODEL_PARAMS.weather.interDryWear - MODEL_PARAMS.weather.interWear) * (parameters.alpha / MODEL_PARAMS.weather.interWear) * dryAge : 0);
+  const group = model.groupFormula && compound !== "INTER" && compound !== "WET"
+    ? calculateGroupFormulaLap({ parameters: model.groupFormula, compound, tyreAge,
+        baseLapTimeSeconds: model.baseLapTimeSeconds, trackTemperatureC: model.trackTemperatureC ?? 34,
+        airTemperatureC: model.airTemperatureC ?? 23, circuitLengthKm: model.circuitLengthKm!,
+        pitLossSeconds: model.pitLossSeconds, wearMultiplier: model.groupWearMultiplier }) : null;
+  const linearDegradationSeconds = group?.linearDegradationSeconds ?? (parameters.alpha * tyreAge + (compound === "INTER" ? (MODEL_PARAMS.weather.interDryWear - MODEL_PARAMS.weather.interWear) * (parameters.alpha / MODEL_PARAMS.weather.interWear) * dryAge : 0));
   const wetPenaltySeconds = wetPenalty(compound, weatherLap.water, dryAge) * (model.wetPenaltyMultiplier ?? 1);
   const quadraticDegradationSeconds =
-    parameters.beta * tyreAge * tyreAge;
-  const tyreState = calculateTyreState({
+    group?.cliffDegradationSeconds ?? parameters.beta * tyreAge * tyreAge;
+  const tyreState: TyreStateSnapshot = group ? {
+    modelKind: "group-formula", temperatureC: group.temperatureC,
+    optimalMinC: model.groupFormula!.temperature.minC, optimalMaxC: model.groupFormula!.temperature.maxC,
+    thermalState: group.thermalState, condition: group.thermalState === "hot" ? "overheated"
+      : group.thermalState === "cold" ? "warming" : group.cliffDegradationSeconds > 0 ? "cliff" : "optimal",
+    wearPercent: group.wearPercent, gripPercent: null, wetDryLaps: null,
+    warmupLossSeconds: group.thermalState === "cold" ? group.temperatureLossSeconds : 0,
+    overheatLossSeconds: group.thermalState === "hot" ? group.temperatureLossSeconds : 0,
+    grainingLossSeconds: 0, cliffLossSeconds: 0, totalStateLossSeconds: group.temperatureLossSeconds,
+  } : calculateTyreState({
     compound,
     tyreAge,
     maxStintLaps: parameters.maxStintLaps,
@@ -1048,7 +1088,7 @@ function lapCost(
   });
   const cost = {
     baselineSeconds: model.baseLapTimeSeconds,
-    compoundOffsetSeconds: parameters.offsetSeconds + wetPenaltySeconds,
+    compoundOffsetSeconds: (group?.compoundOffsetSeconds ?? parameters.offsetSeconds) + wetPenaltySeconds,
     linearDegradationSeconds,
     quadraticDegradationSeconds,
     tyreStateLossSeconds: tyreState.totalStateLossSeconds,
