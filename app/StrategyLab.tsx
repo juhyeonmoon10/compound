@@ -3,6 +3,7 @@
 import { uiLabel } from "./ui-labels";
 import GroupFormulaPanel from "./GroupFormulaPanel";
 import { DEFAULT_GROUP_FORMULA_PARAMETERS, type GroupFormulaParameters } from "./lib/group-formula";
+import { OBSERVED_BAHRAIN_2025 } from "./lib/observed-tyre-model";
 
 import {
   lazy,
@@ -92,7 +93,7 @@ type ModelSource = "project" | "fastf1-2025";
 type RunConfig = {
   trackId: TrackPresetId;
   modelSource: ModelSource;
-  calculationModel: "original" | "group-formula";
+  calculationModel: "original" | "group-formula" | "observed-bahrain-2025";
   groupFormulaParameters: GroupFormulaParameters;
   maxStops: StopCount;
   pitLossSeconds: number;
@@ -207,6 +208,7 @@ function configForTrack(
 
 function makeOptimizerInput(config: RunConfig): StrategyOptimizerInput {
   const preset = TRACK_PRESETS[config.trackId];
+  const observed = config.calculationModel === "observed-bahrain-2025";
   const calibration =
     config.modelSource === "fastf1-2025"
       ? historicalCalibrationForTrack(config.trackId)
@@ -242,14 +244,16 @@ function makeOptimizerInput(config: RunConfig): StrategyOptimizerInput {
       airTemperatureC: config.airTemperatureC,
       circuitLengthKm: preset.circuitLengthKm,
     } : {}),
+    ...(observed ? { observedTyreModel: "2025-bahrain" as const, raceSeason: 2025 } : {}),
+    ...(observed ? { allowedCompounds: COMPOUNDS, allowedStartingCompounds: COMPOUNDS } : {}),
     pitLossSeconds: config.pitLossSeconds,
     fuelGainSecondsPerLap: config.fuelGainSecondsPerLap,
     trackTemperatureC: config.trackTemperatureC,
-    weather: config.weather,
+    weather: observed ? { preset: "none" } : config.weather,
     compoundModels: {
-      S: calibratedCompound("S"),
-      M: calibratedCompound("M"),
-      H: calibratedCompound("H"),
+      S: observed ? { ...preset.compounds.S } : calibratedCompound("S"),
+      M: observed ? { ...preset.compounds.M } : calibratedCompound("M"),
+      H: observed ? { ...preset.compounds.H } : calibratedCompound("H"),
     },
     rules: {
       minStops: 1,
@@ -258,7 +262,7 @@ function makeOptimizerInput(config: RunConfig): StrategyOptimizerInput {
       minStintLaps: 1,
     },
     topK: 3,
-  }, config.teamId, config.driverId, config.equalPerformance);
+  }, config.teamId, config.driverId, config.equalPerformance || observed);
 }
 
 function sameConfig(left: RunConfig, right: RunConfig) {
@@ -644,9 +648,10 @@ function LapTimeChart({ strategy }: { strategy: StrategyEvaluation }) {
                   <td>{formatTyreStateMetric(lap.tyreState.gripPercent, "%")}</td>
                   <td>{formatTyreStateMetric(lap.tyreState.wearPercent, "%")}</td>
                   <td>
-                    {TYRE_CONDITION_LABELS[lap.tyreState.condition]}
+                    {lap.tyreState.modelKind === "observed-regression" ? "상태 미모델링" : TYRE_CONDITION_LABELS[lap.tyreState.condition]}
                     {lap.tyreState.modelKind === "wet-heat-only" && <small> · 이전 건조 {lap.tyreState.wetDryLaps}랩 · 프로젝트 비용 모델</small>}
                     {lap.tyreState.modelKind === "group-formula" && <small> · 모둠 수식 · 대표 온도 고정</small>}
+                    {lap.tyreState.modelKind === "observed-regression" && <small> · 2025 바레인 열화항 · 센서 상태 미모델링</small>}
                   </td>
                   <td>{lap.lapTimeSeconds.toFixed(3)}초</td>
                   <td>
@@ -866,6 +871,7 @@ export default function StrategyLab({
   const [workspace, setWorkspace] = useState<StrategyWorkspace>("manual");
   const [scenarioReady, setScenarioReady] = useState(true);
   const [isExampleScenario, setIsExampleScenario] = useState(true);
+  const [modelTransitionNotice, setModelTransitionNotice] = useState("");
   const [draftSelections, setDraftSelections] = useState({
     track: true,
     team: true,
@@ -965,12 +971,15 @@ export default function StrategyLab({
     () => makeOptimizerInput(applied),
     [applied],
   );
-  const originalComparisonInput = useMemo(() => makeOptimizerInput({ ...applied, calculationModel: "original" }), [applied]);
-  const groupComparisonInput = useMemo(() => makeOptimizerInput({ ...applied, calculationModel: "group-formula" }), [applied]);
+  const observedModelActive = applied.calculationModel === "observed-bahrain-2025";
+  const effectiveEqualPerformance = applied.equalPerformance || observedModelActive;
+  const originalComparisonInput = useMemo(() => makeOptimizerInput({ ...applied, equalPerformance: effectiveEqualPerformance, calculationModel: "original" }), [applied, effectiveEqualPerformance]);
+  const groupComparisonInput = useMemo(() => makeOptimizerInput({ ...applied, equalPerformance: effectiveEqualPerformance, calculationModel: "group-formula" }), [applied, effectiveEqualPerformance]);
+  const observedComparisonInput = observedModelActive ? optimizerInput : null;
   const appliedTrack = TRACK_PRESETS[applied.trackId];
-  const entryProfile = useMemo(() => resolveEntryPerformance(applied.teamId, applied.driverId, applied.equalPerformance), [applied.teamId, applied.driverId, applied.equalPerformance]);
+  const entryProfile = useMemo(() => resolveEntryPerformance(applied.teamId, applied.driverId, effectiveEqualPerformance), [applied.teamId, applied.driverId, effectiveEqualPerformance]);
   const neutralisationPrior = useMemo(() => getNeutralisationPrior(applied.trackId), [applied.trackId]);
-  const sharedExperimentGrid = useMemo(() => results[0] ? buildSharedRaceGrid({ teamId: applied.teamId, driverId: applied.driverId, playerStrategy: results[0], strategyPool: results, startingGridPosition: applied.startingGridPosition, equalPerformance: applied.equalPerformance }) : null, [applied.teamId, applied.driverId, applied.startingGridPosition, applied.equalPerformance, results]);
+  const sharedExperimentGrid = useMemo(() => results[0] ? buildSharedRaceGrid({ teamId: applied.teamId, driverId: applied.driverId, playerStrategy: results[0], strategyPool: results, startingGridPosition: applied.startingGridPosition, equalPerformance: effectiveEqualPerformance }) : null, [applied.teamId, applied.driverId, applied.startingGridPosition, effectiveEqualPerformance, results]);
   const recommendationConditions = useMemo(() => ({ ...applied, laps: appliedTrack.laps }), [applied, appliedTrack.laps]);
   const selectedTopThree = results[selectedRank] ?? results[0];
   const draftTrack = TRACK_PRESETS[draft.trackId];
@@ -1045,6 +1054,9 @@ export default function StrategyLab({
     nextConfig: RunConfig,
     profileDriver = selectedDriver,
   ) => {
+    const unsupportedObservedTrack = nextConfig.calculationModel === "observed-bahrain-2025" && nextConfig.trackId !== "bahrain";
+    if (unsupportedObservedTrack) nextConfig = { ...nextConfig, calculationModel: "original" };
+    if (nextConfig.calculationModel === "observed-bahrain-2025") nextConfig = { ...nextConfig, weather: { preset: "none" }, maxStops: nextConfig.maxStops === 3 ? 2 : nextConfig.maxStops };
     nextConfig = { ...nextConfig, driverId: profileDriver.id, teamId: TEAM_PROFILES.find(team => team.drivers.some(driver => driver.id === profileDriver.id))?.id ?? nextConfig.teamId };
     const nextTrack = TRACK_PRESETS[nextConfig.trackId];
     const nextResults = calculateDisplayedStrategies(
@@ -1054,6 +1066,7 @@ export default function StrategyLab({
 
     if (!nextBest) throw new RangeError("현재 조건에서 완주 가능한 전략을 찾지 못했습니다. 교체 횟수와 스틴트 제한을 확인하세요.");
 
+    setModelTransitionNotice(unsupportedObservedTrack ? "2025 바레인 관측 보정은 이 서킷을 지원하지 않아 기존 모델로 전환했습니다. 바레인 계수를 다른 서킷에 적용하지 않습니다." : "");
     setDraft({ ...nextConfig });
     setApplied({ ...nextConfig });
     setScenarioReady(true);
@@ -1074,7 +1087,7 @@ export default function StrategyLab({
         : createDefaultManualPlan(nextTrack.laps),
     );
     setAnnouncement(
-      `${uiLabel(profileDriver.firstName)} ${uiLabel(profileDriver.lastName)} 프로필로 ${nextTrack.koreanName} ${nextTrack.laps}랩의 타이어 전략 상위 3개와 직접 전략 비교가 준비되었습니다.`,
+      `${unsupportedObservedTrack ? "2025 바레인 관측 보정은 이 서킷을 지원하지 않아 기존 모델로 전환했습니다. " : ""}${uiLabel(profileDriver.firstName)} ${uiLabel(profileDriver.lastName)} 프로필로 ${nextTrack.koreanName} ${nextTrack.laps}랩의 타이어 전략 상위 3개와 직접 전략 비교가 준비되었습니다.`,
     );
 
     const url = new URL(window.location.href);
@@ -1098,6 +1111,20 @@ export default function StrategyLab({
     setWorkspace("manual");
   };
 
+  const applyObservedModel = () => {
+    const sameTrack = applied.trackId === "bahrain";
+    if (sameTrack && manualStints.some(stint => stint.compound === "INTER" || stint.compound === "WET")) {
+      throw new RangeError("2025 바레인 관측 보정은 건식 타이어 전용입니다. 직접 전략을 S·M·H로 바꾼 뒤 선택하세요. 현재 전략은 변경하지 않았습니다.");
+    }
+    const preservedPlan = sameTrack ? cloneManualPlan(normalizedManualPlan) : createDefaultManualPlan(TRACK_PRESETS.bahrain.laps);
+    applyConfiguration({ ...(sameTrack ? applied : configForTrack(applied, "bahrain")), calculationModel: "observed-bahrain-2025",
+      pitLossSeconds: OBSERVED_BAHRAIN_2025.pitLoss.medianSeconds, weather: { preset: "none" } });
+    setManualPlan(preservedPlan);
+    setAnalysisMode("manual");
+    setWorkspace("manual");
+    setAnnouncement("2025 바레인 관측 열화 보정을 적용했습니다. 피트 손실 22.986초, 건식·동일 성능으로 비교합니다. 현재 팀·선수는 시각화용입니다.");
+  };
+
   const handleQuickTrackChange = (trackId: TrackPresetId) => {
     applyConfiguration(configForTrack(applied, trackId));
   };
@@ -1110,6 +1137,7 @@ export default function StrategyLab({
         trackId,
       ),
       modelSource: "fastf1-2025" as const,
+      calculationModel: "original" as const,
     };
     applyConfiguration(nextConfig);
     setPageView("strategy");
@@ -1374,7 +1402,7 @@ export default function StrategyLab({
               </button>
             ))}
           </div>
-          {scenarioReady && <label className="equal-performance-toggle"><input type="checkbox" checked={applied.equalPerformance} onChange={event => {
+          {scenarioReady && <label className="equal-performance-toggle" title={observedModelActive ? "2025 바레인 열화항 실험에서는 동일 성능으로 고정합니다." : undefined}><input type="checkbox" checked={effectiveEqualPerformance} disabled={observedModelActive} onChange={event => {
             const currentManualPlan = manualPlan;
             applyConfiguration({ ...applied, equalPerformance: event.target.checked });
             setManualPlan(currentManualPlan);
@@ -1406,6 +1434,7 @@ export default function StrategyLab({
 
           <div className="strategy-context" aria-label="현재 레이스 조건">
             <div className="strategy-context__identity">
+              {observedModelActive && <span className="strategy-context__example">2025 계수 실험</span>}
               {isExampleScenario && <span className="strategy-context__example">예시 조건</span>}
               <strong>{appliedTrack.koreanName}</strong>
               <span>{uiLabel(selectedTeam.name)} · {uiLabel(selectedDriver.firstName)} {uiLabel(selectedDriver.lastName)}</span>
@@ -1418,8 +1447,13 @@ export default function StrategyLab({
             <button type="button" onClick={openScenarioSetup}>조건 변경</button>
           </div>
 
+          {modelTransitionNotice && <p className="formula-evidence-note" role="status">{modelTransitionNotice}</p>}
           <GroupFormulaPanel
             active={applied.calculationModel === "group-formula"}
+            observedActive={observedModelActive}
+            observedAvailable={applied.trackId === "bahrain"}
+            observedInput={observedComparisonInput}
+            onObserved={applyObservedModel}
             parameters={applied.groupFormulaParameters}
             legacyInput={originalComparisonInput}
             groupInput={groupComparisonInput}
@@ -1686,12 +1720,14 @@ export default function StrategyLab({
                     </label>
                   </div>
 
-                  <WeatherControls value={draft.weather} laps={draftTrack.laps} temperatureC={draft.trackTemperatureC} onChange={weather => setDraft(current => ({ ...current, weather, maxStops: weather.preset === "none" && current.maxStops === 3 ? 2 : current.maxStops }))} />
+                  <fieldset disabled={draft.calculationModel === "observed-bahrain-2025"}>
+                    <WeatherControls value={draft.weather} laps={draftTrack.laps} temperatureC={draft.trackTemperatureC} onChange={weather => setDraft(current => ({ ...current, weather, maxStops: weather.preset === "none" && current.maxStops === 3 ? 2 : current.maxStops }))} />
+                  </fieldset>
 
                   <p className="apex-condition-card__note">
-                    노면 온도는 랩별 타이어 온도·그립 상태와 기준 열화
+                    {draft.calculationModel === "observed-bahrain-2025" ? "2025 바레인 열화항 실험은 건식으로 고정합니다. 이 옵션에서는 노면 온도·기온·습도의 추가 열화·타이어 상태 보정을 사용하지 않습니다." : draft.calculationModel === "group-formula" ? "모둠 PDF의 편집 계수와 대표 타이어 온도를 사용합니다. 노면·기온은 온도 추정 모드에서만 반영하고, 기존 환경 열화 배율은 적용하지 않습니다. 강수·수막·우천 비용은 기존 가정 모델을 공유합니다." : <>노면 온도는 랩별 타이어 온도·그립 상태와 기준 열화
                     계수에 함께 반영합니다. 기온·습도는 열화 민감도
-                    보정값입니다. 강수는 랩별 수막과 타이어 비용에 반영합니다. 우천 계수는 프로젝트 추정이며 실측으로 보정되지 않았습니다.
+                    보정값입니다. 강수는 랩별 수막과 타이어 비용에 반영합니다. 우천 계수는 프로젝트 추정이며 실측으로 보정되지 않았습니다.</>}
                   </p>
                 </section>
 
@@ -1843,7 +1879,7 @@ export default function StrategyLab({
               <p className="input-note">
                 건식 최대 2회·우천 최대 3회는 모델 탐색 범위이며 FIA의 의무 정차 횟수를
                 뜻하지 않습니다.{" "}
-                {draft.modelSource === "fastf1-2025"
+                {draft.calculationModel === "observed-bahrain-2025" ? "2025 바레인 단일 경기의 선택된 학습 열화항을 사용합니다. 기준 페이스·신품 속도차·연료는 프로젝트 가정입니다." : draft.calculationModel === "group-formula" ? "건식은 모둠 PDF 식과 편집한 계수로 계산합니다. 기존 관측 계수를 모둠 계수의 실측 근거로 해석하지 않습니다." : draft.modelSource === "fastf1-2025"
                   ? getHistoricalCalibration(draft.trackId).summaryKorean
                   : "현재 선택은 서킷 등급 기반 가정 계수입니다."}
               </p>
@@ -2233,7 +2269,7 @@ export default function StrategyLab({
                             <fieldset className="manual-compound-picker">
                               <legend>타이어</legend>
                               <div>
-                                {ALL_COMPOUNDS.map((compound) => (
+                                {(observedModelActive ? COMPOUNDS : ALL_COMPOUNDS).map((compound) => (
                                   <label
                                     key={`manual-${index}-${compound}`}
                                   >
@@ -2478,9 +2514,9 @@ export default function StrategyLab({
                 optimalStrategy={best}
                 startingGridPosition={applied.startingGridPosition}
                 trafficLevel={applied.trafficLevel}
-                entryContext={{ teamId: applied.teamId, driverId: applied.driverId, equalPerformance: applied.equalPerformance }}
+                entryContext={{ teamId: applied.teamId, driverId: applied.driverId, equalPerformance: effectiveEqualPerformance }}
                 experimentTimeline={raceExperiment?.eventTimelines[experimentTrial] ?? null}
-                scenarioSummary={`${applied.calculationModel === "group-formula" ? "모둠 수식 · " : "기존 모델 · "}${RAIN_LABELS[applied.weather.preset]}`}
+                scenarioSummary={`${observedModelActive ? "2025 바레인 열화항 실험 · " : applied.calculationModel === "group-formula" ? "모둠 수식 · " : "기존 모델 · "}${RAIN_LABELS[applied.weather.preset]}`}
                 onOpenSetup={openScenarioSetup}
                 onEditStrategy={() => {
                   setWorkspace("manual");
@@ -2505,13 +2541,13 @@ export default function StrategyLab({
 
               {workspace === "notebook" && <ExperimentNotebook research={buildExperimentResearch({
                 weather: applied.weather, seed: experimentSeed, teamId: applied.teamId, driverId: applied.driverId,
-                performanceEnabled: !applied.equalPerformance, driver: entryProfile.driver, strategy: analysisStrategy,
+                performanceEnabled: !effectiveEqualPerformance, driver: entryProfile.driver, strategy: analysisStrategy,
                 isManual: analysisMode === "manual", experiment: raceExperiment, trialIndex: experimentTrial,
               })} currentSnapshot={analysisStrategy.isLegal ? {
                 trackId: applied.trackId,
                 trackName: appliedTrack.koreanName,
                 laps: appliedTrack.laps,
-                modelSource: applied.calculationModel === "group-formula" ? "모둠 PDF 수식 v1 (실험)" : applied.modelSource,
+                modelSource: observedModelActive ? "2025 바레인 단일 경기 관측 열화항 (실험)" : applied.calculationModel === "group-formula" ? "모둠 PDF 수식 v1 (실험)" : applied.modelSource,
                 pitLossSeconds: applied.pitLossSeconds,
                 degradationPercent: 100,
                 trackTemperatureC: applied.trackTemperatureC,
@@ -2530,7 +2566,8 @@ export default function StrategyLab({
           aria-labelledby="data-analysis-title"
           hidden={pageView !== "data"}
         >
-          <PerformanceEvidencePanel selectedDriverId={applied.driverId} equalPerformance={applied.equalPerformance} />
+          <PerformanceEvidencePanel selectedDriverId={applied.driverId} equalPerformance={effectiveEqualPerformance} />
+          {observedModelActive && <p className="formula-evidence-note">현재 2025 바레인 관측 열화항 실험입니다. 현재 시즌 팀·선수는 시각화용이며 성능 보정은 중립입니다. 아래 다경기 보정·백테스트는 기존 모델 자료로, 새 열화항 시뮬레이션의 검증 성적이 아닙니다.</p>}
           {applied.calculationModel === "group-formula" && <p className="formula-evidence-note">현재 모둠 수식 모델을 사용 중입니다. 아래 관측 보정 자료와 백테스트 결과는 기존 모델의 연구 자료이며, 모둠 수식의 예측 정확도는 별도로 검증해야 합니다.</p>}
           <WetEvidencePanel />
           {pageView === "data" && <PanelErrorBoundary label="데이터"><Suspense fallback={<p role="status">관측 자료를 불러오는 중…</p>}><HistoricalEvidencePanel appliedTrackId={applied.trackId} onApply={applyHistoricalCalibration} /></Suspense></PanelErrorBoundary>}
@@ -2550,16 +2587,16 @@ export default function StrategyLab({
 
           <div className="formula-card">
             <div>
-              <span>한 랩의 예상시간 · {applied.calculationModel === "group-formula" ? "모둠 PDF 수식 (건식)" : "기존 모델 추정"}</span>
+              <span>한 랩의 예상시간 · {observedModelActive ? "2025 바레인 관측 열화항" : applied.calculationModel === "group-formula" ? "모둠 PDF 수식 (건식)" : "기존 모델 추정"}</span>
               <code>
-                {applied.calculationModel === "group-formula" ? <>LapTime = B × k<sub>pace,c</sub> + β₁·age + β₂·max(0, age−τ) + Δt<sub>T</sub> + W − γ(l−1)</> : <>
+                {observedModelActive ? <>LapTime = B + Δ<sub>c</sub> + α₀<sub>c</sub>·age + β<sub>c</sub>·age² − γ(l−1)</> : applied.calculationModel === "group-formula" ? <>LapTime = B × k<sub>pace,c</sub> + β₁·age + β₂·max(0, age−τ) + Δt<sub>T</sub> + W − γ(l−1)</> : <>
                 LapTime(l,c,a) = B + Δ<sub>c</sub> + α<sub>c</sub>a + β
                 <sub>c</sub>a² + Θ(c,a,T<sub>s</sub>,v) + W(c,w,d) − γ(l−1)
                 </>}
               </code>
             </div>
             <p>
-              {applied.calculationModel === "group-formula" ? <>기준 페이스(B)에 문서의 평균 랩타임 비율을 곱하고, 선형·절벽 이후 열화와 온도 구간별 제곱 손실을 더합니다. 선수 열화 배율은 β₁·β₂에 적용합니다. 피트 손실은 교체 다음 랩에 별도 추가합니다. 권장 스틴트·거리 마모는 참고 진단이며, 우천 타이어는 기존 모델을 사용합니다. 모둠 수식의 계수와 두 모델 비교는 직접 설계 화면의 ‘계산 모델’에서 확인하세요.</> : <>
+              {observedModelActive ? <>2025 바레인의 학습자료에서 채택된 타이어 연령 항만 사용합니다. S는 0.020146·age + 0.003565·age², M은 0.096782·age, H는 0.134825·age입니다. 신품 age=0 손실을 0으로 맞춰 절편을 다시 더하지 않습니다. B·신품 속도차 Δ·연료는 프로젝트 가정이며 피트 손실은 교체 다음 랩에 별도 추가합니다. PDF 온도식·기존 상태 벌점·현재 시즌 선수 능력치는 추가하지 않습니다. 전체 회귀와 같은 정확도를 보장하지 않습니다.</> : applied.calculationModel === "group-formula" ? <>기준 페이스(B)에 문서의 평균 랩타임 비율을 곱하고, 선형·절벽 이후 열화와 온도 구간별 제곱 손실을 더합니다. 선수 열화 배율은 β₁·β₂에 적용합니다. 피트 손실은 교체 다음 랩에 별도 추가합니다. 권장 스틴트·거리 마모는 참고 진단이며, 우천 타이어는 기존 모델을 사용합니다. 모둠 수식의 계수와 두 모델 비교는 직접 설계 화면의 ‘계산 모델’에서 확인하세요.</> : <>
               기준 페이스(B)에 컴파운드 차이(Δ), 타이어 나이(a)에 따른
               1·2차 열화, 노면 온도(Ts)와 서킷 부담도(v)로 계산한
               워밍업·그레이닝·과열·성능 절벽 비용(Θ), 연료 감소
@@ -2590,7 +2627,7 @@ export default function StrategyLab({
                 number: "03",
                 title: "두 가지 선택",
                 body: "현재 타이어로 계속 달리거나 새 타이어로 교체합니다.",
-                code: "유지 / 교체 → S·M·H·INTER·WET",
+                code: observedModelActive ? "유지 / 교체 → S·M·H" : "유지 / 교체 → S·M·H·INTER·WET",
               },
               {
                 number: "04",
@@ -2619,7 +2656,7 @@ export default function StrategyLab({
                 </div>
                 <div>
                   <dt>c</dt>
-                  <dd>현재 컴파운드 S/M/H/INTER/WET</dd>
+                  <dd>현재 컴파운드 {observedModelActive ? "S/M/H" : "S/M/H/INTER/WET"}</dd>
                 </div>
                 <div>
                   <dt>a</dt>
@@ -2644,7 +2681,7 @@ export default function StrategyLab({
                 <code>{`각 랩의 모든 DP 상태에서:
   현재 타이어 유지 비용 계산
   스톱 여유가 있으면:
-    허용된 5종 타이어로 교체 비용 계산
+    허용된 ${observedModelActive ? "건식 3종" : "5종"} 타이어로 교체 비용 계산
   동일 상태의 빠른 경로 K개 유지
 
 실제 우천 타이어 사용 여부와 건식 2종 규칙 검사
@@ -2689,7 +2726,7 @@ export default function StrategyLab({
           {pageView === "method" && (
             <>
               <ValidationPanel input={optimizerInput} results={results} />
-              {applied.calculationModel === "group-formula" && <p className="formula-evidence-note">위 DP·완전탐색 및 현재 조건 비용 합계는 선택한 모둠 모델을 검사합니다. 고정 통제 기준과 아래 실제 전략 백테스트는 기존 모델의 검증 자료입니다.</p>}
+              {applied.calculationModel !== "original" && <p className="formula-evidence-note">위 DP·완전탐색 및 현재 조건 비용 합계는 선택한 {observedModelActive ? "관측 열화항" : "모둠"} 모델을 검사합니다. 고정 통제 기준과 아래 실제 전략 백테스트는 기존 모델의 검증 자료입니다.</p>}
               <PanelErrorBoundary label="계산·검증"><Suspense fallback={<p role="status">실제 경기 비교 자료를 불러오는 중…</p>}><StrategyBacktestPanel /></Suspense></PanelErrorBoundary>
             </>
           )}
@@ -3070,7 +3107,10 @@ export default function StrategyLab({
                 {draftSelections.track && draftSelections.team && draftSelections.driver && <>
                 <details className="race-setup-modal__weather">
                   <summary>강수·수막 설정</summary>
+                  {draft.calculationModel === "observed-bahrain-2025" && <p className="input-note">2025 바레인 건식 열화항 실험에서는 강수 없음으로 고정합니다. 우천 조건은 기존·PDF 모델에서 선택하세요.</p>}
+                  <fieldset disabled={draft.calculationModel === "observed-bahrain-2025"}>
                   <WeatherControls value={draft.weather} laps={draftTrack.laps} temperatureC={draft.trackTemperatureC} onChange={weather => setDraft(current => ({ ...current, weather, maxStops: weather.preset === "none" && current.maxStops === MODEL_PARAMS.weather.maxStops ? 2 : current.maxStops }))} />
+                  </fieldset>
                 </details>
                 <div className="race-setup-modal__conditions">
                   <label className="race-setup-modal__number-field">
@@ -3156,13 +3196,13 @@ export default function StrategyLab({
                       </label>
                     ))}
                   </fieldset>
-                  <fieldset>
+                  <fieldset disabled={draft.calculationModel === "observed-bahrain-2025"}>
                     <legend>차량 성능</legend>
                     <label>
                       <input
                         type="radio"
                         name="modal-performance-mode"
-                        checked={!draft.equalPerformance}
+                        checked={!draft.equalPerformance && draft.calculationModel !== "observed-bahrain-2025"}
                         onChange={() => setDraft((current) => ({ ...current, equalPerformance: false }))}
                       />
                       <span>팀·드라이버 반영</span>
@@ -3171,12 +3211,13 @@ export default function StrategyLab({
                       <input
                         type="radio"
                         name="modal-performance-mode"
-                        checked={draft.equalPerformance}
+                        checked={draft.equalPerformance || draft.calculationModel === "observed-bahrain-2025"}
                         onChange={() => setDraft((current) => ({ ...current, equalPerformance: true }))}
                       />
                       <span>동일 성능</span>
                     </label>
                   </fieldset>
+                  {draft.calculationModel === "observed-bahrain-2025" && <p className="input-note">관측 열화항만 비교하도록 동일 성능으로 고정합니다. 노면 온도·기온·습도 설정에 따른 추가 열화·온도 벌점도 이 모델에는 적용하지 않습니다.</p>}
                   <fieldset className="race-setup-modal__neutralisation">
                     <legend>중립화 발생률</legend>
                     <dl>

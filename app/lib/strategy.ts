@@ -16,6 +16,7 @@ import {
 } from "./tyre-state.ts";
 import { MODEL_PARAMS, TYRE_COLORS, TYRE_LABELS } from "../model/params.ts";
 import { GROUP_FORMULA_VERSION, calculateGroupFormulaLap, groupFormulaSignatureParameters, validateGroupFormulaParameters, type GroupFormulaParameters } from "./group-formula.ts";
+import { OBSERVED_TYRE_MODEL_VERSION, OBSERVED_BAHRAIN_2025, calculateObservedTyreLoss, type ObservedTyreModelId } from "./observed-tyre-model.ts";
 import { buildWeatherTimeline, dryLapsOnSet, wetPenalty, type WeatherInput, type WeatherTimeline } from "./weather.ts";
 
 export const COMPOUNDS = ["S", "M", "H"] as const;
@@ -75,6 +76,8 @@ export interface CompoundModel {
 }
 
 export interface TrackModel {
+  readonly observedTyreModel?: ObservedTyreModelId;
+  readonly raceSeason?: number;
   readonly groupFormula?: GroupFormulaParameters;
   readonly groupWearMultiplier?: number;
   readonly airTemperatureC?: number;
@@ -112,6 +115,9 @@ export interface TrackPreset extends TrackModel {
 }
 
 export interface RaceModelInput {
+  /** Strictly scoped event regression; requires Bahrain and raceSeason=2025. */
+  readonly observedTyreModel?: ObservedTyreModelId;
+  readonly raceSeason?: number;
   /** Omit to retain the original model exactly. PDF model replaces dry-tyre cost categories. */
   readonly groupFormula?: GroupFormulaParameters;
   readonly groupWearMultiplier?: number;
@@ -852,6 +858,9 @@ function createScenarioSignature(
   return JSON.stringify({
     modelVersion: STRATEGY_MODEL_VERSION,
     tyreStateModelVersion: TYRE_STATE_MODEL_VERSION,
+    ...(model.observedTyreModel ? { observedTyreModel: { id: model.observedTyreModel,
+      version: OBSERVED_TYRE_MODEL_VERSION, raceSeason: model.raceSeason,
+      coefficients: OBSERVED_BAHRAIN_2025.coefficients } } : {}),
     ...(model.groupFormula ? { groupFormula: { version: GROUP_FORMULA_VERSION, parameters: groupFormulaSignatureParameters(model.groupFormula),
       airTemperatureC: model.airTemperatureC, circuitLengthKm: model.circuitLengthKm, wearMultiplier: model.groupWearMultiplier ?? 1 } } : {}),
     track: {
@@ -939,6 +948,8 @@ function resolveProblem(
 
   const model: TrackModel = {
     ...selectedTrack,
+    observedTyreModel: input.observedTyreModel ?? selectedTrack.observedTyreModel,
+    raceSeason: input.raceSeason ?? selectedTrack.raceSeason,
     groupFormula: input.groupFormula ?? selectedTrack.groupFormula,
     groupWearMultiplier: input.groupWearMultiplier ?? selectedTrack.groupWearMultiplier ?? 1,
     airTemperatureC: input.airTemperatureC ?? selectedTrack.airTemperatureC ?? 23,
@@ -970,6 +981,12 @@ function resolveProblem(
 }
 
 function validateModel(model: TrackModel): void {
+  if (model.observedTyreModel) {
+    if (model.groupFormula) throw new RangeError("모둠 PDF 원식과 관측 보정은 각각 별도의 계산 모델로 선택해야 합니다.");
+    if (model.observedTyreModel !== "2025-bahrain" || model.id !== "bahrain" || model.raceSeason !== 2025) {
+      throw new RangeError("관측 보정 모델은 2025 바레인 경기에만 적용할 수 있습니다.");
+    }
+  }
   if (model.groupFormula) {
     validateGroupFormulaParameters(model.groupFormula);
     assertFiniteNumber(model.circuitLengthKm ?? NaN, "circuitLengthKm", .001);
@@ -1063,11 +1080,19 @@ function lapCost(
         baseLapTimeSeconds: model.baseLapTimeSeconds, trackTemperatureC: model.trackTemperatureC ?? 34,
         airTemperatureC: model.airTemperatureC ?? 23, circuitLengthKm: model.circuitLengthKm!,
         pitLossSeconds: model.pitLossSeconds, wearMultiplier: model.groupWearMultiplier }) : null;
-  const linearDegradationSeconds = group?.linearDegradationSeconds ?? (parameters.alpha * tyreAge + (compound === "INTER" ? (MODEL_PARAMS.weather.interDryWear - MODEL_PARAMS.weather.interWear) * (parameters.alpha / MODEL_PARAMS.weather.interWear) * dryAge : 0));
+  const observed = model.observedTyreModel && compound !== "INTER" && compound !== "WET"
+    ? calculateObservedTyreLoss(compound, tyreAge) : null;
+  const linearDegradationSeconds = observed?.linearDegradationSeconds ?? group?.linearDegradationSeconds ?? (parameters.alpha * tyreAge + (compound === "INTER" ? (MODEL_PARAMS.weather.interDryWear - MODEL_PARAMS.weather.interWear) * (parameters.alpha / MODEL_PARAMS.weather.interWear) * dryAge : 0));
   const wetPenaltySeconds = wetPenalty(compound, weatherLap.water, dryAge) * (model.wetPenaltyMultiplier ?? 1);
   const quadraticDegradationSeconds =
-    group?.cliffDegradationSeconds ?? parameters.beta * tyreAge * tyreAge;
-  const tyreState: TyreStateSnapshot = group ? {
+    observed?.quadraticDegradationSeconds ?? group?.cliffDegradationSeconds ?? parameters.beta * tyreAge * tyreAge;
+  const tyreState: TyreStateSnapshot = observed ? {
+    modelKind: "observed-regression", temperatureC: null, optimalMinC: null, optimalMaxC: null,
+    thermalState: "not-modelled", condition: tyreAge > 0 ? "worn" : "optimal",
+    wearPercent: null, gripPercent: null, wetDryLaps: null,
+    warmupLossSeconds: 0, overheatLossSeconds: 0, grainingLossSeconds: 0,
+    cliffLossSeconds: 0, totalStateLossSeconds: 0,
+  } : group ? {
     modelKind: "group-formula", temperatureC: group.temperatureC,
     optimalMinC: model.groupFormula!.temperature.minC, optimalMaxC: model.groupFormula!.temperature.maxC,
     thermalState: group.thermalState, condition: group.thermalState === "hot" ? "overheated"

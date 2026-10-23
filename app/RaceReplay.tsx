@@ -1598,6 +1598,7 @@ export default function RaceReplay({
     currentLapCost.quadraticDegradationSeconds +
     currentLapCost.tyreState.totalStateLossSeconds;
   const currentTyreState = currentLapCost.tyreState;
+  const observedTyreState = currentTyreState.modelKind === "observed-regression";
   const nextPitAfterLap = strategy.pitAfterLaps.find(
     (pitLap) => pitLap >= displayLap,
   );
@@ -2077,9 +2078,9 @@ export default function RaceReplay({
                   </div>
                   <div
                     className="race-replay__hud-tyre"
-                    data-condition={currentTyreState.condition}
+                    data-condition={observedTyreState ? "not-modelled" : currentTyreState.condition}
                     role="group"
-                    aria-label={`프로젝트 추정: ${COMPOUND_NAMES[playerFrame.compound]} 타이어, ${playerFrame.tyreAge + 1}랩째, 온도 ${formatTyreStateMetric(currentTyreState.temperatureC, "°C")}, 그립 ${formatTyreStateMetric(currentTyreState.gripPercent, "%")}, 마모 ${formatTyreStateMetric(currentTyreState.wearPercent, "%")}, ${TYRE_CONDITION_LABELS_KO[currentTyreState.condition]}${currentTyreState.modelKind === "wet-heat-only" ? `, 이전 건조 ${currentTyreState.wetDryLaps}랩에 따른 과열 비용 모델` : ""}`}
+                    aria-label={`프로젝트 추정: ${COMPOUND_NAMES[playerFrame.compound]} 타이어, ${playerFrame.tyreAge + 1}랩째, 온도 ${formatTyreStateMetric(currentTyreState.temperatureC, "°C")}, 그립 ${formatTyreStateMetric(currentTyreState.gripPercent, "%")}, 마모 ${formatTyreStateMetric(currentTyreState.wearPercent, "%")}, ${observedTyreState ? "상태 미모델링" : TYRE_CONDITION_LABELS_KO[currentTyreState.condition]}${currentTyreState.modelKind === "wet-heat-only" ? `, 이전 건조 ${currentTyreState.wetDryLaps}랩에 따른 과열 비용 모델` : ""}`}
                   >
                     <i className={compoundClass(playerFrame.compound)}>
                       {playerFrame.compound}
@@ -2088,10 +2089,10 @@ export default function RaceReplay({
                       {COMPOUND_NAMES[playerFrame.compound]}
                       <small>
                         {playerFrame.tyreAge + 1}랩 ·{" "}
-                        {TYRE_CONDITION_LABELS[currentTyreState.condition]}
+                        {observedTyreState ? "상태 미모델링" : TYRE_CONDITION_LABELS[currentTyreState.condition]}
                       </small>
                       <em>
-                        {currentTyreState.modelKind === "wet-heat-only"
+                        {currentTyreState.modelKind === "wet-heat-only" || observedTyreState
                           ? "온도·그립·마모 미모델링"
                           : `${formatTyreStateMetric(currentTyreState.temperatureC, "°C")} · 그립 ${formatTyreStateMetric(currentTyreState.gripPercent, "%")} · 마모 ${formatTyreStateMetric(currentTyreState.wearPercent, "%")}`}
                       </em>
@@ -2492,7 +2493,7 @@ export default function RaceReplay({
             <div>
               <span>타이어 상태 · 추정</span>
               <strong>
-                {TYRE_CONDITION_LABELS_KO[currentTyreState.condition]}
+                {observedTyreState ? "상태 미모델링" : TYRE_CONDITION_LABELS_KO[currentTyreState.condition]}
               </strong>
             </div>
             <div>
@@ -2502,7 +2503,7 @@ export default function RaceReplay({
               </strong>
             </div>
             <div>
-              <span>{currentTyreState.modelKind === "wet-heat-only" ? "타이어 마모 비용" : "열화·상태 비용"}</span>
+              <span>{observedTyreState ? "관측 열화 비용" : currentTyreState.modelKind === "wet-heat-only" ? "타이어 마모 비용" : "열화·상태 비용"}</span>
               <strong>+{degradationSeconds.toFixed(3)}초</strong>
             </div>
             {currentTyreState.modelKind === "wet-heat-only" && <div>
@@ -2526,6 +2527,10 @@ export default function RaceReplay({
           {currentTyreState.modelKind === "wet-heat-only" && <div className="race-replay__event">
             <span>우천 타이어 상태 · 프로젝트 추정</span>
             <p>이 세트의 이전 건조 {currentTyreState.wetDryLaps}랩을 과열 비용에 반영합니다. 온도·그립·마모율은 미모델링이며 센서 측정값이 아닙니다. 수막·과열 비용은 랩타임에 한 번만 포함됩니다.</p>
+          </div>}
+          {observedTyreState && <div className="race-replay__event">
+            <span>2025 바레인 · 관측 열화 비용</span>
+            <p>이 경기에서 추정한 타이어 사용 연령별 시간 손실만 반영합니다. 온도·그립·마모율과 타이어 상태는 미모델링이며 센서 측정값이 아닙니다.</p>
           </div>}
 
           <div

@@ -3,14 +3,19 @@ import { calculateGroupFormulaLap, DEFAULT_GROUP_FORMULA_PARAMETERS, validateGro
 import { evaluateStrategy, TRACK_PRESETS, type StrategyOptimizerInput, type StrategyStintInput } from "./lib/strategy";
 import "./group-formula.css";
 import ModelDifferenceGuide from "./ModelDifferenceGuide";
+import ObservedCalibrationPanel from "./ObservedCalibrationPanel";
 
 type Props = {
   active: boolean;
+  observedActive: boolean;
+  observedAvailable: boolean;
+  observedInput: StrategyOptimizerInput | null;
   parameters: GroupFormulaParameters;
   legacyInput: StrategyOptimizerInput;
   groupInput: StrategyOptimizerInput;
   stints: readonly StrategyStintInput[];
   onApply: (active: boolean, parameters: GroupFormulaParameters) => void;
+  onObserved: () => void;
 };
 const cloneDefaults = () => structuredClone(DEFAULT_GROUP_FORMULA_PARAMETERS);
 const finiteLabel = (n: number | null, unit = "") => n === null ? "미설정" : Number.isFinite(n) ? `${n.toFixed(1)}${unit}` : "제한 없음";
@@ -22,15 +27,16 @@ function NumberField({ label, value, onChange, min = 0, max, step = "any" }: {
     onChange={event => onChange(event.target.value === "" ? null : Number(event.target.value))} /></label>;
 }
 
-export default function GroupFormulaPanel({ active, parameters, legacyInput, groupInput, stints, onApply }: Props) {
+export default function GroupFormulaPanel({ active, observedActive, observedAvailable, observedInput, parameters, legacyInput, groupInput, stints, onApply, onObserved }: Props) {
   const [draft, setDraft] = useState(() => structuredClone(parameters));
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const dirty = JSON.stringify(draft) !== JSON.stringify(parameters);
   const comparison = useMemo(() => {
-    try { return { original: evaluateStrategy({ ...legacyInput, stints }), group: evaluateStrategy({ ...groupInput, stints }), error: "" }; }
-    catch (cause) { return { original: null, group: null, error: cause instanceof Error ? cause.message : "비교 계산에 실패했습니다." }; }
-  }, [legacyInput, groupInput, stints]);
+    try { return { original: evaluateStrategy({ ...legacyInput, stints }), group: evaluateStrategy({ ...groupInput, stints }),
+      observed: observedInput ? evaluateStrategy({ ...observedInput, stints }) : null, error: "" }; }
+    catch (cause) { return { original: null, group: null, observed: null, error: cause instanceof Error ? cause.message : "비교 계산에 실패했습니다." }; }
+  }, [legacyInput, groupInput, observedInput, stints]);
   const track = typeof groupInput.track === "object" ? groupInput.track : TRACK_PRESETS[groupInput.track ?? "melbourne"];
   const rows = useMemo(() => (["S", "M", "H"] as const).map(compound => ({ compound, ...calculateGroupFormulaLap({ parameters,
     compound, tyreAge: 0, baseLapTimeSeconds: groupInput.baseLapTimeSeconds ?? track.baseLapTimeSeconds,
@@ -50,41 +56,56 @@ export default function GroupFormulaPanel({ active, parameters, legacyInput, gro
   const setCompound = (compound: "S" | "M" | "H", key: keyof GroupCompoundParameters, value: number | null) =>
     setDraft(current => ({ ...current, compounds: { ...current.compounds, [compound]: { ...current.compounds[compound], [key]: value ?? NaN } } }));
   const delta = comparison.group && comparison.original ? comparison.group.totalSeconds - comparison.original.totalSeconds : 0;
+  const applyObserved = () => {
+    try {
+      onObserved();
+      setError("");
+      setNotice("2025 바레인 관측 보정을 적용했습니다. 건식·동일 성능으로 계산하며 관측 피트 손실을 사용합니다.");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "관측 모델 적용에 실패했습니다."); }
+  };
   const costRows = [
+    ["기준 페이스", "baselineSeconds"],
     ["컴파운드 속도차 + 노면 수막", "compoundOffsetSeconds"], ["사용 연령에 따른 선형 열화", "linearDegradationSeconds"],
-    ["기존: 2차 열화 / 모둠: 절벽 이후 추가 열화", "quadraticDegradationSeconds"],
-    ["기존: 워밍업·온도·절벽 / 모둠: 온도만", "tyreStateLossSeconds"], ["피트 손실 (공통)", "pitLossSeconds"],
+    ["2차 열화 / PDF는 절벽 이후 추가 열화", "quadraticDegradationSeconds"],
+    ["상태 손실 / PDF는 온도 / 관측은 미적용", "tyreStateLossSeconds"],
+    ["연료 효과 (이 값을 뺌)", "fuelGainSeconds"], ["피트 손실 (공통)", "pitLossSeconds"],
+    ["예상 완주시간", "totalSeconds"],
   ] as const;
 
   return <section className="formula-lab" aria-labelledby="formula-model-title">
     <div className="formula-lab__bar">
       <div><span className="formula-kicker">CALCULATION MODEL</span><h2 id="formula-model-title">계산 모델</h2></div>
       <div className="formula-toggle" role="group" aria-label="계산 모델 선택">
-        <button type="button" aria-pressed={!active} onClick={() => apply(false)}>기존 모델</button>
+        <button type="button" aria-pressed={!active && !observedActive} onClick={() => apply(false)}>기존 모델</button>
         <button type="button" aria-pressed={active} onClick={() => apply(true)}>모둠 수식 <small>실험</small></button>
+        <button type="button" aria-pressed={observedActive} disabled={!observedAvailable} title={!observedAvailable ? "바레인에서만 적용할 수 있습니다. 아래 안내에서 서킷을 전환하세요." : "2025 바레인 단일 경기의 열화 계수 실험"} onClick={applyObserved}>관측 보정 <small>2025 바레인</small></button>
       </div>
-      <p>{active ? "전략 계산·3D 주행에 모둠 수식 적용" : "기존 알고리즘 유지 · 모둠 식과 비교 가능"}</p>
+      <p>{observedActive ? "2025 바레인 계수 실험 · 건식 · 동일 성능" : active ? "전략 계산·3D 주행에 모둠 수식 적용" : "기존 알고리즘 유지 · 모둠 식과 비교 가능"}</p>
     </div>
     {active && <p className="formula-scope">PDF 예시 + 명시된 가정값을 사용하는 실험 모델입니다. S·M·H에 적용하며, INTER·WET·수막·교통·사고는 기존 모델을 유지합니다.</p>}
+    {observedActive && <p className="formula-scope">2025 바레인에서 관측한 열화항만 사용합니다. 실제 경기 전체의 재현은 아니며, 현재 시즌 팀·선수는 시각화용입니다. 온도·마모·그립은 미모델링입니다.</p>}
     {error && <p className="formula-error" role="alert">{error}</p>}
     <p className="sr-only" role="status">{notice}</p>
     <ModelDifferenceGuide />
+    <ObservedCalibrationPanel active={observedActive} available={observedAvailable} pitLossSeconds={observedInput?.pitLossSeconds ?? groupInput.pitLossSeconds ?? track.pitLossSeconds} onApply={applyObserved} />
     <details className="formula-details">
-      <summary>같은 전략으로 두 모델 비교 · 수식과 계수 설정</summary>
+      <summary>{observedActive ? "같은 전략으로 세 모델 비교 · 수식과 계수 설정" : "같은 전략으로 두 모델 비교 · 수식과 계수 설정"}</summary>
       <div className="formula-details__body">
         <h3>타이어와 피트 시점을 고정한 비교</h3>
-        <p>지금 직접 편집한 전략을 양쪽 모델로 계산합니다. 서킷·선수·날씨·연료·피트 손실·스틴트 상한은 동일합니다. 짧게 예측한 모델이 더 정확하다는 뜻은 아닙니다.</p>
+        <p>지금 직접 편집한 전략을 각 모델로 계산합니다. 서킷·선수·날씨·연료·현재 피트 손실·스틴트 상한은 동일합니다. 짧게 예측한 모델이 더 정확하다는 뜻은 아닙니다.</p>
+        {observedActive && <p>세 모델 모두 건식·동일 성능입니다. 전체 시간 차이에는 신품 속도차와 온도·상태 손실의 계산 차이도 포함됩니다. 순수 열화항 비교는 위 ‘관측 보정 · 계수와 출처’에서 확인하세요.</p>}
         {comparison.error && <p role="alert">{comparison.error}</p>}
         {comparison.original && comparison.group && <>
           <div className="formula-comparison">
             <article><span>기존 모델</span><strong>{comparison.original.formattedTime}</strong><small>{comparison.original.isLegal ? "공통 전략 제약 통과" : "전략 제약 위반 · 참고값"}</small></article>
             <article><span>모둠 수식 모델</span><strong>{comparison.group.formattedTime}</strong><small>{comparison.group.isLegal ? "공통 전략 제약 통과" : "전략 제약 위반 · 참고값"}</small></article>
-            <article><span>모둠 − 기존</span><strong>{delta >= 0 ? "+" : "−"}{Math.abs(delta).toFixed(3)}초</strong><small>교통·사고 발생 전 결정론 계산</small></article>
+            {comparison.observed ? <article><span>2025 바레인 관측 보정</span><strong>{comparison.observed.formattedTime}</strong><small>{comparison.observed.isLegal ? "공통 전략 제약 통과" : "전략 제약 위반 · 참고값"}</small></article> : <article><span>모둠 − 기존</span><strong>{delta >= 0 ? "+" : "−"}{Math.abs(delta).toFixed(3)}초</strong><small>교통·사고 발생 전 결정론 계산</small></article>}
           </div>
-          <div className="formula-table-wrap"><table><caption>모델별 시간 비용 (초)</caption><thead><tr><th>비용 항목</th><th>기존</th><th>모둠</th></tr></thead>
-            <tbody>{costRows.map(([label, key]) => <tr key={key}><th>{label}</th><td>{comparison.original!.breakdown[key].toFixed(3)}</td><td>{comparison.group!.breakdown[key].toFixed(3)}</td></tr>)}</tbody></table></div>
-          <details><summary>랩별 비교 데이터</summary><div className="formula-table-wrap formula-table-wrap--laps"><table><thead><tr><th>랩</th><th>타이어</th><th>사용 연령</th><th>기존 랩타임</th><th>모둠 랩타임</th><th>모둠 온도</th><th>누적 차이</th></tr></thead><tbody>
-            {comparison.original.lapCosts.map((lap, index) => { const other = comparison.group!.lapCosts[index]; return <tr key={lap.lap}><td>{lap.lap}</td><td>{lap.compound}</td><td>{lap.tyreAge}</td><td>{lap.lapTimeSeconds.toFixed(3)}</td><td>{other.lapTimeSeconds.toFixed(3)}</td><td>{finiteLabel(other.tyreState.temperatureC, "°C")}</td><td>{(other.cumulativeSeconds - lap.cumulativeSeconds).toFixed(3)}초</td></tr>; })}
+          {comparison.observed && <p>모둠 − 기존: {delta >= 0 ? "+" : "−"}{Math.abs(delta).toFixed(3)}초 · 관측 − 기존: {(comparison.observed.totalSeconds - comparison.original.totalSeconds).toFixed(3)}초. 교통·사고 발생 전 결정론 계산입니다.</p>}
+          <div className="formula-table-wrap"><table><caption>모델별 시간 비용 (초)</caption><thead><tr><th>비용 항목</th><th>기존</th><th>모둠</th>{comparison.observed && <th>관측 보정</th>}</tr></thead>
+            <tbody>{costRows.map(([label, key]) => <tr key={key}><th>{label}</th><td>{comparison.original!.breakdown[key].toFixed(3)}</td><td>{comparison.group!.breakdown[key].toFixed(3)}</td>{comparison.observed && <td>{comparison.observed.breakdown[key].toFixed(3)}</td>}</tr>)}</tbody></table></div>
+          <details><summary>랩별 비교 데이터</summary><div className="formula-table-wrap formula-table-wrap--laps"><table><thead><tr><th>랩</th><th>타이어</th><th>사용 연령</th><th>기존 랩타임</th><th>모둠 랩타임</th>{comparison.observed && <th>관측 랩타임</th>}<th>모둠 온도</th><th>모둠 − 기존 누적</th></tr></thead><tbody>
+            {comparison.original.lapCosts.map((lap, index) => { const other = comparison.group!.lapCosts[index]; return <tr key={lap.lap}><td>{lap.lap}</td><td>{lap.compound}</td><td>{lap.tyreAge}</td><td>{lap.lapTimeSeconds.toFixed(3)}</td><td>{other.lapTimeSeconds.toFixed(3)}</td>{comparison.observed && <td>{comparison.observed.lapCosts[index].lapTimeSeconds.toFixed(3)}</td>}<td>{finiteLabel(other.tyreState.temperatureC, "°C")}</td><td>{(other.cumulativeSeconds - lap.cumulativeSeconds).toFixed(3)}초</td></tr>; })}
           </tbody></table></div></details>
         </>}
 
@@ -126,7 +147,7 @@ export default function GroupFormulaPanel({ active, parameters, legacyInput, gro
           </form>
         </details>
 
-        <h3>현재 적용값으로 계산한 수명 참고치</h3>
+        <h3>PDF 모둠 식의 적용값으로 계산한 수명 참고치</h3>
         <div className="formula-table-wrap"><table><thead><tr><th>타이어</th><th>속도 비율</th><th>타이어 온도</th><th>권장 스틴트</th><th>트레드 소모 길이</th><th>1랩 마모 지수</th><th>지수 한계 길이</th></tr></thead><tbody>
           {rows.map(row => <tr key={row.compound}><th>{row.compound}</th><td>{row.paceRatio.toFixed(6)}</td><td>{finiteLabel(row.temperatureC, "°C")}</td><td>{finiteLabel(row.suggestedStintLaps, "랩")}</td><td>{finiteLabel(row.treadLifeLaps, "랩")}</td><td>{row.wearUnits.toFixed(3)}</td><td>{finiteLabel(row.wearBudgetLaps, "랩")}</td></tr>)}
         </tbody></table></div>

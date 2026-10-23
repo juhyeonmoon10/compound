@@ -45,7 +45,7 @@ const DIFFERENCES = [
 
 export default function ModelDifferenceGuide() {
   return <div className="model-difference-guide">
-    <p className="model-difference-guide__intro">두 모델 모두 <strong>같은 DP로 최적 전략을 찾고</strong>, 타이어가 한 랩의 시간에 미치는 영향을 계산하는 식이 달라요.</p>
+    <p className="model-difference-guide__intro">모든 모델은 <strong>같은 DP로 최적 전략을 찾고</strong>, 타이어가 한 랩의 시간에 미치는 영향을 계산하는 식이 달라요. 아래는 기존 모델과 모둠 PDF 원식의 차이이며, 바레인 관측 보정은 별도 안내에서 확인할 수 있어요.</p>
     <details className="model-difference-guide__details">
       <summary>기존 모델과 모둠 수식, 뭐가 다른가요?</summary>
       <div className="model-difference-guide__body">
